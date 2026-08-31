@@ -31,8 +31,8 @@ import { getRecentlyViewedProducts } from '../utils/recentViews.js';
 const TRUST_PILLARS = [
   {
     icon: Database,
-    title: '16,976 Verified Products',
-    desc: 'Pure, dataset-independent catalogue across 8 standard departments',
+    title: 'Certified Pure Catalogue',
+    desc: 'Strictly partitioned dataset across 8 standardized departments',
   },
   {
     icon: ShieldCheck,
@@ -64,71 +64,100 @@ export default function Home() {
   const navigate = useNavigate();
   const [heroSearchQuery, setHeroSearchQuery] = useState('');
 
-  // 1. Featured Products (Selected via highest ratings & reviews)
+  // 1. Shelves state
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredError, setFeaturedError] = useState('');
 
-  // 2. Popular Products (Selected via highest community review counts)
   const [popularProducts, setPopularProducts] = useState([]);
   const [popularLoading, setPopularLoading] = useState(true);
   const [popularError, setPopularError] = useState('');
 
-  // 3. New Arrivals (Selected via newest chronological entries)
   const [newArrivals, setNewArrivals] = useState([]);
   const [newArrivalsLoading, setNewArrivalsLoading] = useState(true);
   const [newArrivalsError, setNewArrivalsError] = useState('');
 
-  // 4. Categories / Departments
+  // 2. Categories / Departments
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState('');
 
-  // 5. Community Rating Baseline for AI Gateway Section
+  // 3. Community Rating Baseline for AI Gateway Section
   const [communityPicks, setCommunityPicks] = useState([]);
   const [communityLoading, setCommunityLoading] = useState(true);
 
-  // 6. Recently Viewed Session Products
+  // 4. Recently Viewed Session Products
   const [recentProducts, setRecentProducts] = useState([]);
 
-  // Load Featured Products (sort=featured)
-  const loadFeatured = async () => {
+  // Load Shelves with Cross-Shelf Deduplication
+  const loadShelves = async () => {
     setFeaturedLoading(true);
-    setFeaturedError('');
-    try {
-      const res = await productService.list({ sort: 'featured', limit: 8 });
-      setFeaturedProducts(res.data || []);
-    } catch (err) {
-      setFeaturedError(err.message || 'Unable to load featured collections.');
-    } finally {
-      setFeaturedLoading(false);
-    }
-  };
-
-  // Load Popular Products (sort=popular)
-  const loadPopular = async () => {
     setPopularLoading(true);
-    setPopularError('');
-    try {
-      const res = await productService.list({ sort: 'popular', limit: 4 });
-      setPopularProducts(res.data || []);
-    } catch (err) {
-      setPopularError(err.message || 'Unable to load popular picks.');
-    } finally {
-      setPopularLoading(false);
-    }
-  };
-
-  // Load New Arrivals (sort=newest)
-  const loadNewArrivals = async () => {
     setNewArrivalsLoading(true);
+    setFeaturedError('');
+    setPopularError('');
     setNewArrivalsError('');
+
     try {
-      const res = await productService.list({ sort: 'newest', limit: 4 });
-      setNewArrivals(res.data || []);
+      // Step 1: Load Featured Products (sort=featured)
+      const featRes = await productService.list({ sort: 'featured', limit: 8 });
+      const featList = featRes.data || [];
+      setFeaturedProducts(featList);
+      setFeaturedLoading(false);
+
+      const usedIds = new Set(featList.map((p) => p.id));
+      const usedNames = new Set(featList.map((p) => p.name.toLowerCase().slice(0, 30)));
+
+      // Step 2: Load Popular Picks (Exclude already featured items)
+      try {
+        const popRes = await productService.list({ sort: 'popular', limit: 16 });
+        const popCandidates = (popRes.data || []).filter(
+          (p) => !usedIds.has(p.id) && !usedNames.has(p.name.toLowerCase().slice(0, 30))
+        );
+        const popDistinct = [];
+        const popBrands = new Set();
+        for (const p of popCandidates) {
+          if (!popBrands.has(p.brand) || popDistinct.length < 2) {
+            popDistinct.push(p);
+            popBrands.add(p.brand);
+            usedIds.add(p.id);
+            usedNames.add(p.name.toLowerCase().slice(0, 30));
+          }
+          if (popDistinct.length >= 4) break;
+        }
+        setPopularProducts(popDistinct.length > 0 ? popDistinct : (popRes.data || []).slice(0, 4));
+      } catch (err) {
+        setPopularError(err.message || 'Unable to load popular picks.');
+      } finally {
+        setPopularLoading(false);
+      }
+
+      // Step 3: Load New Arrivals (Exclude featured and popular items)
+      try {
+        const newRes = await productService.list({ sort: 'newest', limit: 16 });
+        const newCandidates = (newRes.data || []).filter(
+          (p) => !usedIds.has(p.id) && !usedNames.has(p.name.toLowerCase().slice(0, 30))
+        );
+        const newDistinct = [];
+        const newBrands = new Set();
+        for (const p of newCandidates) {
+          if (!newBrands.has(p.brand) || newDistinct.length < 2) {
+            newDistinct.push(p);
+            newBrands.add(p.brand);
+            usedIds.add(p.id);
+          }
+          if (newDistinct.length >= 4) break;
+        }
+        setNewArrivals(newDistinct.length > 0 ? newDistinct : (newRes.data || []).slice(0, 4));
+      } catch (err) {
+        setNewArrivalsError(err.message || 'Unable to load new arrivals.');
+      } finally {
+        setNewArrivalsLoading(false);
+      }
     } catch (err) {
-      setNewArrivalsError(err.message || 'Unable to load new arrivals.');
-    } finally {
+      setFeaturedError(err.message || 'Unable to load catalogue.');
+      setFeaturedLoading(false);
+      setPopularLoading(false);
       setNewArrivalsLoading(false);
     }
   };
@@ -161,9 +190,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    loadFeatured();
-    loadPopular();
-    loadNewArrivals();
+    loadShelves();
     loadCategories();
     loadCommunityPicks();
     setRecentProducts(getRecentlyViewedProducts());
@@ -184,113 +211,114 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col gap-16 sm:gap-24 pb-20 overflow-x-hidden bg-surface">
+    <div className="flex flex-col gap-16 sm:gap-20 pb-20 overflow-x-hidden bg-surface">
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 1: EDITORIAL HERO SECTION                              */}
+      {/* SECTION 1: REDESIGNED EDITORIAL HERO                           */}
       {/* ------------------------------------------------------------- */}
-      <section className="relative border-b border-surface-border bg-surface py-16 sm:py-24">
+      <section className="relative border-b border-surface-border bg-surface py-12 sm:py-16 lg:py-20">
         <Container size="storefront">
-          <div className="grid items-center gap-12 lg:grid-cols-12">
-            {/* Left Column: Typography, Search & Actions */}
+          <div className="grid items-center gap-10 lg:grid-cols-12">
+            {/* Left Column: Proportional Typography, Search & Actions */}
             <div className="flex flex-col items-start lg:col-span-7">
               <div className="flex items-center gap-2">
                 <Badge variant="primary" icon={Sparkles}>
                   Intelligent Discovery Platform
                 </Badge>
                 <span className="hidden sm:inline text-xs font-semibold text-zinc-500">
-                  • 16,976 Verified Products
+                  • Verified Catalogue
                 </span>
               </div>
 
-              <h1 className="text-display-xl mt-5 font-black tracking-tight text-ink">
+              {/* Smaller, Proportional Heading */}
+              <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink sm:text-4xl lg:text-5xl leading-[1.15]">
                 The Modern Catalogue,{' '}
-                <span className="text-primary font-bold">
+                <span className="text-primary">
                   Curated
                 </span>{' '}
                 For You.
               </h1>
 
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
+              <p className="mt-3.5 max-w-lg text-sm sm:text-base leading-relaxed text-zinc-600">
                 Discover verified electronics, fashion, home essentials, and lifestyle goods. Backed by real-time behavioral telemetry and academic AI recommendation research.
               </p>
 
-              {/* Prominent Hero Search Form */}
+              {/* Prominent Search Form */}
               <form
                 onSubmit={handleHeroSearchSubmit}
-                className="mt-8 flex w-full max-w-lg items-center rounded-2xl border border-surface-border bg-white p-1.5 shadow-sm hover:border-zinc-400 focus-within:border-ink focus-within:ring-2 focus-within:ring-ink/10 transition-all"
+                className="mt-6 flex w-full max-w-lg items-center rounded-2xl border border-surface-border bg-white p-1.5 shadow-xs hover:border-zinc-400 focus-within:border-ink focus-within:ring-2 focus-within:ring-ink/10 transition-all"
               >
                 <div className="flex items-center pl-3 text-zinc-400">
-                  <Search className="h-5 w-5" />
+                  <Search className="h-4 w-4" />
                 </div>
                 <input
                   type="text"
                   value={heroSearchQuery}
                   onChange={(e) => setHeroSearchQuery(e.target.value)}
-                  placeholder="Search 16,976 products (e.g. smartwatch, shoes, coffee)..."
-                  className="w-full bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
+                  placeholder="Search catalogue (e.g. smartwatch, shoes, coffee)..."
+                  className="w-full bg-transparent px-3 py-1.5 text-xs sm:text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
                 />
                 <Button type="submit" variant="primary" size="md">
                   Search
                 </Button>
               </form>
 
-              {/* Popular Suggested Search Tags */}
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                <span className="font-semibold text-zinc-800">Suggested:</span>
+              {/* Suggested Search Tags */}
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                <span className="font-semibold text-zinc-700 text-[11px]">Suggested:</span>
                 {POPULAR_SEARCH_SUGGESTIONS.map((tag) => (
                   <Link
                     key={tag.label}
                     to={`/products?q=${encodeURIComponent(tag.query)}`}
-                    className="rounded-xl bg-surface-secondary px-2.5 py-1 text-zinc-800 hover:bg-white hover:text-primary transition-colors border border-surface-border/60"
+                    className="rounded-lg bg-surface-secondary px-2.5 py-1 text-[11px] font-medium text-zinc-800 hover:bg-white hover:text-primary transition-colors border border-surface-border/60"
                   >
                     {tag.label}
                   </Link>
                 ))}
               </div>
 
-              {/* Primary Call to Action Buttons */}
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/products" className="btn btn-lg btn-primary shadow-sm hover:shadow">
+              {/* Action Buttons */}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link to="/products" className="btn btn-md btn-primary shadow-sm hover:shadow">
                   Explore Full Catalogue <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/categories" className="btn btn-lg btn-secondary">
+                <Link to="/categories" className="btn btn-md btn-secondary">
                   Browse Departments
                 </Link>
               </div>
             </div>
 
-            {/* Right Column: Preserved High-Contrast Carbon Obsidian Spotlight */}
+            {/* Right Column: Preserved Carbon Obsidian Spotlight Panel */}
             <div className="lg:col-span-5">
-              <div className="card relative overflow-hidden p-6 sm:p-7 bg-zinc-950 text-white shadow-2xl border-zinc-800/80 rounded-3xl">
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="card relative overflow-hidden p-5 sm:p-6 bg-zinc-950 text-white shadow-2xl border-zinc-800/80 rounded-3xl">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-3.5">
                   <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-amber-400" />
+                    <Award className="h-4 w-4 text-amber-400" />
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
                       Editor's Spotlight
                     </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-900 px-2.5 py-0.5 rounded-full border border-zinc-800">
-                    Verified Catalogue
+                  <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">
+                    Live Catalogue
                   </span>
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-5">
                   {featuredLoading ? (
                     <div className="space-y-3 animate-pulse">
-                      <div className="h-40 w-full rounded-2xl bg-zinc-900" />
+                      <div className="h-32 w-full rounded-2xl bg-zinc-900" />
                       <div className="h-4 w-3/4 rounded bg-zinc-900" />
                       <div className="h-4 w-1/2 rounded bg-zinc-900" />
                     </div>
                   ) : featuredProducts.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3.5">
                       {featuredProducts.slice(0, 2).map((item) => (
                         <Link
                           key={item.id}
                           to={`/products/${item.slug}`}
-                          className="group block overflow-hidden rounded-2xl bg-zinc-900/90 border border-zinc-800 p-3.5 hover:bg-zinc-900 hover:border-zinc-700 transition-all"
+                          className="group block overflow-hidden rounded-2xl bg-zinc-900/90 border border-zinc-800 p-3 hover:bg-zinc-900 hover:border-zinc-700 transition-all"
                         >
-                          <div className="flex gap-4 items-center">
-                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white p-1.5 flex items-center justify-center">
+                          <div className="flex gap-3.5 items-center">
+                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white p-1.5 flex items-center justify-center">
                               <img
                                 src={item.main_image}
                                 alt={item.name}
@@ -298,19 +326,19 @@ export default function Home() {
                               />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wider truncate">
+                              <p className="text-[10px] font-bold text-primary-400 uppercase tracking-wider truncate">
                                 {item.brand || 'Verified Item'}
                               </p>
-                              <h3 className="text-sm font-bold text-white truncate group-hover:text-primary-300 transition-colors">
+                              <h3 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-primary-300 transition-colors">
                                 {item.name}
                               </h3>
-                              <div className="mt-1.5 flex items-center justify-between">
+                              <div className="mt-1 flex items-center justify-between">
                                 <div className="flex items-center gap-1.5 text-xs">
-                                  <span className="flex items-center gap-1 text-amber-400 font-bold">
+                                  <span className="flex items-center gap-1 text-amber-400 font-bold text-[11px]">
                                     <Star className="h-3 w-3 fill-amber-400" />
                                     {item.rating || 4.5}
                                   </span>
-                                  <span className="text-zinc-500">
+                                  <span className="text-zinc-500 text-[11px]">
                                     ({item.review_count || 0})
                                   </span>
                                 </div>
@@ -328,7 +356,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+                <div className="mt-5 pt-3.5 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
                   <span>Fast Full-Text Discovery</span>
                   <Link to="/products" className="inline-flex items-center gap-1 text-primary-400 font-semibold hover:underline">
                     <span>View All</span>
@@ -342,7 +370,7 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 2: BROWSE BY DEPARTMENT                                */}
+      {/* SECTION 2: REDESIGNED EDITORIAL BROWSE BY DEPARTMENT           */}
       {/* ------------------------------------------------------------- */}
       <section id="categories">
         <Container size="storefront">
@@ -354,10 +382,10 @@ export default function Home() {
           />
 
           {categoriesLoading ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="card p-4 space-y-3 animate-pulse">
-                  <div className="h-32 w-full rounded-xl bg-zinc-200" />
+                  <div className="h-36 w-full rounded-2xl bg-zinc-200" />
                   <div className="h-4 w-1/2 rounded bg-zinc-200" />
                   <div className="h-3 w-3/4 rounded bg-zinc-200" />
                 </div>
@@ -392,7 +420,7 @@ export default function Home() {
           {featuredLoading ? (
             <ProductSkeleton count={8} />
           ) : featuredError ? (
-            <ErrorState description={featuredError} onRetry={loadFeatured} />
+            <ErrorState description={featuredError} onRetry={loadShelves} />
           ) : featuredProducts.length === 0 ? (
             <EmptyState title="No featured products" description="No items found in the catalogue." />
           ) : (
@@ -422,7 +450,7 @@ export default function Home() {
                   </span>
                 </div>
 
-                <h2 className="text-display text-white font-extrabold">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
                   Personalized For You (Neural AI Engine)
                 </h2>
 
@@ -485,7 +513,7 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 5: POPULAR PICKS                                      */}
+      {/* SECTION 5: POPULAR PICKS (DIVERSE SELECTION)                   */}
       {/* ------------------------------------------------------------- */}
       <section className="border-y border-surface-border bg-surface-secondary/60 py-16">
         <Container size="storefront">
@@ -499,7 +527,7 @@ export default function Home() {
           {popularLoading ? (
             <ProductSkeleton count={4} />
           ) : popularError ? (
-            <ErrorState description={popularError} onRetry={loadPopular} />
+            <ErrorState description={popularError} onRetry={loadShelves} />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {popularProducts.map((product) => (
@@ -525,7 +553,7 @@ export default function Home() {
           {newArrivalsLoading ? (
             <ProductSkeleton count={4} />
           ) : newArrivalsError ? (
-            <ErrorState description={newArrivalsError} onRetry={loadNewArrivals} />
+            <ErrorState description={newArrivalsError} onRetry={loadShelves} />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {newArrivals.map((product) => (

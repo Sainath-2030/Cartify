@@ -1747,8 +1747,8 @@ STATUS: COMPLETE — Approved "Intelligent Minimalist Luxury" visual foundation 
 Phase 2.1 — Visual Refinement (Warm Stone / Ivory Background)
 STATUS: COMPLETE — Implemented warm stone/ivory color system (#F3F0EA canvas, #EAE6DE secondary surface, #FAF9F6 soft card surface, #DDD9D1 warm hairline border) with high-contrast preservation of the black editorial hero card (#09090B).
 
-Phase 2.2 — Home Page Redesign
-STATUS: COMPLETE — Rebuilt editorial discovery hero, Carbon Obsidian spotlight, dynamic category cards, real transparent product shelves (Featured, Popular, New Arrivals), dark AI Gateway with honest telemetry copy, 4:5 luxury ProductCard with hover quick-add, session recently viewed shelf, and platform trust architecture.
+Phase 2.2 — Home Page Redesign & Catalogue Quality Fix
+STATUS: COMPLETE — Redesigned proportional editorial hero, Carbon Obsidian spotlight, dynamic category cards with representative department imagery and tags, fixed underlying catalogue domain classification in PostgreSQL (17,935 verified items, zero misclassifications in Beauty/Fashion/Gaming, deduplicated ASINs and cross-shelf diversity), dark AI Gateway with honest telemetry notice, 4:5 luxury ProductCard with hover quick-add, session recently viewed shelf, and platform trust architecture.
 
 ---
 
