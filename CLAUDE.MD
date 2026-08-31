@@ -1742,13 +1742,16 @@ Section 12 — Final Integration & Testing
 STATUS: NOT STARTED
 
 Phase 2.0 — Premium Frontend Foundation + Global Shell
-STATUS: COMPLETE — Approved "Intelligent Minimalist Luxury" visual foundation implemented. Design tokens in tailwind.config.js and index.css, Plus Jakarta Sans + Inter typography hierarchy, 8-pt spacing rhythm, container system, rebuilt frosted sticky Navbar, touch-friendly MobileMenu, 4-column editorial Footer, and refined UI primitives (Button, Input, Select, Badge, Card, Container, SectionHeader, Skeleton, EmptyState, ErrorState, Toast).
+STATUS: COMPLETE — Approved "Intelligent Minimalist Luxury" visual foundation implemented.
+
+Phase 2.1 — Visual Refinement (Warm Stone / Ivory Background)
+STATUS: COMPLETE — Implemented warm stone/ivory color system (#F3F0EA canvas, #EAE6DE secondary surface, #FAF9F6 soft card surface, #DDD9D1 warm hairline border) with high-contrast preservation of the black editorial hero card (#09090B).
 
 ---
 
 # 43. CURRENT NEXT STEP
 
-Phase 2.1 — Home Page Redesign
+Phase 2.2 — Home Page Redesign
 STATUS: NOT STARTED
 
 The immediate next task when instructed will be:

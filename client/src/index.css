@@ -25,20 +25,20 @@
     @apply outline-none ring-2 ring-primary ring-offset-2;
   }
 
-  /* Custom subtle scrollbar */
+  /* Custom warm subtle scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #FAFAFA;
+    background: #F3F0EA;
   }
   ::-webkit-scrollbar-thumb {
-    background: #D4D4D8;
+    background: #D5D0C5;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #A1A1AA;
+    background: #B8B2A4;
   }
 }
 
@@ -126,7 +126,7 @@
   }
 
   .btn-secondary {
-    @apply btn btn-md bg-white text-ink border border-surface-border shadow-xs hover:bg-zinc-50 hover:border-zinc-300 focus-visible:ring-zinc-400;
+    @apply btn btn-md bg-surface-card text-ink border border-surface-border shadow-xs hover:bg-surface-secondary hover:border-zinc-400 focus-visible:ring-zinc-400;
   }
 
   .btn-outline {
@@ -134,7 +134,7 @@
   }
 
   .btn-ghost {
-    @apply btn btn-md text-ink hover:bg-zinc-100 focus-visible:ring-zinc-300;
+    @apply btn btn-md text-ink hover:bg-surface-secondary focus-visible:ring-zinc-400;
   }
 
   .btn-danger {
@@ -147,11 +147,11 @@
 
   /* Input and Form primitives */
   .input-field {
-    @apply w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-ink
+    @apply w-full rounded-xl border border-surface-border bg-white px-4 py-2.5 text-sm text-ink
       placeholder:text-muted-light transition-all duration-150
-      hover:border-zinc-300
+      hover:border-zinc-400
       focus:border-ink focus:ring-2 focus:ring-ink/10 outline-none
-      disabled:bg-zinc-50 disabled:text-muted disabled:cursor-not-allowed;
+      disabled:bg-surface-secondary disabled:text-muted disabled:cursor-not-allowed;
   }
 
   .input-field-error {
@@ -162,17 +162,17 @@
     @apply input-field appearance-none pr-10 bg-no-repeat bg-[right_0.75rem_center] bg-[length:1em_1em];
   }
 
-  /* Card primitives — Tonal elevation instead of heavy borders */
+  /* Card primitives — Tonal elevation on warm canvas */
   .card {
-    @apply rounded-2xl border border-surface-border/80 bg-white shadow-card transition-all duration-200;
+    @apply rounded-2xl border border-surface-border/90 bg-surface-card shadow-card transition-all duration-200;
   }
 
   .card-hover {
-    @apply card hover:shadow-cardHover hover:border-zinc-300/80;
+    @apply card hover:shadow-cardHover hover:border-zinc-400/90;
   }
 
   .card-interactive {
-    @apply card cursor-pointer hover:shadow-cardHover hover:border-ink/20 hover:-translate-y-0.5 transition-all duration-200;
+    @apply card cursor-pointer hover:shadow-cardHover hover:border-ink/30 hover:-translate-y-0.5 transition-all duration-200;
   }
 
   /* Badge primitives */
@@ -181,31 +181,31 @@
   }
 
   .badge-primary {
-    @apply badge bg-zinc-100 text-zinc-900;
+    @apply badge bg-surface-secondary text-zinc-900 border border-surface-border/70;
   }
 
   .badge-accent {
-    @apply badge bg-primary-50 text-primary-700;
+    @apply badge bg-primary-50 text-primary-700 border border-primary-100;
   }
 
   .badge-secondary {
-    @apply badge bg-zinc-100 text-zinc-600;
+    @apply badge bg-surface-secondary text-zinc-600 border border-surface-border/70;
   }
 
   .badge-success {
-    @apply badge bg-success-50 text-success-700;
+    @apply badge bg-success-50 text-success-700 border border-success-100;
   }
 
   .badge-warning {
-    @apply badge bg-warning-50 text-warning-700;
+    @apply badge bg-warning-50 text-warning-700 border border-warning-100;
   }
 
   .badge-error {
-    @apply badge bg-error-50 text-error-700;
+    @apply badge bg-error-50 text-error-700 border border-error-100;
   }
 
   .badge-info {
-    @apply badge bg-sky-50 text-sky-700;
+    @apply badge bg-sky-50 text-sky-700 border border-sky-100;
   }
 }
 
@@ -218,4 +218,3 @@
     scroll-behavior: auto !important;
   }
 }
-

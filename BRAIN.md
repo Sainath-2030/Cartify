@@ -149,7 +149,8 @@ Layered separation of concerns:
 | | **Phase 1D.4: Final Backend & API Verification** | **COMPLETE** | Comprehensive 8-suite regression and master E2E cross-actor lifecycle verified 100% (220/220 tests passed). Phase 1 Core Backend locked. |
 | **PHASE 1 (CORE FOUNDATION & BACKEND)** | **ALL SUB-PHASES** | **COMPLETE / LOCKED** | **Fully verified, hardened, and locked for Phase 2 Frontend implementation.** |
 | **Phase 2: Storefront UI/UX Rebuild** | **Phase 2.0: Premium Frontend Foundation + Global Shell** | **COMPLETE** | Approved "Intelligent Minimalist Luxury" visual foundation, Carbon Obsidian + Pure Ink palette, Plus Jakarta Sans + Inter typography, 8-pt spacing tokens, rebuilt sticky frosted `Navbar`, touch-friendly `MobileMenu`, editorial `Footer`, and refined core UI primitives (`Button`, `Input`, `Select`, `Badge`, `Card`, `Container`, `SectionHeader`, `Skeleton`, `EmptyState`, `ErrorState`, `Toast`). |
-| | **Phase 2.1: Home Page Redesign** | **NOT STARTED** | Editorial discovery hero, real data shelves, department pills, AI recommender teaser |
+| | **Phase 2.1: Visual Refinement (Warm Background)** | **COMPLETE** | Refined storefront canvas to warm stone / ivory palette (`#F3F0EA` canvas, `#EAE6DE` secondary warm surfaces, `#FAF9F6` soft card surfaces, `#DDD9D1` hairline border) with high-contrast preservation of the black editorial hero component (`#09090B`). |
+| | **Phase 2.2: Home Page Redesign** | **NOT STARTED** | Full editorial discovery hero, real data shelves, department pills, AI recommender teaser |
 | | **Phase 2.2: Product Catalogue & Discovery** | **NOT STARTED** | Filtering, sorting, fast search, pagination, luxury product card |
 | | **Phase 2.3: Product Details & Reviews** | **NOT STARTED** | Gallery, specifications, verified reviews submission |
 | | **Phase 2.4: Shopping Cart & Wishlist** | **NOT STARTED** | Refined cart drawer, cart page, item mutations, move-to-cart |

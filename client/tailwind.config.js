@@ -15,8 +15,9 @@ export default {
           700: '#4338CA',
           800: '#3730A3',
           900: '#312E81',
-          DEFAULT: '#09090B', // Primary Brand Dark
-          accent: '#2563EB',  // Electric Cobalt Accent
+          DEFAULT: '#09090B', // Carbon Obsidian
+          accent: '#2563EB',  // Brand Blue
+          accentDark: '#1D4ED8', // Dark Brand Blue
         },
         primary: {
           50: '#EFF6FF',
@@ -25,31 +26,34 @@ export default {
           300: '#93C5FD',
           400: '#60A5FA',
           500: '#2563EB',
-          DEFAULT: '#2563EB',
+          DEFAULT: '#2563EB', // Brand Blue
           600: '#1D4ED8',
-          dark: '#1D4ED8',
+          dark: '#1D4ED8',    // Dark Brand Blue
           700: '#1E40AF',
           800: '#1E3A8A',
           900: '#172554',
           light: '#3B82F6',
         },
         ink: {
-          DEFAULT: '#09090B', // Zinc 950 - Strong Headings & Brand
+          DEFAULT: '#09090B', // Carbon Obsidian - Strong Headings & Brand
           dark: '#000000',    // Pure Black
+          heading: '#18181B', // Pure Ink - Section Titles & Subheadings
           light: '#27272A',   // Zinc 800 - Body Text
           subtle: '#52525B',  // Zinc 600 - Secondary
         },
         muted: {
-          DEFAULT: '#71717A', // Zinc 500 - Secondary text & labels
-          light: '#A1A1AA',   // Zinc 400 - Subtle text, placeholders
-          dark: '#52525B',    // Zinc 600
+          DEFAULT: '#71717A', // Muted Text - Secondary text & labels
+          light: '#A1A1AA',   // Soft Muted - Placeholders, subtle icons
+          dark: '#52525B',    // Dark Muted
         },
         surface: {
-          DEFAULT: '#FAFAFA', // Zinc 50 - Luxury Warm Canvas
-          card: '#FFFFFF',    // Pure Optical White
-          muted: '#F4F4F5',   // Zinc 100 - Pill tags, secondary fills
-          border: '#E4E4E7',  // Zinc 200 - Hairline borders
-          subtle: '#F8FAFC',
+          DEFAULT: '#F3F0EA', // Primary Canvas (Warm Stone / Ivory)
+          secondary: '#EAE6DE', // Secondary Warm Surface (Subtle alternating sections)
+          card: '#FAF9F6',    // Soft Card Surface (Warm elevated card surface)
+          white: '#FFFFFF',   // Pure White (selective use)
+          muted: '#EAE6DE',   // Warm subtle fills, pill tags
+          border: '#DDD9D1',  // Warm hairline border
+          subtle: '#EFECE5',
         },
         success: {
           50: '#ECFDF5',
@@ -82,12 +86,12 @@ export default {
       },
       boxShadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-        card: '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)',
-        cardHover: '0 12px 28px -6px rgba(0, 0, 0, 0.08), 0 8px 12px -8px rgba(0, 0, 0, 0.04)',
-        dropdown: '0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 6px 12px -6px rgba(0, 0, 0, 0.04)',
+        sm: '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)',
+        card: '0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02)',
+        cardHover: '0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.03)',
+        dropdown: '0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 6px 12px -6px rgba(0, 0, 0, 0.03)',
         modal: '0 25px 50px -12px rgba(0, 0, 0, 0.20)',
-        glow: '0 0 24px -4px rgba(37, 99, 235, 0.25)',
+        glow: '0 0 24px -4px rgba(37, 99, 235, 0.20)',
       },
       borderRadius: {
         xl: '0.875rem',

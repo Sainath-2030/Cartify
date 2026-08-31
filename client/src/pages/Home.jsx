@@ -188,7 +188,7 @@ export default function Home() {
       {/* ------------------------------------------------------------- */}
       {/* SECTION 1: HERO SECTION                                        */}
       {/* ------------------------------------------------------------- */}
-      <section className="relative border-b border-surface-border bg-gradient-to-b from-white via-white to-slate-50/50 py-16 sm:py-24">
+      <section className="relative border-b border-surface-border bg-surface py-16 sm:py-24">
         <Container>
           <div className="grid items-center gap-12 lg:grid-cols-12">
             {/* Left Copy & Search Entry */}
@@ -204,7 +204,7 @@ export default function Home() {
 
               <h1 className="text-display mt-4 font-black tracking-tight text-ink">
                 Intelligent Discovery,{' '}
-                <span className="text-primary bg-gradient-to-r from-primary to-blue-700 bg-clip-text text-transparent">
+                <span className="text-primary">
                   Personalized
                 </span>{' '}
                 For Your Lifestyle.
@@ -217,10 +217,10 @@ export default function Home() {
               {/* Quick Search Entry Input */}
               <form
                 onSubmit={handleHeroSearchSubmit}
-                className="mt-8 flex w-full max-w-lg items-center rounded-2xl border border-slate-300 bg-white p-1.5 shadow-card hover:border-slate-400 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all"
+                className="mt-8 flex w-full max-w-lg items-center rounded-2xl border border-surface-border bg-white p-1.5 shadow-sm hover:border-zinc-400 focus-within:border-ink focus-within:ring-2 focus-within:ring-ink/10 transition-all"
               >
                 <div className="flex items-center pl-3 text-muted">
-                  <Search className="h-5 w-5" />
+                  <Search className="h-5 w-5 text-zinc-500" />
                 </div>
                 <input
                   type="text"
@@ -241,7 +241,7 @@ export default function Home() {
                   <Link
                     key={tag.label}
                     to={`/products?q=${encodeURIComponent(tag.query)}`}
-                    className="rounded-lg bg-slate-100 px-2.5 py-1 text-ink-light hover:bg-primary-50 hover:text-primary transition-colors"
+                    className="rounded-xl bg-surface-secondary px-2.5 py-1 text-ink-light hover:bg-white hover:text-primary transition-colors border border-surface-border/60"
                   >
                     {tag.label}
                   </Link>
@@ -454,7 +454,7 @@ export default function Home() {
       {/* ------------------------------------------------------------- */}
       {/* SECTION 5: POPULAR & TRENDING PICKS                           */}
       {/* ------------------------------------------------------------- */}
-      <section className="border-y border-surface-border bg-slate-50/60 py-16">
+      <section className="border-y border-surface-border bg-surface-secondary/60 py-16">
         <Container>
           <SectionHeader
             title="Popular Picks"
@@ -506,9 +506,9 @@ export default function Home() {
       {/* ------------------------------------------------------------- */}
       {/* SECTION 7: AI RECOMMENDATION ARCHITECTURAL GATEWAY             */}
       {/* ------------------------------------------------------------- */}
-      <section className="border-y border-surface-border bg-gradient-to-b from-white to-slate-50 py-16">
+      <section className="border-y border-surface-border bg-surface-secondary/40 py-16">
         <Container>
-          <div className="card overflow-hidden border-primary/20 bg-gradient-to-br from-slate-900 via-ink to-slate-950 p-8 sm:p-12 text-white shadow-cardHover">
+          <div className="card overflow-hidden border-zinc-800 bg-gradient-to-br from-zinc-950 via-ink to-zinc-900 p-8 sm:p-12 text-white shadow-cardHover">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="max-w-2xl space-y-3">
                 <div className="flex items-center gap-2">

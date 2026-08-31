@@ -12,8 +12,6 @@ import {
   LayoutDashboard,
   Sliders,
   ChevronDown,
-  Sparkles,
-  ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useToast } from '../hooks/useToast.js';
@@ -21,7 +19,6 @@ import { useCart } from '../hooks/useCart.js';
 import { useWishlist } from '../hooks/useWishlist.js';
 import MobileMenu from './MobileMenu.jsx';
 import SearchBar from './SearchBar.jsx';
-import Badge from './Badge.jsx';
 
 const NAV_LINKS = [
   { label: 'Shop All', to: '/products' },
@@ -80,7 +77,7 @@ export default function Navbar() {
   const userRole = user?.role || 'USER';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/90 backdrop-blur-md transition-all">
       {/* Top micro-banner */}
       <div className="bg-zinc-950 py-1.5 text-center text-[11px] font-medium tracking-wide text-zinc-300">
         <span>Complimentary express dispatch on all verified orders above ₹999</span>
@@ -110,7 +107,7 @@ export default function Navbar() {
                   key={link.label}
                   to={link.to}
                   className={`text-xs font-semibold uppercase tracking-wider transition-colors ${
-                    isCurrent ? 'text-primary' : 'text-zinc-500 hover:text-zinc-900'
+                    isCurrent ? 'text-primary' : 'text-zinc-600 hover:text-zinc-950'
                   }`}
                 >
                   {link.label}
@@ -127,7 +124,7 @@ export default function Navbar() {
             <button
               aria-label="Close search input"
               onClick={() => setSearchOpen(false)}
-              className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+              className="rounded-xl p-2 text-zinc-500 hover:bg-surface-secondary hover:text-zinc-900 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
@@ -138,11 +135,11 @@ export default function Navbar() {
             <button
               aria-label="Open search"
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-3 py-1.5 text-xs text-zinc-500 hover:border-zinc-300 hover:bg-white hover:text-zinc-900 transition-all"
+              className="flex items-center gap-2 rounded-xl border border-surface-border bg-surface-card/90 px-3 py-1.5 text-xs text-zinc-600 hover:border-zinc-400 hover:bg-white hover:text-zinc-900 transition-all shadow-xs"
             >
-              <Search className="h-3.5 w-3.5" />
+              <Search className="h-3.5 w-3.5 text-zinc-500" />
               <span className="hidden sm:inline">Search products...</span>
-              <kbd className="hidden lg:inline-flex rounded bg-zinc-200/60 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500">
+              <kbd className="hidden lg:inline-flex rounded bg-surface-secondary px-1.5 py-0.5 text-[10px] font-mono text-zinc-600 border border-surface-border">
                 /
               </kbd>
             </button>
@@ -151,7 +148,7 @@ export default function Navbar() {
             <Link
               to="/wishlist"
               aria-label={`Wishlist (${wishlistCount} items)`}
-              className="relative rounded-xl p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-colors inline-flex items-center justify-center"
+              className="relative rounded-xl p-2 text-zinc-700 hover:bg-surface-secondary hover:text-zinc-950 transition-colors inline-flex items-center justify-center"
             >
               <Heart className="h-4 w-4" />
               {wishlistCount > 0 && (
@@ -181,35 +178,35 @@ export default function Navbar() {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileDropdownOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 rounded-full p-0.5 border border-zinc-200/80 hover:border-zinc-300 transition"
+                  className="flex items-center gap-1.5 rounded-full p-0.5 border border-surface-border hover:border-zinc-400 transition"
                   aria-label="User Account Menu"
                   aria-expanded={profileDropdownOpen}
                 >
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-950 font-bold text-[11px] text-white">
                     {userInitials}
                   </div>
-                  <ChevronDown className="h-3 w-3 text-zinc-400 hidden sm:block pr-0.5" />
+                  <ChevronDown className="h-3 w-3 text-zinc-500 hidden sm:block pr-0.5" />
                 </button>
 
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 rounded-2xl border border-zinc-200/80 bg-white p-1.5 shadow-dropdown animate-fadeIn z-50 divide-y divide-zinc-100">
+                  <div className="absolute right-0 mt-2 w-60 rounded-2xl border border-surface-border bg-surface-card p-1.5 shadow-dropdown animate-fadeIn z-50 divide-y divide-surface-border">
                     <div className="px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-zinc-900 truncate">
                           {user?.fullName || user?.full_name || 'Shopper'}
                         </p>
                         {userRole === 'ADMIN' && (
-                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 border border-amber-200">
                             Admin
                           </span>
                         )}
                         {userRole === 'CONTENT_MANAGER' && (
-                          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-700">
+                          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-700 border border-sky-200">
                             Manager
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user?.email}</p>
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">{user?.email}</p>
                     </div>
 
                     <div className="py-1">
@@ -217,7 +214,7 @@ export default function Navbar() {
                         <Link
                           to="/admin"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 transition-colors"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-surface-secondary transition-colors"
                         >
                           <LayoutDashboard className="h-3.5 w-3.5 text-zinc-900" />
                           <span>Admin Console</span>
@@ -228,7 +225,7 @@ export default function Navbar() {
                         <Link
                           to="/content-manager"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 transition-colors"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-surface-secondary transition-colors"
                         >
                           <Sliders className="h-3.5 w-3.5 text-zinc-900" />
                           <span>Content Studio</span>
@@ -238,18 +235,18 @@ export default function Navbar() {
                       <Link
                         to="/profile"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-surface-secondary transition-colors"
                       >
-                        <User className="h-3.5 w-3.5 text-zinc-400" />
+                        <User className="h-3.5 w-3.5 text-zinc-500" />
                         <span>Account & Orders</span>
                       </Link>
 
                       <Link
                         to="/wishlist"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-surface-secondary transition-colors"
                       >
-                        <Heart className="h-3.5 w-3.5 text-zinc-400" />
+                        <Heart className="h-3.5 w-3.5 text-zinc-500" />
                         <span>Saved Wishlist</span>
                       </Link>
                     </div>
@@ -281,7 +278,7 @@ export default function Navbar() {
             <button
               aria-label="Open navigation menu"
               onClick={() => setMobileMenuOpen(true)}
-              className="rounded-xl p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-colors md:hidden"
+              className="rounded-xl p-2 text-zinc-700 hover:bg-surface-secondary hover:text-zinc-950 transition-colors md:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
