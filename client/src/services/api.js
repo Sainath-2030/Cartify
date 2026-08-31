@@ -1,11 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Thin fetch wrapper: attaches the JWT (if present), parses JSON,
+// Thin fetch wrapper: attaches the JWT (if present in localStorage), parses JSON,
 // and normalizes errors into a single shape the UI can rely on.
-async function request(path, { method = 'GET', body, auth = false } = {}) {
+async function request(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
 
-  if (auth) {
+  if (auth !== false) {
     const token = localStorage.getItem('cartify_token');
     if (token) headers.Authorization = `Bearer ${token}`;
   }
@@ -37,4 +37,7 @@ export const api = {
   get: (path, opts) => request(path, { ...opts, method: 'GET' }),
   post: (path, body, opts) => request(path, { ...opts, method: 'POST', body }),
   put: (path, body, opts) => request(path, { ...opts, method: 'PUT', body }),
+  patch: (path, body, opts) => request(path, { ...opts, method: 'PATCH', body }),
+  delete: (path, opts) => request(path, { ...opts, method: 'DELETE' }),
 };
+

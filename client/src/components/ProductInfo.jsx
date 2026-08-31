@@ -4,12 +4,18 @@ import RatingStars from './RatingStars.jsx';
 import Button from './Button.jsx';
 import { formatPrice } from '../utils/format.js';
 import { useToast } from '../hooks/useToast.js';
+import { useCart } from '../hooks/useCart.js';
+import { useWishlist } from '../hooks/useWishlist.js';
 
 export default function ProductInfo({ product }) {
   const { showToast } = useToast();
+  const { addItem, isMutating: isCartMutating } = useCart();
+  const { isWishlisted, toggleWishlist, isMutating: isWishlistMutating } = useWishlist();
   const [quantity, setQuantity] = useState(1);
+  const [isAdding, setIsAdding] = useState(false);
 
   const {
+    id: productId,
     name, brand, rating, review_count: reviewCount, price, final_price: finalPrice,
     discount_percentage: discount, stock_quantity: stock, seller_name: seller,
   } = product;
@@ -17,10 +23,26 @@ export default function ProductInfo({ product }) {
   const isDiscounted = Number(discount) > 0;
   const inStock = Number(stock) > 0;
   const maxQty = Math.min(stock, 10);
+  const wishlisted = isWishlisted(productId);
 
-  // Cart/wishlist/checkout are Section 3+ features. These are honest,
-  // clearly-labeled placeholders rather than silently-broken buttons.
-  const notImplementedYet = (label) => showToast(`${label} will be available in a future section.`);
+  const handleAddToCart = async () => {
+    setIsAdding(true);
+    await addItem(productId, quantity);
+    setIsAdding(false);
+  };
+
+  const handleBuyNow = async () => {
+    setIsAdding(true);
+    const res = await addItem(productId, quantity, { openDrawer: true });
+    setIsAdding(false);
+    if (res.success) {
+      showToast('Proceeding to checkout is coming in Section 4. Item added to cart!', 'info');
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    await toggleWishlist(productId);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -81,21 +103,27 @@ export default function ProductInfo({ product }) {
       <div className="flex flex-col gap-3 pt-2 sm:flex-row">
         <Button
           variant="primary"
-          disabled={!inStock}
-          onClick={() => notImplementedYet('Add to Cart')}
+          disabled={!inStock || isAdding || isCartMutating}
+          onClick={handleAddToCart}
           className="flex-1"
         >
-          <ShoppingCart className="h-4 w-4" /> Add to Cart
+          <ShoppingCart className="h-4 w-4" /> {isAdding ? 'Adding...' : 'Add to Cart'}
         </Button>
-        <Button variant="secondary" onClick={() => notImplementedYet('Wishlist')} className="flex-1">
-          <Heart className="h-4 w-4" /> Add to Wishlist
+        <Button
+          variant={wishlisted ? 'secondary' : 'secondary'}
+          disabled={isWishlistMutating}
+          onClick={handleToggleWishlist}
+          className={`flex-1 ${wishlisted ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' : ''}`}
+        >
+          <Heart className={`h-4 w-4 ${wishlisted ? 'fill-red-600 text-red-600' : ''}`} />
+          {wishlisted ? 'In Wishlist' : 'Add to Wishlist'}
         </Button>
       </div>
 
       <Button
         variant="ghost"
-        disabled={!inStock}
-        onClick={() => notImplementedYet('Buy Now (checkout)')}
+        disabled={!inStock || isAdding || isCartMutating}
+        onClick={handleBuyNow}
         className="w-full border border-slate-200"
       >
         Buy Now
@@ -103,7 +131,7 @@ export default function ProductInfo({ product }) {
 
       <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-muted">
         <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-        Secure checkout and cart functionality are coming in a later section of Cartify.
+        <span>Cart items are saved persistently to your account.</span>
       </div>
     </div>
   );

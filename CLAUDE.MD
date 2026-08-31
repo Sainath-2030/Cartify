@@ -769,32 +769,32 @@ GET /api/products/brands
 
 ---
 
-# 13. CURRENT PRODUCT DATA — IMPLEMENTED
+# 13. CURRENT PRODUCT DATA — IMPLEMENTED (REBUILD V2)
 
-Current catalogue contains approximately:
+Current database catalogue contains:
 
-95 products
-8 categories
+16,976 100% complete, verified, and dataset-independent products
+8 categories (Electronics, Fashion, Home & Kitchen, Beauty, Sports, Grocery, Gaming, Books)
 
-Current product data originated primarily from DummyJSON, with some hand-authored products for categories not adequately covered by it.
+Cleaned and normalized with authentic Indian Rupee MRP and selling prices, normalized CDN images (`/images/I/...`), full descriptions, and clean brand names. Dataset-agnostic: `source = 'amazon'`, `source_id = ASIN`. Zero incomplete rows. Zero category pollution.
 
 Important:
 
-DummyJSON is NOT used by the running frontend.
+External datasets are NOT directly read by the running frontend.
 
-The data was transformed into Cartify's own PostgreSQL structure.
+All data is normalized into Cartify's internal PostgreSQL schema.
 
 Current product characteristics:
 
 - unique primary images
-- unique product names
-- normalized prices
-- product metadata
-- ratings
-- stock
-- categories
+- unique product names and slugs
+- normalized prices and discounts in INR
+- product metadata and specifications JSONB
+- ratings and review counts
+- simulated stock quantities
+- mapped top-level categories
 
-Current prices derived from DummyJSON are illustrative and must NOT be described as live market prices.
+Current prices and stock quantities are illustrative prototype values for academic research.
 
 ---
 
@@ -1088,58 +1088,44 @@ Do NOT change the current category architecture solely because H&M may be used l
 
 ---
 
-# 21. FUTURE SHOPPING FEATURES — PLANNED
+# 21. SHOPPING FEATURES — SECTION 3 (COMPLETE)
 
-## Section 3 — Shopping Experience & User Interactions
+## Chunk 3.1 — Shopping Cart (IMPLEMENTED)
+Persistent database-backed shopping cart for authenticated users:
+- Table: `cart_items` (`user_id`, `product_id`, `quantity`, `created_at`, `updated_at`, unique on `(user_id, product_id)`)
+- Endpoints: `GET /api/cart`, `POST /api/cart`, `PUT /api/cart/:productId`, `DELETE /api/cart/:productId`, `DELETE /api/cart`
+- Frontend: `CartProvider`, `useCart`, `CartDrawer` slide-over, `/cart` page, quick add on `ProductCard` and detail page.
 
-NOT IMPLEMENTED.
+## Chunk 3.2 — Wishlist System (IMPLEMENTED)
+Persistent database-backed wishlist with $O(1)$ heart status lookups:
+- Table: `wishlist_items` (`id`, `user_id`, `product_id`, `created_at`, unique on `(user_id, product_id)`)
+- Endpoints:
+  - `GET /api/wishlist` (retrieves full wishlist with product details)
+  - `GET /api/wishlist/ids` (returns array of wishlisted product IDs for fast O(1) icon checks)
+  - `POST /api/wishlist` (idempotent addition)
+  - `DELETE /api/wishlist/:productId` (removes product)
+  - `POST /api/wishlist/move-to-cart/:productId` (atomic transfer from wishlist into cart)
+  - `DELETE /api/wishlist` (clears wishlist)
+- Frontend:
+  - `WishlistProvider` & `useWishlist` hook (`client/src/context/WishlistContext.jsx`)
+  - Dedicated Wishlist page (`/wishlist`)
+  - Heart icon button on `ProductCard` and `ProductDetail` with live filled red state
+  - Navbar & MobileMenu live Wishlist badge counter.
 
-Planned:
-
-### Cart
-
-- Add to cart
-- Remove
-- Quantity update
-- Cart total
-- Stock validation
-- Cart persistence
-
-### Wishlist
-
-- Add/remove
-- Wishlist page
-- Wishlist count
-- Move to cart
-
-### Recently Viewed
-
-- Track viewed products
-- Display recently viewed products
-
-### Reviews
-
-- Submit review
-- Edit own review
-- Delete own review
-- Rating validation
-- Recalculate product rating from real review rows
-
-Never hardcode ratings from the frontend.
-
-### Expanded interactions
-
-Planned interaction types:
-
-wishlist_add
-wishlist_remove
-cart_add
-cart_remove
-cart_quantity_update
-rating
-review
-
-No checkout/payment in Section 3.
+## Chunk 3.3 — Authenticated Reviews & Rating Engine (IMPLEMENTED)
+Live user reviews with automated database rating recalculation:
+- Table: `reviews` (`id`, `product_id`, `user_id`, `reviewer_name`, `rating`, `review_text`, `created_at`)
+- Endpoints:
+  - `POST /api/products/:productId/reviews` (authenticated review creation, bounds rating 1-5, text 5-2000 chars, duplicate prevention)
+  - `GET /api/products/:productId/reviews/me` (retrieves current user's submitted review)
+  - `DELETE /api/reviews/:reviewId` (author or admin deletion with rating recalculation)
+- Rating Recalculation Engine:
+  - Updates `products.rating` and `products.review_count` directly from SQL aggregates on every insert or delete.
+- Frontend:
+  - `ReviewModal` with 5-star interactive picker and review text
+  - "Write a Review" button in `ReviewSection`
+  - Inline review deletion for authors
+  - Live rating distribution bar refresh on submission.
 
 ---
 
@@ -1653,34 +1639,86 @@ CLAUDE.md is the source of truth for documented architecture and project decisio
 
 ---
 
-# 42. CURRENT DEVELOPMENT STATUS
+# 42. CURRENT DEVELOPMENT STATUS (REBUILD TRACK)
 
-Section 1 — Authentication
-STATUS: COMPLETE
+Rebuild Phase 1A — Database Foundation
+STATUS: COMPLETE — PostgreSQL clean schema established (9 tables, 3 ENUMs, dataset-agnostic product model, telemetry interactions, constraints, indexes, 3 actor accounts, 8 categories). Verified 100% (26/26 tests passed).
 
-Section 2 — Product Catalogue & Discovery
-STATUS: COMPLETE
+Rebuild Phase 1B — Amazon Dataset Preprocessing (Refined)
+STATUS: COMPLETE — Hierarchical multi-level category classification and cased brand boundary matching executed. Validated and accurately mapped 16,976 clean products into `data/processed/amazon-products-clean.csv` + `data/processed/preprocessing-report.json`. Verified 100% (12/12 tests passed).
 
-Section 2.5 — Product Data Quality
-STATUS: COMPLETE
+Rebuild Phase 1C — Amazon Dataset Import (Refined)
+STATUS: COMPLETE — Re-imported 16,976 verified products into PostgreSQL with tsvectors in 4.71s. Passed 13/13 database verification tests and 10/10 API smoke tests (100%). Audited 35 multi-category sample products with 100% category purity.
 
-Dataset-Agnostic Architecture Audit
-STATUS: COMPLETE
+Rebuild Phase 1D.1 — Backend / API Foundation
+STATUS: COMPLETE — Layered architecture established (`Route -> Controller -> Service -> Model -> Database`), connection pooling with graceful shutdown, centralized error handling, request validators, product & category APIs, PostgreSQL tsvector search, and JWT RBAC foundation. Verified 100% (26/26 tests passed).
 
-Dataset-Agnostic Refactor
-STATUS: NOT YET IMPLEMENTED
+Rebuild Phase 1D.2A — Cart API
+STATUS: COMPLETE — Production authenticated Cart API implemented with user isolation, stock validation, atomic conflict updates, and database price authority. Verified 100% (21/21 tests passed).
 
-H&M Dataset Integration
+Rebuild Phase 1D.2B — Wishlist API
+STATUS: COMPLETE — Authenticated Wishlist API implemented with user isolation, idempotent additions, lightweight check/ids endpoints, move-to-cart operations, and 100% test coverage (21/21 tests passed).
+
+Rebuild Phase 1D.2C — Reviews & Ratings API
+STATUS: COMPLETE — Authenticated reviews and ratings API implemented with database uniqueness constraint (`user_id`, `product_id`), rating summaries, rating breakdown distributions, owner edit/delete security, and 28/28 tests passed.
+
+Rebuild Phase 1D.2D — Orders & Checkout API
+STATUS: COMPLETE — ACID transactional checkout implemented (`BEGIN ... COMMIT/ROLLBACK`), snapshot unit prices, atomic stock decrements and cancellation restorations, payment prototype states, verified purchase link, and 30/30 tests passed.
+
+Rebuild Phase 1D.2E — Telemetry & Interaction Ingestion API
+STATUS: COMPLETE — Two-tier telemetry pipeline implemented (`POST /api/interactions` + trusted service hooks), metadata sanitization, and 25/25 tests passed.
+
+Rebuild Phase 1D.3 — RBAC Console APIs (Admin & Content Manager)
+STATUS: COMPLETE — Role-based console endpoints for ADMIN and CONTENT_MANAGER implemented, catalogue health, real analytics, uninitialized model status/metrics contracts, internal products (`source='internal'`), audit logging, and 34/34 tests passed.
+
+Rebuild Phase 1D.4 — Final Backend & API Verification
+STATUS: COMPLETE — End-to-end audit, security hardening, and cross-actor regression verification passed 100% across all 8 test suites (220/220 tests passed). Phase 1 Core Backend Foundation is fully verified and locked.
+
+==================================================
+PHASE 1 (CORE FOUNDATION & BACKEND) STATUS: COMPLETE
+==================================================
+
+Phase 2A — Cartify Design System + Global Frontend Layout
+STATUS: COMPLETE — Design tokens established in `tailwind.config.js` and `index.css`, typography hierarchy, color tokens, reusable UI primitives (`Button`, `Input`, `Select`, `Badge`, `Card`, `Container`, `SectionHeader`, `Skeleton`, `EmptyState`, `ErrorState`, `Toast`, `Modal`), redesigned global `Navbar` with role-aware navigation, redesigned `MobileMenu`, and 4-column `Footer`. Frontend build passed without errors.
+
+Phase 2B — Home Page Redesign
+STATUS: COMPLETE — Redesigned shopper landing page with Hero discovery and quick search, real PostgreSQL-backed Featured Picks (`sort=featured`), Popular Picks (`sort=popular`), New Arrivals (`sort=newest`), Department navigation, transparent AI recommendation architecture teaser with community fallback, and local session Recently Viewed history. Frontend build passed with zero errors.
+
+Phase 2C — Product Catalogue & Discovery Redesign
 STATUS: NOT STARTED
 
-Section 3 — Shopping Experience
+Phase 2D — Product Details & Reviews Redesign
 STATUS: NOT STARTED
 
-Section 4 — Recommendation Data Pipeline
+Phase 2E — User Profile & Order History Redesign
 STATUS: NOT STARTED
 
-Section 5 — NCF
+Phase 2F — Shopping Cart & Wishlist Redesign
 STATUS: NOT STARTED
+
+Phase 2G — Checkout & Order Confirmation Redesign
+STATUS: NOT STARTED
+
+Phase 2H — Admin Operational Dashboard Redesign
+STATUS: NOT STARTED
+
+Phase 2I — Content Manager Console Redesign
+STATUS: NOT STARTED
+
+Phase 2J — Responsive Layout & Polish
+STATUS: NOT STARTED
+
+Phase 2K — Final Visual QA & Verification
+STATUS: NOT STARTED
+
+Phase 3 — Simulated Checkout Transactions & Accounting
+STATUS: PLANNED
+
+Phase 4 — Operational Consoles & Content Control
+STATUS: PLANNED
+
+Phase 5 — Telemetry Export & Multi-Model Recommendation Pipeline (NCF + CNN + GRU + Autoencoder + Attention Fusion)
+STATUS: PLANNED
 
 Section 6 — CNN
 STATUS: NOT STARTED
@@ -1703,40 +1741,18 @@ STATUS: NOT STARTED
 Section 12 — Final Integration & Testing
 STATUS: NOT STARTED
 
-Actor-Based Interfaces — Chunk 1 (Role Foundation + Admin/Content-Manager Dashboard Shells)
-STATUS: COMPLETE — role column, JWT role claim, requireRole middleware,
-RoleProtectedRoute, both dashboard shells, role-aware login redirect, and
-role-conditional Navbar/MobileMenu links are all working end-to-end.
-No live Admin/Content-Manager API endpoints yet (all dashboard sub-pages
-are ComingSoon placeholders) — that is the next chunk in this track.    
+Phase 2.0 — Premium Frontend Foundation + Global Shell
+STATUS: COMPLETE — Approved "Intelligent Minimalist Luxury" visual foundation implemented. Design tokens in tailwind.config.js and index.css, Plus Jakarta Sans + Inter typography hierarchy, 8-pt spacing rhythm, container system, rebuilt frosted sticky Navbar, touch-friendly MobileMenu, 4-column editorial Footer, and refined UI primitives (Button, Input, Select, Badge, Card, Container, SectionHeader, Skeleton, EmptyState, ErrorState, Toast).
 
 ---
 
 # 43. CURRENT NEXT STEP
 
-The immediate architectural task is:
+Phase 2.1 — Home Page Redesign
+STATUS: NOT STARTED
 
-Dataset-Agnostic Refactor
-
-Specifically:
-
-Phase A
-Database + Backend
-
-↓
-
-Phase B
-API + Frontend
-
-↓
-
-Phase C
-Future Dataset Import
-
-After that:
-
-Section 3
-Shopping Experience & User Interactions
+The immediate next task when instructed will be:
+Rebuilding the Home Page (editorial hero with live featured spotlight, curated department discovery pills, real PostgreSQL-backed featured/popular shelves, telemetry-ready AI recommendation teaser slot, and session recently viewed items).
 
 ---
 

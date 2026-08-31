@@ -1,14 +1,14 @@
 import { query } from '../config/db.js';
 
 const PRODUCT_LIST_COLUMNS = `
-  p.id, p.name, p.slug, p.short_description, p.brand, p.price,
+  p.id, p.source, p.source_id, p.name, p.slug, p.short_description, p.brand, p.price,
   p.discount_percentage, p.final_price, p.rating, p.review_count,
   p.stock_quantity, p.main_image, p.is_active, p.created_at,
   c.name AS category_name, c.slug AS category_slug
 `;
 
 const PRODUCT_DETAIL_COLUMNS = `
-  p.id, p.name, p.slug, p.description, p.short_description, p.subcategory,
+  p.id, p.source, p.source_id, p.name, p.slug, p.description, p.short_description, p.subcategory,
   p.brand, p.price, p.discount_percentage, p.final_price, p.rating,
   p.review_count, p.stock_quantity, p.seller_name, p.main_image, p.images,
   p.specifications, p.is_active, p.created_at, p.updated_at,

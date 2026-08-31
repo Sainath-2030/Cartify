@@ -3,7 +3,7 @@ import { query } from '../config/db.js';
 export const CategoryModel = {
   async findAll() {
     const result = await query(
-      `SELECT c.id, c.name, c.slug, c.description, c.image, c.created_at,
+      `SELECT c.id, c.name, c.slug, c.description, c.image_url, c.image_url AS image, c.created_at,
               COUNT(p.id) FILTER (WHERE p.is_active = true) AS product_count
        FROM categories c
        LEFT JOIN products p ON p.category_id = c.id
@@ -15,7 +15,7 @@ export const CategoryModel = {
 
   async findBySlug(slug) {
     const result = await query(
-      `SELECT c.id, c.name, c.slug, c.description, c.image, c.created_at,
+      `SELECT c.id, c.name, c.slug, c.description, c.image_url, c.image_url AS image, c.created_at,
               COUNT(p.id) FILTER (WHERE p.is_active = true) AS product_count
        FROM categories c
        LEFT JOIN products p ON p.category_id = c.id

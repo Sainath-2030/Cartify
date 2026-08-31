@@ -8,10 +8,14 @@ import Products from './pages/Products.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Categories from './pages/Categories.jsx';
 import Category from './pages/Category.jsx';
+import Cart from './pages/Cart.jsx';
+import Wishlist from './pages/Wishlist.jsx';
+import Checkout from './pages/Checkout.jsx';
 import NotFound from './pages/NotFound.jsx';
 import Unauthorized from './pages/Unauthorized.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import RoleProtectedRoute from './components/RoleProtectedRoute.jsx';
+import CartDrawer from './components/CartDrawer.jsx';
 
 import AdminLayout from './layouts/AdminLayout.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
@@ -29,26 +33,38 @@ import CMCategories from './pages/content-manager/CMCategories.jsx';
 
 export default function App() {
   return (
-    <Routes>
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/products/:slug" element={<ProductDetail />} />
-        <Route path="/categories" element={<Categories />} />
-        <Route path="/category/:slug" element={<Category />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Route>
+    <>
+      <CartDrawer />
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/:slug" element={<ProductDetail />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/category/:slug" element={<Category />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Route>
 
       {/* Administrator dashboard — dedicated shell, no storefront navbar/footer */}
       <Route
@@ -81,6 +97,7 @@ export default function App() {
         <Route path="products/new" element={<CMProductNew />} />
         <Route path="categories" element={<CMCategories />} />
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }

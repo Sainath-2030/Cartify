@@ -1,40 +1,82 @@
 import { InteractionModel } from '../models/interactionModel.js';
+import { ProductModel } from '../models/productModel.js';
 import { AppError } from '../middleware/errorMiddleware.js';
 
-const VALID_TYPES = ['product_view', 'product_click', 'search', 'category_view'];
+const VALID_ALL_TYPES = [
+  'VIEW',
+  'SEARCH',
+  'WISHLIST_ADD',
+  'WISHLIST_REMOVE',
+  'CART_ADD',
+  'CART_REMOVE',
+  'PURCHASE',
+  'RATING',
+  'REVIEW',
+];
 
-// Foundation for the future recommendation engine (Sections 4-9). This
-// only records clean interaction rows — no scoring, ranking, or model
-// logic happens here.
 export const InteractionService = {
-  async record({ user, productId, interactionType, sessionId, metadata }) {
-    if (!VALID_TYPES.includes(interactionType)) {
-      throw new AppError('Invalid interaction type.', 422);
+  // Records client-reported telemetry (VIEW, SEARCH)
+  async recordClientInteraction({ user, productId, interactionType, sessionId, metadata = {} }) {
+    if (!['VIEW', 'SEARCH'].includes(interactionType)) {
+      throw new AppError('Invalid client interaction type.', 422);
     }
 
-    // Guests are tracked only via session_id, never against a user_id,
-    // so anonymous and authenticated activity stay clearly separated.
-    if (!user && !sessionId) {
-      throw new AppError('A sessionId is required for unauthenticated interaction tracking.', 422);
+    let verifiedProductId = null;
+    if (productId) {
+      const product = await ProductModel.findById(productId);
+      if (!product || !product.is_active) {
+        throw new AppError('Product not found or is unavailable.', 404);
+      }
+      verifiedProductId = parseInt(product.id, 10);
     }
 
-    if (!user) {
-      // No user_id column write for guests — just log via session_id.
-      // (interactions.user_id is NOT NULL in Section 1's schema, so
-      // guest events are intentionally not persisted to that table in
-      // Section 2. This keeps guest analytics separate until a future
-      // section introduces anonymous-safe storage.)
-      return { recorded: false, reason: 'guest_session_not_persisted' };
-    }
+    const userId = user ? parseInt(user.id, 10) : null;
+    const finalSessionId = sessionId || (userId ? `user-session-${userId}` : `guest-${Date.now()}`);
 
     const row = await InteractionModel.record({
-      userId: user.id,
-      productId: productId || null,
+      userId,
+      productId: verifiedProductId,
       interactionType,
-      sessionId: sessionId || null,
-      metadata: metadata || {},
+      sessionId: finalSessionId,
+      metadata,
     });
 
-    return { recorded: true, interaction: row };
+    return {
+      recorded: true,
+      id: parseInt(row.id, 10),
+      userId: row.user_id ? parseInt(row.user_id, 10) : null,
+      productId: row.product_id ? parseInt(row.product_id, 10) : null,
+      interactionType: row.interaction_type,
+      sessionId: row.session_id,
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata,
+      createdAt: row.created_at,
+    };
+  },
+
+  // Authoritative server-side event recorder (called by Cart, Wishlist, Reviews, Orders services)
+  async recordTrusted({ userId = null, productId = null, interactionType, sessionId = null, metadata = {} }) {
+    if (!VALID_ALL_TYPES.includes(interactionType)) {
+      return null;
+    }
+
+    try {
+      const row = await InteractionModel.record({
+        userId: userId ? parseInt(userId, 10) : null,
+        productId: productId ? parseInt(productId, 10) : null,
+        interactionType,
+        sessionId: sessionId || (userId ? `user-${userId}` : `system-${Date.now()}`),
+        metadata,
+      });
+      return row;
+    } catch (err) {
+      // Non-blocking telemetry error logging
+      console.warn('Telemetry event record error (non-fatal):', err.message);
+      return null;
+    }
+  },
+
+  // Telemetry counts for diagnostic monitoring
+  async getCountsByType() {
+    return InteractionModel.countByType();
   },
 };

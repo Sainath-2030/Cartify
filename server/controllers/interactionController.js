@@ -1,25 +1,27 @@
 import { InteractionService } from '../services/interactionService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { validateClientInteraction } from '../validators/interactionValidators.js';
 import { AppError } from '../middleware/errorMiddleware.js';
 
 // POST /api/interactions
-// Body: { productId?, interactionType, sessionId?, metadata? }
-// Works for both guests (req.user is null via optionalAuth) and logged-in
-// users. See InteractionService for how each is handled.
+// Body: { interactionType: 'VIEW' | 'SEARCH', productId?: number, sessionId?: string, metadata?: object }
 export const recordInteraction = asyncHandler(async (req, res) => {
-  const { productId, interactionType, sessionId, metadata } = req.body || {};
-
-  if (!interactionType) {
-    throw new AppError('interactionType is required.', 422, { interactionType: 'This field is required.' });
+  const { valid, errors, data } = validateClientInteraction(req.body);
+  if (!valid) {
+    throw new AppError('Invalid interaction payload.', 422, errors);
   }
 
-  const result = await InteractionService.record({
+  const result = await InteractionService.recordClientInteraction({
     user: req.user,
-    productId,
-    interactionType,
-    sessionId,
-    metadata,
+    productId: data.productId,
+    interactionType: data.interactionType,
+    sessionId: data.sessionId,
+    metadata: data.metadata,
   });
 
-  res.status(201).json({ success: true, data: result });
+  res.status(201).json({
+    success: true,
+    message: 'Interaction recorded.',
+    data: result,
+  });
 });

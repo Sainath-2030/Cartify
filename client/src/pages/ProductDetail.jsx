@@ -9,6 +9,7 @@ import Loader from '../components/Loader.jsx';
 import ErrorState from '../components/ErrorState.jsx';
 import { productService } from '../services/productService.js';
 import { useInteractionTracking } from '../hooks/useInteractionTracking.js';
+import { addRecentlyViewedProduct } from '../utils/recentViews.js';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -27,6 +28,7 @@ export default function ProductDetail() {
     try {
       const res = await productService.getBySlug(slug);
       setProduct(res.data);
+      addRecentlyViewedProduct(res.data);
       track('product_view', { productId: res.data.id, metadata: { slug } });
     } catch (err) {
       if (err.status === 404) setNotFound(true);
@@ -123,10 +125,8 @@ export default function ProductDetail() {
 
           {activeTab === 'reviews' && (
             <ReviewSection
-              rating={product.rating}
-              reviewCount={product.review_count}
-              breakdown={product.ratingBreakdown}
-              reviews={product.reviews}
+              product={product}
+              onRefresh={fetchProduct}
             />
           )}
         </div>

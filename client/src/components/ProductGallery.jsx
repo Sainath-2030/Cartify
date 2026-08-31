@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { onImageError, FALLBACK_IMAGE } from '../utils/image.js';
+import { onImageError, FALLBACK_IMAGE, normalizeImageUrl } from '../utils/image.js';
 
 export default function ProductGallery({ mainImage, images = [], productName }) {
-  const gallery = [mainImage, ...images].filter(Boolean);
+  const gallery = [mainImage, ...images].filter(Boolean).map(normalizeImageUrl);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const activeImage = gallery[activeIndex] || FALLBACK_IMAGE;
