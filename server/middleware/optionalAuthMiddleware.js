@@ -11,7 +11,7 @@ export const optionalAuth = (req, res, next) => {
   if (scheme === 'Bearer' && token) {
     try {
       const decoded = verifyToken(token);
-      req.user = { id: decoded.userId, email: decoded.email };
+      req.user = { id: decoded.userId, email: decoded.email, role: decoded.role || 'USER' };
     } catch {
       // Invalid/expired token on an optional-auth route — just proceed as a guest.
       req.user = null;

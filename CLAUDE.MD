@@ -234,6 +234,10 @@ client/src/
 │   ├── EmptyState
 │   ├── ErrorState
 │   └── ProtectedRoute
+│   ├── RoleProtectedRoute
+│   └── dashboard/
+│       ├── DashboardShell   (shared sidebar/header/mobile-drawer shell for role dashboards)
+│       └── ComingSoon        (placeholder card for not-yet-built dashboard sections)
 │
 ├── pages/
 │   ├── Home
@@ -245,9 +249,25 @@ client/src/
 │   ├── Categories
 │   ├── Category
 │   └── NotFound
+│   ├── Unauthorized
+│   ├── admin/
+│   │   ├── AdminDashboard
+│   │   ├── AdminAnalytics       (ComingSoon)
+│   │   ├── AdminModels          (ComingSoon)
+│   │   ├── AdminRetraining      (ComingSoon)
+│   │   ├── AdminCatalogue       (ComingSoon)
+│   │   └── AdminBusinessRules   (ComingSoon)
+│   └── content-manager/
+│       ├── CMDashboard
+│       ├── CMProducts       (ComingSoon)
+│       ├── CMProductNew     (ComingSoon)
+│       └── CMCategories     (ComingSoon)
+
 │
 ├── layouts/
 │   └── MainLayout
+│   ├── AdminLayout             (wraps DashboardShell, role: ADMIN)
+│   └── ContentManagerLayout    (wraps DashboardShell, role: CONTENT_MANAGER)
 │
 ├── services/
 │   ├── api.js
@@ -314,7 +334,9 @@ They must NOT depend directly on an external dataset format.
 
 # 7. FRONTEND ROUTES — IMPLEMENTED
 
-Current routes:
+# 7. FRONTEND ROUTES — IMPLEMENTED
+
+Storefront routes (inside MainLayout — navbar + footer):
 
 /
  /login
@@ -323,10 +345,36 @@ Current routes:
  /products/:slug
  /categories
  /category/:slug
- /profile
+ /profile        (protected — any authenticated user)
+ /unauthorized
  *
 
-`/profile` is protected.
+Administrator dashboard routes (own DashboardShell, no storefront navbar/footer,
+protected by RoleProtectedRoute allowedRoles=['ADMIN']):
+
+/admin                    → AdminDashboard
+/admin/analytics          → ComingSoon
+/admin/models             → ComingSoon
+/admin/retraining         → ComingSoon
+/admin/catalogue          → ComingSoon
+/admin/business-rules     → ComingSoon
+
+Content Manager dashboard routes (own DashboardShell, protected by
+RoleProtectedRoute allowedRoles=['CONTENT_MANAGER']):
+
+/content-manager                  → CMDashboard
+/content-manager/products         → ComingSoon
+/content-manager/products/new     → ComingSoon
+/content-manager/categories       → ComingSoon
+
+Post-login redirect (client/src/pages/Login.jsx) is role-aware:
+ADMIN → /admin, CONTENT_MANAGER → /content-manager, USER → /profile
+(a pending protected-route deep-link via location.state.from still takes priority).
+
+Authenticated users see role-conditional dashboard links in Navbar's profile
+dropdown (desktop) and MobileMenu (mobile) — ADMIN sees "Admin Dashboard",
+CONTENT_MANAGER sees "Content Manager Dashboard". Regular USER accounts see
+neither link, matching existing Section 1/2 behavior.
 
 ---
 
@@ -369,7 +417,7 @@ server/
 │   └── interactionModel
 │
 ├── middleware/
-│   ├── authMiddleware
+│   ├── authMiddleware  (exports requireAuth + requireRole(...roles))
 │   ├── optionalAuthMiddleware
 │   ├── errorMiddleware
 │   └── validateMiddleware
@@ -403,6 +451,10 @@ models
 PostgreSQL
 
 Raw SQL must remain inside models/data-access code.
+requireRole(...roles) is the server-side authorization boundary for Admin/
+Content-Manager-only endpoints (SRS SEC-3). It must run after requireAuth.
+Not yet attached to any route — no Admin/Content-Manager API endpoints
+exist yet (see Section 9b).
 
 ---
 
@@ -422,6 +474,8 @@ No migration framework is used.
 
 ## users
 
+## users
+
 Current important fields:
 
 id
@@ -435,8 +489,13 @@ state
 postal_code
 date_of_birth
 avatar_url
+role            (VARCHAR, NOT NULL, DEFAULT 'USER' — see Section 9b)
 created_at
 updated_at
+
+role is one of: USER, ADMIN, CONTENT_MANAGER (CHECK constraint chk_users_role).
+Not self-assignable via PUT /api/users/me — promotion is a manual DB
+operation only (see Section 9b) until an Admin role-management UI exists.
 
 ---
 
@@ -555,7 +614,63 @@ The current system only displays reviews.
 
 Review submission is not yet implemented.
 
+# 9b. ROLE-BASED ACCESS — CHUNK 1 (Actor-Based Interfaces)
+
+## IMPLEMENTED
+
+- `users.role` column added via `database/schema_section3_roles.sql` (additive migration). Values: `USER` (default), `ADMIN`, `CONTENT_MANAGER`, enforced by a CHECK constraint.
+- JWT payload now includes `role`. `req.user` (from `requireAuth`/`optionalAuth`) includes `{ id, email, role }`.
+- `server/middleware/authMiddleware.js` exports `requireRole(...roles)` — server-side authorization boundary (SRS SEC-3). Not yet attached to any route; foundation for future Admin/Content Manager APIs.
+- Role is NOT self-assignable: `PUT /api/users/me` (`validateProfileUpdate` / `UserModel.updateById`) does not accept `role`. Promotion to ADMIN/CONTENT_MANAGER is currently a manual DB operation (documented in the migration file).
+- Frontend: `client/src/components/RoleProtectedRoute.jsx` — client-side role gate (UX only, not a security boundary). Redirects unauthenticated users to `/login`, wrong-role users to `/unauthorized` (`client/src/pages/Unauthorized.jsx`).
+- New dashboard shell: `client/src/components/dashboard/DashboardShell.jsx` (shared sidebar/header/mobile-drawer UI) and `client/src/components/dashboard/ComingSoon.jsx` (placeholder card, used by all not-yet-built sections).
+- **Administrator dashboard** — `client/src/layouts/AdminLayout.jsx`, routes under `/admin` (role: `ADMIN`):
+  - `/admin` — `AdminDashboard.jsx` (overview cards, clearly labeled as a structural foundation, no live data)
+  - `/admin/analytics`, `/admin/models`, `/admin/retraining`, `/admin/catalogue`, `/admin/business-rules` — all `ComingSoon` placeholders
+- **Content Manager dashboard** — `client/src/layouts/ContentManagerLayout.jsx`, routes under `/content-manager` (role: `CONTENT_MANAGER`):
+  - `/content-manager` — `CMDashboard.jsx` (overview cards)
+  - `/content-manager/products`, `/content-manager/products/new`, `/content-manager/categories` — all `ComingSoon` placeholders
+- Both dashboard route trees are siblings of `MainLayout`'s route (not nested inside it) — no storefront navbar/footer on dashboard pages, consistent with standard admin-console UX.
+- Existing storefront routes/components unmodified except: `App.jsx` (new routes added), `authMiddleware.js`, `optionalAuthMiddleware.js`, `authService.js`, `userModel.js` (role-related additions only, all backward compatible).
+
+## PLANNED / NOT STARTED
+
+- No actual Admin APIs (analytics, model status, retraining triggers, business rules) — all UI is `ComingSoon`.
+- No actual Content Manager product CRUD or image upload backend — all UI is `ComingSoon`.
+- No admin UI for promoting/demoting user roles (currently manual SQL only).
+- `requireRole` middleware exists but is not yet attached to any real route.
+- System Scheduler actor has no interface (by design — background actor per SRS).
+
+## FOLLOW-UP FIX (same chunk) — dashboard discoverability
+
+Initial Chunk 1 shipped working routes/auth but no way for a logged-in
+Admin/Content-Manager to actually *find* their dashboard (login always
+redirected to /profile; no nav link existed anywhere). Fixed via:
+
+- `client/src/pages/Login.jsx` — `onSubmit` now branches the post-login
+  redirect on `loggedInUser.role` (ADMIN → /admin, CONTENT_MANAGER →
+  /content-manager, else /profile), with `location.state.from` still
+  taking priority for deep-linked protected-route redirects.
+- `client/src/components/Navbar.jsx` — profile dropdown now conditionally
+  renders "Admin Dashboard" / "Content Manager Dashboard" links (using the
+  `LayoutDashboard` lucide icon) above the existing "Profile" link, based
+  on `user.role`. `MobileMenu` is now passed a `user` prop.
+- `client/src/components/MobileMenu.jsx` — accepts new `user` prop, same
+  conditional dashboard links added above "Profile" in the drawer.
+
+IMPORTANT recurring gotcha (document for future debugging sessions): a
+browser session's JWT is issued at login time. Promoting a user's role via
+direct SQL (`UPDATE users SET role = ...`) does NOT retroactively change an
+already-issued token — the user must log out and log back in for the new
+role to appear in `req.user.role` / `user.role` client-side.
+
 ---
+
+
+# 10. DATABASE RELATIONSHIPS
+
+---
+
 
 # 10. DATABASE RELATIONSHIPS
 
@@ -1587,6 +1702,13 @@ STATUS: NOT STARTED
 
 Section 12 — Final Integration & Testing
 STATUS: NOT STARTED
+
+Actor-Based Interfaces — Chunk 1 (Role Foundation + Admin/Content-Manager Dashboard Shells)
+STATUS: COMPLETE — role column, JWT role claim, requireRole middleware,
+RoleProtectedRoute, both dashboard shells, role-aware login redirect, and
+role-conditional Navbar/MobileMenu links are all working end-to-end.
+No live Admin/Content-Manager API endpoints yet (all dashboard sub-pages
+are ComingSoon placeholders) — that is the next chunk in this track.    
 
 ---
 

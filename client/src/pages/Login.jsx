@@ -35,16 +35,24 @@ export default function Login() {
     return Object.values(next).every((v) => !v);
   };
 
-  const onSubmit = async (e) => {
+    const onSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
     if (!validate()) return;
 
     setIsSubmitting(true);
     try {
-      await login(form.email, form.password);
+      const loggedInUser = await login(form.email, form.password);
       showToast('Welcome back!');
-      const redirectTo = location.state?.from?.pathname || '/profile';
+
+      // Admins/Content Managers land on their dashboard by default; a
+      // deep-link (location.state.from) still takes priority for anyone
+      // who was redirected here from a protected page.
+      const roleHome =
+        loggedInUser?.role === 'ADMIN' ? '/admin'
+        : loggedInUser?.role === 'CONTENT_MANAGER' ? '/content-manager'
+        : '/profile';
+      const redirectTo = location.state?.from?.pathname || roleHome;
       navigate(redirectTo, { replace: true });
     } catch (err) {
       if (err.fieldErrors) setErrors(err.fieldErrors);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Heart, ShoppingCart, Menu, User, LogOut, ShoppingBag, X } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Menu, User, LogOut, ShoppingBag, X, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useToast } from '../hooks/useToast.js';
 import MobileMenu from './MobileMenu.jsx';
@@ -100,6 +100,24 @@ export default function Navbar() {
                 </button>
                 {profileOpen && (
                   <div className="absolute right-0 mt-2 w-48 card p-1.5 shadow-cardHover">
+                    {user?.role === 'ADMIN' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-slate-50"
+                      >
+                        <LayoutDashboard className="h-4 w-4" /> Admin Dashboard
+                      </Link>
+                    )}
+                    {user?.role === 'CONTENT_MANAGER' && (
+                      <Link
+                        to="/content-manager"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-slate-50"
+                      >
+                        <LayoutDashboard className="h-4 w-4" /> Content Manager Dashboard
+                      </Link>
+                    )}
                     <Link
                       to="/profile"
                       onClick={() => setProfileOpen(false)}
@@ -138,6 +156,7 @@ export default function Navbar() {
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
         isAuthenticated={isAuthenticated}
+        user={user}
         onLogout={handleLogout}
       />
     </header>

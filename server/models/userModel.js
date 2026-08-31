@@ -4,7 +4,7 @@ import { query } from '../config/db.js';
 // password_hash is intentionally excluded everywhere below.
 const PUBLIC_COLUMNS = `
   id, full_name, email, mobile, address, city, state,
-  postal_code, date_of_birth, avatar_url, created_at, updated_at
+  postal_code, date_of_birth, avatar_url, role, created_at, updated_at
 `;
 
 export const UserModel = {

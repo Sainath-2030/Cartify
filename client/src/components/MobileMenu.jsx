@@ -9,7 +9,7 @@ const LINKS = [
   { label: 'Contact', to: '/#contact' },
 ];
 
-export default function MobileMenu({ isOpen, onClose, isAuthenticated, onLogout }) {
+export default function MobileMenu({ isOpen, onClose, isAuthenticated, user, onLogout }) {
   if (!isOpen) return null;
 
   return (
@@ -38,6 +38,12 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated, onLogout 
         <div className="mt-auto flex flex-col gap-3 border-t border-slate-200 pt-6">
           {isAuthenticated ? (
             <>
+              {user?.role === 'ADMIN' && (
+                <Link to="/admin" onClick={onClose} className="btn-secondary w-full">Admin Dashboard</Link>
+              )}
+              {user?.role === 'CONTENT_MANAGER' && (
+                <Link to="/content-manager" onClick={onClose} className="btn-secondary w-full">Content Manager Dashboard</Link>
+              )}
               <Link to="/profile" onClick={onClose} className="btn-secondary w-full">Profile</Link>
               <button onClick={() => { onLogout(); onClose(); }} className="btn-ghost w-full">Logout</button>
             </>

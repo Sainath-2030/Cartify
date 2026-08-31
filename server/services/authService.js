@@ -35,7 +35,7 @@ export const AuthService = {
       dateOfBirth: data.dateOfBirth || null,
     });
 
-    const token = signToken({ userId: user.id, email: user.email });
+      const token = signToken({ userId: user.id, email: user.email, role: user.role });
     return { user, token };
   },
 
@@ -50,7 +50,7 @@ export const AuthService = {
       throw new AppError('Invalid email or password.', 401);
     }
 
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = signToken({ userId: user.id, email: user.email, role: user.role });;
 
     // Strip password_hash before returning.
     const { password_hash, ...safeUser } = user;
