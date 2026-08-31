@@ -1,924 +1,1645 @@
-# Cartify — Project Instructions for Claude
+# Cartify — Project Instructions for Claude (Persistent Memory)
 
-## 1. Project Overview
+This file is Cartify's persistent development memory.
 
-Cartify is an AI-powered e-commerce web application being developed as an academic research/project implementation.
+READ THIS FILE FIRST IN EVERY NEW SESSION before inspecting or modifying the codebase.
 
-### Product Name
+This file should contain enough information for Claude to understand the current architecture, decisions, completed work, constraints, and roadmap without requiring the full project ZIP every time.
 
-Cartify
+Keep this file updated after every major feature, section, architectural change, database change, or important decision.
 
-### Tagline
-
-Shop Smarter, Not Harder.
-
-### Project Goal
-
-Cartify provides a modern e-commerce shopping experience and will eventually integrate a hybrid deep-learning recommendation engine.
-
-The final system will personalize product recommendations using multiple machine-learning models instead of relying on a single recommendation algorithm.
+IMPORTANT:
+Clearly distinguish between IMPLEMENTED and PLANNED features.
+Never claim a planned feature has been implemented.
 
 ---
 
-# 2. Core Project Architecture
+# 1. PROJECT OVERVIEW
 
-The current architecture is:
+**Project:** Cartify
 
-React Frontend
+**Tagline:** Shop Smarter, Not Harder.
+
+Cartify is an AI-powered e-commerce web application being developed as an academic research/project implementation.
+
+The project has two major layers:
+
+1. E-commerce web application
+2. Future AI-powered recommendation system
+
+The current goal is to build a complete, professional e-commerce experience first and then integrate a hybrid recommendation engine.
+
+Future recommendation architecture:
+
+NCF + CNN + GRU + Autoencoder
+                ↓
+        Attention Fusion
+                ↓
+   Personalized Recommendations
+
+The web application and ML system must remain modular and loosely coupled.
+
+---
+
+# 2. CORE ARCHITECTURE
+
+## Current Architecture — IMPLEMENTED
+
+React Frontend (client/)
         ↓
-Node.js + Express API
+REST + JSON
+        ↓
+Node.js + Express API (server/)
+        ↓
+pg / node-postgres
         ↓
 PostgreSQL Database
 
-The future AI recommendation architecture will be:
+No ORM is used.
+
+Database access is implemented through:
+
+server/config/db.js
+
+using `pg` with parameterized SQL queries.
+
+Database SQL files are maintained manually under:
+
+database/
+
+No migration framework is currently used.
+
+---
+
+## Future AI Architecture — PLANNED
 
 React Frontend
         ↓
-Node.js / Express API
+Node/Express API
         ↓
 Recommendation Service
         ↓
 ┌──────────┬──────────┬──────────┬────────────┐
 │   NCF    │   CNN    │   GRU    │ Autoencoder│
 └──────────┴──────────┴──────────┴────────────┘
-                     ↓
-             Attention Fusion
-                     ↓
-       Personalized Recommendations
+        ↓
+Attention Fusion
+        ↓
+Personalized Recommendations
 
-The AI models should eventually be integrated as modular services rather than tightly coupling ML code with the React frontend.
+The ML system should eventually be modular.
+
+Do not tightly couple:
+
+- React
+- Express
+- ML models
+- dataset-specific code
 
 ---
 
-# 3. Technology Stack
+# 3. TECHNOLOGY STACK
 
 ## Frontend
 
-- React.js
-- JavaScript
-- HTML5
-- CSS3
-- Tailwind CSS if already used in the existing implementation
-- Lucide React or existing icon library
+Location:
+
+client/
+
+Technologies:
+
+- React 18.3.1
+- ReactDOM 18.3.1
+- Vite 5.3.3
+- react-router-dom 6.24.1
+- Tailwind CSS 3.4.6
+- PostCSS
+- Autoprefixer
+- lucide-react 0.383.0
+- Plain JavaScript
+- Fetch API
+
+No axios.
+
+No React Query.
+
+No external state-management library.
+
+---
 
 ## Backend
 
+Location:
+
+server/
+
+Technologies:
+
 - Node.js
-- Express.js
+- Express 4.19.2
+- ESM modules
+- pg 8.12.0
+- bcrypt 5.1.1
+- jsonwebtoken 9.0.2
+- cors
+- dotenv
+- nodemon for development
+
+server/package.json uses:
+
+"type": "module"
+
+---
 
 ## Database
 
 - PostgreSQL
+- SQL written manually
+- `pg` / node-postgres
+- No ORM
+- No migration framework
 
-## API
+SQL files are under:
 
-- REST API
-- JSON
+database/
 
-## Authentication
+and are executed manually using PostgreSQL/psql.
 
-- JWT
-- bcrypt
+---
 
-## Future Machine Learning
+## Future ML Stack — PLANNED
+
+Potential technologies:
 
 - Python
 - PyTorch
 - TensorFlow/Keras where appropriate
 - NumPy
 - Pandas
-- Scikit-learn where appropriate
+- scikit-learn
 
-## Development
-
-- VS Code
-- Git
-- GitHub
-- Postman
-- PostgreSQL / pgAdmin
+Do not add ML dependencies until the relevant ML section begins.
 
 ---
 
-# 4. IMPORTANT DEVELOPMENT RULE
+# 4. DEVELOPMENT PHILOSOPHY
 
-Cartify is being developed SECTION BY SECTION.
+Cartify is developed SECTION BY SECTION.
 
-Never rebuild the entire project when implementing a new section.
-
-Always inspect the existing codebase first.
+Never rebuild the entire project for a new section.
 
 Before making changes:
 
-1. Understand the current architecture.
-2. Identify which files already implement the required functionality.
-3. Reuse existing components/services/models.
-4. Modify existing files only when necessary.
-5. Create new files only when they provide a clear architectural benefit.
-6. Preserve working functionality from previous sections.
+1. Read CLAUDE.md.
+2. Inspect the existing implementation.
+3. Identify reusable components/services/models.
+4. Modify only what is necessary.
+5. Preserve existing functionality.
+6. Avoid duplicate implementations.
+7. Test old functionality after changes.
+8. Update CLAUDE.md after completing the feature.
 
-Do NOT create a second implementation of something that already exists.
-
----
-
-# 5. Completed Sections
-
-## Section 1 — User Onboarding & Authentication
-
-COMPLETED.
-
-Includes:
-
-- Landing/home page
-- User registration
-- Login
-- Logout
-- JWT authentication
-- bcrypt password hashing
-- Protected routes
-- User profile
-- PostgreSQL user storage
-- Basic interaction database structure
-
-Do not break any of these features.
+Cartify is one continuously evolving project, not a collection of disposable implementations.
 
 ---
 
-## Section 2 — Product Catalogue & Product Discovery
+# 5. FRONTEND ARCHITECTURE — IMPLEMENTED
 
-COMPLETED.
+client/src/
 
-Includes:
+├── components/
+│   ├── Navbar
+│   ├── Footer
+│   ├── ProductCard
+│   ├── ProductGrid
+│   ├── ProductGallery
+│   ├── ProductInfo
+│   ├── ProductSkeleton
+│   ├── ReviewSection
+│   ├── RatingStars
+│   ├── SearchBar
+│   ├── FilterSidebar
+│   ├── SortDropdown
+│   ├── Pagination
+│   ├── CategoryCard
+│   ├── CategoryGrid
+│   ├── Button
+│   ├── Input
+│   ├── FormField
+│   ├── PasswordStrength
+│   ├── Loader
+│   ├── Toast
+│   ├── Modal
+│   ├── MobileMenu
+│   ├── EmptyState
+│   ├── ErrorState
+│   └── ProtectedRoute
+│
+├── pages/
+│   ├── Home
+│   ├── Login
+│   ├── Signup
+│   ├── Profile
+│   ├── Products
+│   ├── ProductDetail
+│   ├── Categories
+│   ├── Category
+│   └── NotFound
+│
+├── layouts/
+│   └── MainLayout
+│
+├── services/
+│   ├── api.js
+│   ├── authService
+│   ├── userService
+│   ├── productService
+│   ├── categoryService
+│   └── interactionService
+│
+├── hooks/
+│   ├── useAuth
+│   ├── useToast
+│   └── useInteractionTracking
+│
+├── context/
+│   ├── AuthContext
+│   └── ToastContext
+│
+├── utils/
+│   ├── validators
+│   ├── format
+│   ├── image
+│   └── session
+│
+└── assets/
 
-- Product database
-- Categories
-- Product catalogue
+MainLayout provides:
+
+Navbar
+   ↓
+Page
+   ↓
+Footer
+
+---
+
+# 6. FRONTEND API CONVENTIONS
+
+client/src/services/api.js contains the fetch wrapper.
+
+JWT:
+
+localStorage
+    ↓
+cartify_token
+
+Authenticated requests use:
+
+Authorization: Bearer <token>
+
+The API wrapper normalizes errors into:
+
+{
+    message,
+    status,
+    fieldErrors
+}
+
+Product-facing components consume Cartify's internal product representation.
+
+They must NOT depend directly on an external dataset format.
+
+---
+
+# 7. FRONTEND ROUTES — IMPLEMENTED
+
+Current routes:
+
+/
+ /login
+ /signup
+ /products
+ /products/:slug
+ /categories
+ /category/:slug
+ /profile
+ *
+
+`/profile` is protected.
+
+---
+
+# 8. BACKEND ARCHITECTURE — IMPLEMENTED
+
+server/
+
+├── app.js
+├── server.js
+│
+├── config/
+│   └── db.js
+│
+├── routes/
+│   ├── authRoutes
+│   ├── userRoutes
+│   ├── productRoutes
+│   ├── categoryRoutes
+│   └── interactionRoutes
+│
+├── controllers/
+│   ├── authController
+│   ├── userController
+│   ├── productController
+│   ├── categoryController
+│   └── interactionController
+│
+├── services/
+│   ├── authService
+│   ├── userService
+│   ├── productService
+│   ├── categoryService
+│   └── interactionService
+│
+├── models/
+│   ├── userModel
+│   ├── productModel
+│   ├── categoryModel
+│   ├── reviewModel
+│   └── interactionModel
+│
+├── middleware/
+│   ├── authMiddleware
+│   ├── optionalAuthMiddleware
+│   ├── errorMiddleware
+│   └── validateMiddleware
+│
+├── validators/
+│   ├── authValidators
+│   ├── userValidators
+│   ├── productValidators
+│   └── reviewValidators
+│
+├── utils/
+│   ├── jwt.js
+│   └── asyncHandler.js
+│
+└── scripts/
+    ├── importProducts.js
+    └── validateProducts.js
+
+Backend layering:
+
+routes
+  ↓
+validators
+  ↓
+controllers
+  ↓
+services
+  ↓
+models
+  ↓
+PostgreSQL
+
+Raw SQL must remain inside models/data-access code.
+
+---
+
+# 9. DATABASE ARCHITECTURE — IMPLEMENTED
+
+Current SQL files are executed approximately in this order:
+
+schema.sql
+    ↓
+schema_section2.sql
+    ↓
+product seed
+
+No migration framework is used.
+
+---
+
+## users
+
+Current important fields:
+
+id
+full_name
+email
+password_hash
+mobile
+address
+city
+state
+postal_code
+date_of_birth
+avatar_url
+created_at
+updated_at
+
+---
+
+## categories
+
+Current fields:
+
+id
+name
+slug
+description
+image
+created_at
+
+Current categories:
+
+Electronics
+Fashion
+Home & Kitchen
+Books
+Beauty
+Sports
+Grocery
+Gaming
+
+The application should not assume this exact list forever.
+
+Future datasets may have different category structures.
+
+---
+
+## products
+
+Current fields:
+
+id BIGSERIAL
+name
+slug
+description
+short_description
+category_id
+subcategory
+brand
+price
+discount_percentage
+final_price
+rating
+review_count
+stock_quantity
+seller_name
+seller_id
+main_image
+images JSONB
+specifications JSONB
+is_active
+created_at
+updated_at
+
+`brand` is NOT NULL.
+
+When a product has no brand:
+
+Unbranded
+
+is used instead of NULL.
+
+---
+
+## interactions
+
+Current fields:
+
+id
+user_id
+product_id
+interaction_type
+session_id
+metadata JSONB
+created_at
+
+Current interaction types include:
+
+view
+click
+search
+wishlist
+cart
+purchase
+rating
+review
+product_view
+product_click
+category_view
+
+The interaction model will be expanded during Section 3.
+
+---
+
+## reviews
+
+Current fields:
+
+id
+product_id
+user_id
+reviewer_name
+rating
+review_text
+created_at
+
+Current review rows:
+
+0
+
+The current system only displays reviews.
+
+Review submission is not yet implemented.
+
+---
+
+# 10. DATABASE RELATIONSHIPS
+
+products.category_id
+        ↓
+categories.id
+
+interactions.user_id
+        ↓
+users.id
+
+interactions.product_id
+        ↓
+products.id
+
+reviews.product_id
+        ↓
+products.id
+
+reviews.user_id
+        ↓
+users.id
+
+Future tables such as:
+
+cart_items
+wishlist_items
+order_items
+
+must reference the internal:
+
+products.id
+
+---
+
+# 11. AUTHENTICATION — IMPLEMENTED
+
+Registration and login issue JWTs.
+
+JWT contains the user ID.
+
+Client stores token in:
+
+cartify_token
+
+Password hashing:
+
+bcrypt
+
+Middleware:
+
+requireAuth
+optionalAuth
+
+`requireAuth`:
+
+- rejects unauthenticated requests.
+
+`optionalAuth`:
+
+- attaches user information when available
+- does not block guests.
+
+Password hashes are never returned by APIs.
+
+---
+
+# 12. PRODUCT/CATALOGUE — IMPLEMENTED
+
+Current functionality:
+
+- Product listing
 - Product cards
 - Product details
-- Product image gallery
+- Categories
+- Category pages
 - Search
 - Filtering
 - Sorting
 - Pagination
-- Category pages
-- Product ratings
-- Product reviews display
-- Stock status
-- Basic product interaction tracking
-- Premium responsive UI
+- Rating display
+- Stock display
+- Image gallery
+- Specifications
+- Seller information
+- Review display
+- Interaction tracking
 
-The current product dataset is being improved to look realistic and internally consistent.
+Current product API supports:
 
----
-
-# 6. Current Development Status
-
-The project currently has:
-
-Section 1:
-DONE
-
-Section 2:
-DONE
-
-Current data-quality improvement:
-IN PROGRESS / BEFORE SECTION 3
-
-The product catalogue should contain realistic and coherent products.
-
-A product's:
-
-- name
-- brand
-- image
-- category
-- description
-- specifications
-- price
-- rating
-
-must describe the SAME product.
-
-Do not generate random product/image/brand combinations.
+GET /api/products
+GET /api/products/search
+GET /api/products/slug/:slug
+GET /api/products/:id
+GET /api/products/brands
 
 ---
 
-# 7. Product Data Rules
+# 13. CURRENT PRODUCT DATA — IMPLEMENTED
 
-Product data is extremely important because it will eventually be used by the recommendation system.
+Current catalogue contains approximately:
 
-Never use randomization for:
+95 products
+8 categories
 
-- Product images
-- Product names
-- Brands
-- Prices
-- Ratings
-- Discounts
+Current product data originated primarily from DummyJSON, with some hand-authored products for categories not adequately covered by it.
 
-Avoid repeated primary images wherever possible.
+Important:
 
-Use product-specific images.
+DummyJSON is NOT used by the running frontend.
 
-Do not claim that sample/public dataset prices are live market prices.
+The data was transformed into Cartify's own PostgreSQL structure.
 
-If using a public dataset, treat it as source/catalogue data and clean/normalize it before storing it in PostgreSQL.
+Current product characteristics:
 
-Do not scrape commercial websites such as Amazon, Flipkart or Myntra.
+- unique primary images
+- unique product names
+- normalized prices
+- product metadata
+- ratings
+- stock
+- categories
 
-Do not make the frontend dependent on an external product API at runtime.
+Current prices derived from DummyJSON are illustrative and must NOT be described as live market prices.
 
-The architecture should remain:
+---
 
-Public Dataset
-      ↓
-Cleaning / Transformation
-      ↓
+# 14. PRODUCT ID STRATEGY — IMPLEMENTED
+
+This is an important architectural decision.
+
+Cartify uses:
+
+products.id
+
+as its internal stable product identity.
+
+It is:
+
+BIGSERIAL
+
+and PostgreSQL assigns it.
+
+Other application tables reference:
+
+products.id
+
+via foreign keys.
+
+External dataset IDs must NOT replace Cartify's internal product ID.
+
+Current situation:
+
+External Dataset ID
+        ↓
+temporary transformation
+        ↓
+Cartify products.id
+
+Future planned improvement:
+
+products
+├── id
+├── source
+└── source_id
+
+where:
+
+id
+
+remains the internal Cartify identity.
+
+`source` and `source_id` would only identify the origin of imported data.
+
+---
+
+# 15. INTERACTION MODEL — IMPLEMENTED FOUNDATION
+
+Current interaction tracking supports:
+
+product_view
+product_click
+search
+category_view
+
+Authenticated users use:
+
+user_id
+
+Guests use:
+
+session_id
+
+Guest interactions are not currently persisted into the user-scoped database because `interactions.user_id` is NOT NULL.
+
+The frontend generates a guest session ID using:
+
+client/src/utils/session.js
+
+The interaction table is intentionally designed to eventually support:
+
+NCF
+GRU
+Autoencoder
+Attention Fusion
+
+No recommendation scoring exists yet.
+
+No fake/hardcoded recommendations exist.
+
+---
+
+# 16. API RESPONSE CONTRACT — IMPLEMENTED
+
+Success:
+
+{
+  "success": true,
+  "data": {}
+}
+
+Pagination:
+
+{
+  "success": true,
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
+  }
+}
+
+Error:
+
+{
+  "success": false,
+  "message": "...",
+  "errors": {}
+}
+
+Future API changes must preserve this general convention unless there is a strong architectural reason to change it.
+
+---
+
+# 17. DATASET-INDEPENDENT ARCHITECTURE
+
+## STATUS
+
+Audit: COMPLETE
+
+Refactor: PARTIALLY PLANNED / NOT YET IMPLEMENTED
+
+The architecture audit confirmed that Cartify's core application is already largely dataset-independent.
+
+The following areas were identified as dataset-specific:
+
+server/scripts/importProducts.js
+database/seed_section3_real_products.sql
+
+The importer is a developer-only tool and is NOT called by the running application.
+
+The main frontend/backend product APIs already operate on Cartify's internal product structure.
+
+---
+
+## Dataset-independent target architecture
+
+External Dataset
+       ↓
+Dataset-specific Importer
+       ↓
+Validation
+       ↓
+Normalization
+       ↓
+Cartify Internal Product Model
+       ↓
 PostgreSQL
+       ↓
+Cartify API
+       ↓
+React Frontend
+
+The frontend must never directly depend on an external dataset.
+
+---
+
+# 18. DATASET REFACTOR RULES
+
+The refactor must remain MINIMAL.
+
+Do NOT redesign the whole database.
+
+Do NOT rewrite working APIs without a concrete reason.
+
+Do NOT replace:
+
+products.id
+
+with an external dataset ID.
+
+Do NOT introduce unnecessary abstractions.
+
+The purpose of the refactor is:
+
+External dataset changes
+        ↓
+Importer changes
+        ↓
+Core application remains stable
+
+---
+
+# 19. PLANNED DATASET REFACTOR
+
+## Phase A — Database + Backend
+
+PLANNED, NOT IMPLEMENTED unless explicitly marked otherwise.
+
+Potential changes:
+
+products.source
+products.source_id
+
+with appropriate uniqueness rules.
+
+Purpose:
+
+- external dataset traceability
+- idempotent imports
+- future re-imports
+- reliable product mapping
+
+Also planned:
+
+Extract reusable product insert/upsert logic from:
+
+server/scripts/importProducts.js
+
+so future dataset importers can reuse the same database-writing logic.
+
+---
+
+## Phase B — API + Frontend
+
+The current audit found no major API contract problem.
+
+Potential minor improvement:
+
+Remove or parameterize:
+
+client/src/pages/Home.jsx
+
+slice(0, 8)
+
+because it happens to match the current number of categories but should not be treated as a permanent architectural limitation.
+
+---
+
+## Phase C — Future Dataset Import
+
+When a future dataset is selected:
+
+server/scripts/import<DatasetName>.js
+
+should follow:
+
+Read source
+    ↓
+Validate
+    ↓
+Normalize
+    ↓
+Map categories
+    ↓
+Normalize brands
+    ↓
+Normalize prices
+    ↓
+Generate/normalize slugs
+    ↓
+Map external IDs
+    ↓
+Insert/upsert into Cartify DB
+
+Do not put dataset-specific transformation logic inside React components.
+
+---
+
+# 20. FUTURE H&M DATASET — NOT IMPLEMENTED
+
+H&M Personalized Fashion Recommendations is a possible future dataset.
+
+Important:
+
+H&M integration = NOT IMPLEMENTED
+
+Do NOT claim otherwise.
+
+When eventually implemented, H&M will need:
+
+article_id
+        ↓
+Cartify products.id
+
+through an explicit mapping/import process.
+
+H&M category names will not necessarily match Cartify's current categories.
+
+That mapping must be decided during dataset integration.
+
+Do NOT change the current category architecture solely because H&M may be used later.
+
+---
+
+# 21. FUTURE SHOPPING FEATURES — PLANNED
+
+## Section 3 — Shopping Experience & User Interactions
+
+NOT IMPLEMENTED.
+
+Planned:
+
+### Cart
+
+- Add to cart
+- Remove
+- Quantity update
+- Cart total
+- Stock validation
+- Cart persistence
+
+### Wishlist
+
+- Add/remove
+- Wishlist page
+- Wishlist count
+- Move to cart
+
+### Recently Viewed
+
+- Track viewed products
+- Display recently viewed products
+
+### Reviews
+
+- Submit review
+- Edit own review
+- Delete own review
+- Rating validation
+- Recalculate product rating from real review rows
+
+Never hardcode ratings from the frontend.
+
+### Expanded interactions
+
+Planned interaction types:
+
+wishlist_add
+wishlist_remove
+cart_add
+cart_remove
+cart_quantity_update
+rating
+review
+
+No checkout/payment in Section 3.
+
+---
+
+# 22. FUTURE CHECKOUT / ORDER FEATURES — PLANNED
+
+After Section 3:
+
+Section 4 — Checkout & Orders
+
+Potential features:
+
+Cart
+ ↓
+Checkout
+ ↓
+Address
+ ↓
+Order Summary
+ ↓
+Payment Simulation
+ ↓
+Order Confirmation
+ ↓
+Order History
+
+Payment is initially expected to be a simulated academic flow.
+
+Do not implement real financial payment processing unless explicitly requested.
+
+---
+
+# 23. FUTURE ML ROADMAP
+
+The planned ML sequence is:
+
+Section 4
+Recommendation Data Pipeline
+
+Section 5
+NCF
+
+Section 6
+CNN Product Content Model
+
+Section 7
+GRU Session Recommendation
+
+Section 8
+Autoencoder / Cold Start
+
+Section 9
+Attention Fusion
+
+Section 10
+AI + Cartify Integration
+
+Section 11
+Admin Analytics
+
+Section 12
+Final Integration & Testing
+
+---
+
+# 24. NCF — PLANNED
+
+NCF will primarily use:
+
+user_id
+product_id
+interaction
+
+Conceptually:
+
+User
+ ↓
+Embedding
+ ↓
+Product Embedding
+ ↓
+Neural Collaborative Filtering
+ ↓
+Recommendation Score
+
+Do not implement until the NCF section begins.
+
+---
+
+# 25. GRU — PLANNED
+
+GRU will use chronological user behavior.
+
+Important fields:
+
+user_id
+product_id
+timestamp
+session_id
+
+Conceptually:
+
+User
+ ↓
+Session
+ ↓
+Chronological products
+ ↓
+GRU
+ ↓
+Sequential preference embedding
+
+Never randomly shuffle sequences before sequence modeling.
+
+---
+
+# 26. CNN — PLANNED
+
+CNN will use product images/content.
+
+Conceptually:
+
+Product Image
       ↓
-Node / Express
+CNN
       ↓
+Image/Product Embedding
+
+The frontend product image architecture should therefore remain independent from the source dataset.
+
+---
+
+# 27. AUTOENCODER — PLANNED
+
+Autoencoder may use sparse user-item interaction representations.
+
+Conceptually:
+
+User × Product Matrix
+        ↓
+Autoencoder
+        ↓
+Latent Representation
+
+Do not create fake interactions merely to increase dataset size.
+
+---
+
+# 28. ATTENTION FUSION — PLANNED
+
+Final hybrid architecture:
+
+NCF Embedding
+       +
+GRU Embedding
+       +
+CNN Embedding
+       +
+Autoencoder Embedding
+       ↓
+Attention Fusion
+       ↓
+Final User/Product Representation
+       ↓
+Recommendation Ranking
+
+Do not implement recommendation scores before the actual models exist.
+
+---
+
+# 29. PRODUCT / DATA QUALITY RULES
+
+Never create fake-looking product data unnecessarily.
+
+Rules:
+
+- Avoid duplicate product images.
+- Avoid duplicate product names.
+- Do not randomly assign images.
+- Do not randomly assign prices.
+- Do not randomly assign ratings.
+- Do not claim sample dataset prices are live market prices.
+- Normalize public datasets before inserting them into PostgreSQL.
+- Do not make the frontend depend directly on an external dataset/API.
+- Keep product IDs stable.
+- Never randomly map unrelated product IDs.
+- Never create fake AI recommendations.
+
+Architecture must remain:
+
+Dataset
+ ↓
+Clean / Transform
+ ↓
+PostgreSQL
+ ↓
+Node/Express
+ ↓
 React
 
 ---
 
-# 8. Database Principles
+# 30. EXTERNAL DATASET RULES
 
-PostgreSQL is the source of truth for Cartify application data.
+If replacing the current dataset:
 
-Important entities include:
+1. Do not immediately delete the existing dataset.
+2. First create/import the new dataset separately.
+3. Validate product counts and fields.
+4. Validate product ID mappings.
+5. Validate image availability.
+6. Validate category mappings.
+7. Validate prices.
+8. Validate interactions.
+9. Test application APIs.
+10. Only then replace/activate the new catalogue.
 
-- users
-- categories
-- products
-- interactions
-- reviews
-- future orders
-- future recommendations
-
-Product IDs must remain stable.
-
-Do not regenerate product IDs unnecessarily.
-
-This is important because future ML models will use:
-
-user_id + product_id
-
-and:
-
-user_id + product_id + timestamp
+Never randomly map products between unrelated datasets.
 
 ---
 
-# 9. Interaction Data
-
-Interaction tracking is a critical part of Cartify.
-
-The system should eventually capture events such as:
-
-- product_view
-- product_click
-- search
-- category_view
-- wishlist
-- cart
-- purchase
-- rating
-- review
-
-Interaction records should contain, where applicable:
-
-- user_id
-- product_id
-- interaction_type
-- timestamp
-- session_id
-- metadata
-
-This data will eventually be used for recommendation models.
-
-Do not create fake AI recommendations from interaction data.
-
----
-
-# 10. Future Recommendation Architecture
-
-Cartify's research component will use a hybrid recommendation architecture.
-
-## NCF — Neural Collaborative Filtering
-
-Purpose:
-
-Learn user-product interaction patterns.
-
-Input examples:
-
-- clicks
-- views
-- ratings
-- wishlist
-- cart
-- purchases
-
-Output:
-
-User-product preference score.
-
----
-
-## CNN — Product Content/Image Model
-
-Purpose:
-
-Extract meaningful product features from:
-
-- product images
-- descriptions
-- reviews/content where appropriate
-
-Output:
-
-Product feature representation.
-
----
-
-## GRU — Session Recommendation
-
-Purpose:
-
-Understand sequential browsing behavior.
-
-Example:
-
-Laptop
-→ Mouse
-→ Keyboard
-→ Headset
-
-The GRU should learn relationships between sequential interactions.
-
----
-
-## Autoencoder — Cold Start
-
-Purpose:
-
-Handle situations where there is limited interaction data.
-
-Examples:
-
-- New user
-- New product
-- Sparse interaction history
-
----
-
-## Attention Fusion Layer
-
-Purpose:
-
-Combine outputs from:
-
-NCF
-CNN
-GRU
-Autoencoder
-
-The attention mechanism should dynamically determine the importance of different model outputs.
-
-Final output:
-
-Ranked personalized product recommendations.
-
----
-
-# 11. Future Development Roadmap
-
-## Section 3
-
-Shopping Experience & User Interactions
-
-Planned:
-
-- Shopping cart
-- Add/remove products
-- Quantity management
-- Cart total
-- Wishlist
-- Wishlist page
-- Recently viewed
-- Product rating submission
-- Review submission
-- More detailed interaction tracking
-
----
-
-## Section 4
-
-Recommendation Data Pipeline
-
-Planned:
-
-- Dataset preparation
-- Interaction preprocessing
-- Cleaning
-- Encoding users/products
-- Session construction
-- Train/validation/test split
-- Feature preparation
-- ML-ready data pipeline
-
----
-
-## Section 5
-
-NCF Recommendation Model
-
-Implement and evaluate Neural Collaborative Filtering.
-
----
-
-## Section 6
-
-CNN Product Content Model
-
-Implement product image/content feature extraction.
-
----
-
-## Section 7
-
-GRU Session Recommendation
-
-Implement sequential/session-based recommendation.
-
----
-
-## Section 8
-
-Autoencoder Cold-Start Model
-
-Implement cold-start recommendation support.
-
----
-
-## Section 9
-
-Attention Fusion / Hybrid Recommendation Engine
-
-Combine:
-
-NCF
-+
-CNN
-+
-GRU
-+
-Autoencoder
-
-using an Attention Fusion Layer.
-
----
-
-## Section 10
-
-AI + Cartify Integration
-
-Integrate the recommendation engine into the web application.
-
-Add:
-
-- Recommended For You
-- Similar Products
-- Personalized Home Page
-- Session-based recommendations
-- Personalized product ranking
-
----
-
-## Section 11
-
-Admin Analytics
-
-Planned:
-
-- Recommendation metrics
-- Precision@K
-- Recall@K
-- NDCG@K
-- Hit Ratio
-- Model monitoring
-- Dataset monitoring
-- Recommendation statistics
-
----
-
-## Section 12
-
-Final Integration & Testing
-
-Includes:
-
-- End-to-end testing
-- ML evaluation
-- API testing
-- Frontend testing
-- Security testing
-- Performance testing
-- Responsive testing
-- Deployment preparation
-
----
-
-# 12. Frontend Design Rules
-
-Cartify must look like a real modern e-commerce startup.
-
-The UI should be:
-
-- Premium
-- Professional
-- Clean
-- Responsive
-- Modern
-- Consistent
-- Easy to navigate
+# 31. FRONTEND DESIGN RULES
+
+Cartify should look like a premium modern e-commerce startup.
+
+Design goals:
+
+- professional
+- clean
+- responsive
+- consistent
+- accessible
+- realistic
+- easy to navigate
 
 Avoid:
 
-- Amateur-looking layouts
-- Excessive gradients
-- Excessive glassmorphism
-- Excessive animations
-- Random colors
-- Inconsistent spacing
-- Generic CRUD appearance
+- excessive gradients
+- excessive glassmorphism
+- unnecessary animations
+- random colors
+- inconsistent spacing
+- amateur layouts
+- generic CRUD appearance
 
-Maintain the existing Cartify design system.
+Do not redesign existing pages unless explicitly requested.
 
-Do not redesign existing pages unless specifically requested.
-
----
-
-# 13. Backend Architecture Rules
-
-Keep backend code modular.
-
-Prefer:
-
-server/
-├── controllers/
-├── routes/
-├── services/
-├── models/
-├── middleware/
-├── validators/
-├── config/
-└── utils/
-
-Do not place the entire backend implementation inside:
-
-server.js
-
-Use:
-
-Routes
-→ Controllers
-→ Services
-→ Database layer
-
-where appropriate.
+Reuse the existing design system and components.
 
 ---
 
-# 14. Frontend Architecture Rules
-
-Keep React modular.
-
-Prefer:
-
-client/src/
-├── components/
-├── pages/
-├── layouts/
-├── services/
-├── hooks/
-├── context/
-├── utils/
-└── assets/
-
-Use reusable components.
-
-Examples:
-
-- Navbar
-- Footer
-- ProductCard
-- ProductGrid
-- SearchBar
-- FilterSidebar
-- Button
-- Input
-- Loader
-- EmptyState
-- ErrorState
-
-Do not duplicate components unnecessarily.
-
----
-
-# 15. API Rules
-
-Use REST APIs.
-
-Use consistent response structures.
-
-Successful response:
-
-{
-  "success": true,
-  "data": ...
-}
-
-Error response:
-
-{
-  "success": false,
-  "message": "Something went wrong"
-}
-
-Use appropriate HTTP status codes.
-
-Do not expose:
-
-- passwords
-- password hashes
-- JWT secrets
-- database credentials
-- stack traces
-
----
-
-# 16. Environment Variables
-
-Never hardcode secrets.
-
-Use:
-
-.env
-
-for local secrets.
-
-Never commit:
-
-.env
-
-to GitHub.
-
-Maintain:
-
-.env.example
-
-with placeholder values.
-
-Example:
-
-DATABASE_URL=
-JWT_SECRET=
-PORT=
-
----
-
-# 17. Security Rules
+# 32. SECURITY RULES
 
 Always:
 
-- Hash passwords using bcrypt.
-- Use JWT securely.
-- Validate input.
-- Use parameterized SQL / safe database access.
-- Validate API parameters.
-- Avoid SQL injection.
-- Avoid exposing sensitive information.
-- Keep secrets in environment variables.
+- hash passwords with bcrypt
+- validate inputs server-side
+- use parameterized SQL
+- avoid SQL injection
+- validate query parameters
+- use JWT authentication appropriately
+- never expose password hashes
+- never expose JWT secrets
+- never expose database credentials
+- never expose stack traces in production API responses
+- keep secrets in `.env`
+- never commit `.env`
+- maintain `.env.example` with placeholders
 
 ---
 
-# 18. Git Rules
-
-GitHub is the permanent source of truth and backup.
-
-Before implementing a major section:
-
-1. Ensure the current project works.
-2. Commit the current version.
-3. Create a meaningful checkpoint/tag if appropriate.
-
-Example:
-
-git commit -m "Complete Section 2 - Product Catalogue and Discovery"
-
-Tags may be used:
-
-section-1-complete
-section-2-complete
-section-3-complete
-ncf-complete
-cnn-complete
-gru-complete
-autoencoder-complete
-attention-fusion-complete
-
-Never intentionally delete previous working functionality.
-
----
-
-# 19. Dependency Rules
-
-Do not add a new dependency unless it is actually necessary.
-
-Before adding a dependency:
-
-1. Check whether the existing project already provides equivalent functionality.
-2. Prefer stable and widely used packages.
-3. Avoid unnecessary libraries.
-4. Check compatibility with the existing stack.
-
-If package.json changes, make sure package-lock.json is updated.
-
----
-
-# 20. Database Migration Rules
-
-Do not casually delete production-style data or tables.
+# 33. DATABASE MIGRATION RULES
 
 When changing the database:
 
-- Prefer migrations/schema updates.
-- Preserve existing users.
-- Preserve existing interactions where possible.
-- Preserve stable product IDs where possible.
-- Use transactions for large data modifications.
-
-Before destructive database operations, clearly warn about them.
-
----
-
-# 21. ML Development Rules
-
-The ML recommendation system should remain modular.
-
-Do not put model-training code inside React.
-
-Do not put large Python ML logic directly inside Node.js.
-
-Prefer a separate ML/recommendation service.
-
-Potential architecture:
-
-client
-   ↓
-Node/Express
-   ↓
-Recommendation API
-   ↓
-Python ML service
-   ↓
-PyTorch models
-   ↓
-Recommendations
-
-The exact implementation can evolve later.
-
----
-
-# 22. Dataset Rules
-
-Training data should be separated from application source code where appropriate.
-
-Do not commit very large datasets or trained model binaries to GitHub unnecessarily.
-
 Prefer:
 
-datasets/
-models/
+new additive SQL file
 
-with documentation or download/setup instructions where appropriate.
+over destructive rewrites.
 
----
+Use:
 
-# 23. Testing Rules
+IF NOT EXISTS
 
-Before declaring a section complete, test existing functionality as well as new functionality.
+where appropriate.
 
-At minimum verify:
+Preserve:
 
-- Registration
-- Login
-- Logout
-- Profile
-- Product loading
-- Search
-- Categories
-- Filters
-- Sorting
-- Product details
-- Database connectivity
+users
+interactions
+stable product IDs
 
-Then test the newly implemented section.
+where possible.
 
-Do not assume that because the new feature works, the old features still work.
+Use:
 
----
+BEGIN
+COMMIT
+ROLLBACK
 
-# 24. Important Rule for New Sections
+for data-modifying scripts.
 
-When asked to implement a new section:
+Warn before destructive operations.
 
-First:
+Never casually:
 
-1. Inspect the existing project.
-2. Determine what already exists.
-3. Determine what must be added.
-4. Identify possible conflicts.
-5. Implement the section.
-6. Preserve previous sections.
-7. Test integration.
-8. Report modified/new files.
-9. Provide setup commands only when necessary.
-
-Do not restart from scratch.
-
-Do not create a second Cartify project.
-
-Do not duplicate existing functionality.
+DROP DATABASE
+DROP TABLE
+DELETE all users
 
 ---
 
-# 25. Current Section
+# 34. DEPENDENCY RULES
 
-Current development stage:
+Do not add dependencies unnecessarily.
 
-PRODUCT DATA QUALITY UPGRADE
+Before adding a dependency:
 
-The immediate goal is to improve the product catalogue so that:
+1. Check existing packages.
+2. Check whether native functionality is sufficient.
+3. Check whether the architecture actually requires it.
 
-- Images are not unnecessarily repeated.
-- Products match their images.
-- Brands match products.
-- Prices are realistic and coherent.
-- Discounts are mathematically correct.
-- Ratings are plausible.
-- Categories are consistent.
-- Product descriptions match products.
-- Product specifications are relevant.
-- Product IDs remain stable.
+Current rules:
 
-After this is complete and tested:
+- No ORM unless explicitly justified.
+- No axios unless explicitly justified.
+- No React Query unless explicitly justified.
+- No state-management library unless explicitly justified.
 
-NEXT SECTION = Section 3 — Shopping Experience & User Interactions
+Keep:
 
----
+package.json
+package-lock.json
 
-# 26. Claude Response Style
-
-When implementing code:
-
-- Be concise.
-- Do not repeatedly explain the entire project.
-- Focus on the requested section.
-- Inspect existing code before changing it.
-- Clearly identify files created/modified.
-- Provide complete code when files need to be replaced.
-- Do not provide pseudo-code when actual implementation is requested.
-- Do not implement future sections unless explicitly requested.
-
-Before making major architectural changes, explain the reason briefly.
+synchronized.
 
 ---
 
-# 27. Golden Rule
+# 35. TESTING RULES
 
-Cartify is an evolving single project.
+Before declaring a section complete, test both:
 
-Every new section must build on the existing codebase.
+1. New functionality
+2. Existing functionality
+
+Existing functionality includes:
+
+Registration
+Login
+Logout
+Profile
+Product loading
+Search
+Categories
+Filters
+Sorting
+Product details
+Database connectivity
+
+Never assume previous functionality still works.
+
+---
+
+# 36. CLAUDE WORKFLOW RULES
+
+Every Claude session:
+
+1. Read CLAUDE.md first.
+2. Inspect the relevant existing files.
+3. Understand current implementation.
+4. Reuse existing code.
+5. Modify only what is necessary.
+6. Do not rebuild the project.
+
+---
+
+# 37. NO FULL ZIP RULE
+
+IMPORTANT:
+
+Do NOT regenerate the entire project ZIP unless explicitly requested.
+
+Default output must be:
+
+New files
++
+Modified files
++
+Exact manual instructions
++
+Commands to run
++
+Testing checklist
++
+Git commit message
+
+Do NOT return unchanged files.
+
+If an entire file genuinely needs replacement, clearly state:
+
+REPLACE ENTIRE FILE
+
+Otherwise provide targeted changes.
+
+---
+
+# 38. USER'S MANUAL-APPLY WORKFLOW
+
+The current development workflow is:
+
+Claude
+ ↓
+Analyze existing project
+ ↓
+Provide changed/new files
+ ↓
+User manually applies changes
+ ↓
+Run project
+ ↓
+Test
+ ↓
+Git diff
+ ↓
+Git commit
+ ↓
+Git push
+
+Do not assume Claude should directly regenerate the entire project.
+
+---
+
+# 39. GIT WORKFLOW
+
+After every completed section or major feature, provide a meaningful commit message.
+
+Preferred format:
+
+feat(section-N): <what was actually implemented>
+
+For fixes:
+
+fix(section-N): <what was fixed>
+
+For refactoring:
+
+refactor: <what was refactored>
+
+Provide commands such as:
+
+git status
+git diff
+git add <relevant files>
+git commit -m "<commit message>"
+git push origin main
+
+Never include:
+
+.env
+secrets
+credentials
+
+in Git commits.
+
+---
+
+# 40. CLAUDE.MD UPDATE RULE
+
+After every major change:
+
+1. Update this file.
+2. Change PLANNED → IMPLEMENTED only when actually completed.
+3. Add new files.
+4. Add new tables.
+5. Add new API endpoints.
+6. Add important architecture decisions.
+7. Update current development status.
+8. Update future roadmap if necessary.
+
+Do this as part of the same feature completion.
+
+Never leave the project memory outdated.
+
+---
+
+# 41. IMPORTANT ANTI-HALLUCINATION RULE
+
+Do not invent:
+
+- files
+- endpoints
+- tables
+- components
+- completed features
+- architecture decisions
+- database fields
+- dataset mappings
+
+If something is unclear:
+
+1. Inspect the codebase if available.
+2. Read CLAUDE.md.
+3. State what is known.
+4. Clearly identify uncertainty.
+
+Do not assume that a previously discussed feature was implemented.
+
+The actual codebase is the source of truth for implementation status.
+
+CLAUDE.md is the source of truth for documented architecture and project decisions.
+
+---
+
+# 42. CURRENT DEVELOPMENT STATUS
+
+Section 1 — Authentication
+STATUS: COMPLETE
+
+Section 2 — Product Catalogue & Discovery
+STATUS: COMPLETE
+
+Section 2.5 — Product Data Quality
+STATUS: COMPLETE
+
+Dataset-Agnostic Architecture Audit
+STATUS: COMPLETE
+
+Dataset-Agnostic Refactor
+STATUS: NOT YET IMPLEMENTED
+
+H&M Dataset Integration
+STATUS: NOT STARTED
+
+Section 3 — Shopping Experience
+STATUS: NOT STARTED
+
+Section 4 — Recommendation Data Pipeline
+STATUS: NOT STARTED
+
+Section 5 — NCF
+STATUS: NOT STARTED
+
+Section 6 — CNN
+STATUS: NOT STARTED
+
+Section 7 — GRU
+STATUS: NOT STARTED
+
+Section 8 — Autoencoder
+STATUS: NOT STARTED
+
+Section 9 — Attention Fusion
+STATUS: NOT STARTED
+
+Section 10 — AI + Cartify Integration
+STATUS: NOT STARTED
+
+Section 11 — Admin Analytics
+STATUS: NOT STARTED
+
+Section 12 — Final Integration & Testing
+STATUS: NOT STARTED
+
+---
+
+# 43. CURRENT NEXT STEP
+
+The immediate architectural task is:
+
+Dataset-Agnostic Refactor
+
+Specifically:
+
+Phase A
+Database + Backend
+
+↓
+
+Phase B
+API + Frontend
+
+↓
+
+Phase C
+Future Dataset Import
+
+After that:
+
+Section 3
+Shopping Experience & User Interactions
+
+---
+
+# 44. GOLDEN RULE
+
+Cartify is one continuously evolving project.
 
 NEVER:
 
 "Let's create a new project."
 
-Instead:
+ALWAYS:
 
-"Let's inspect the existing Cartify implementation and extend it."
+"Let's inspect the existing Cartify implementation and extend it without breaking previous work."
 
-The goal is one continuously evolving application:
+Build incrementally.
 
-Section 1
-→ Section 2
-→ Section 3
-→ Section 4
-→ NCF
-→ CNN
-→ GRU
-→ Autoencoder
-→ Attention Fusion
-→ Final Cartify AI Platform
+Preserve working functionality.
+
+Keep architecture modular.
+
+Keep dataset-specific logic isolated.
+
+Keep ML modular.
+
+Keep CLAUDE.md updated.
+
+Never claim planned work is implemented.
