@@ -1,14 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Heart, PackageX, ShoppingCart } from 'lucide-react';
+import { Heart, PackageX, ShoppingBag, Plus } from 'lucide-react';
 import RatingStars from './RatingStars.jsx';
 import { onImageError, normalizeImageUrl } from '../utils/image.js';
 import { formatPrice } from '../utils/format.js';
-import { useInteractionTracking } from '../hooks/useInteractionTracking.js';
 import { useCart } from '../hooks/useCart.js';
 import { useWishlist } from '../hooks/useWishlist.js';
 
 export default function ProductCard({ product }) {
-  const { track } = useInteractionTracking();
   const { addItem, isMutating: isCartMutating } = useCart();
   const { isWishlisted, toggleWishlist, isMutating: isWishlistMutating } = useWishlist();
 
@@ -32,10 +30,6 @@ export default function ProductCard({ product }) {
   const outOfStock = Number(stock) <= 0;
   const wishlisted = isWishlisted(id);
 
-  const handleClick = () => {
-    track('product_click', { productId: id, metadata: { slug, source: 'product_card' } });
-  };
-
   const handleToggleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -46,77 +40,113 @@ export default function ProductCard({ product }) {
     e.preventDefault();
     e.stopPropagation();
     if (outOfStock) return;
-    track('product_click', { productId: id, metadata: { slug, source: 'quick_add_cart' } });
     await addItem(id, 1, { openDrawer: true });
   };
 
   return (
-    <div className="card group relative flex flex-col overflow-hidden transition-shadow hover:shadow-cardHover">
-      <button
-        type="button"
-        onClick={handleToggleWishlist}
-        disabled={isWishlistMutating}
-        aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
-        className={`absolute right-3 top-3 z-10 rounded-full p-2 shadow-sm transition-all ${
-          wishlisted
-            ? 'bg-white text-red-500 hover:scale-110'
-            : 'bg-white/90 text-muted hover:text-red-500 hover:scale-110'
-        }`}
-      >
-        <Heart className={`h-4 w-4 ${wishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-      </button>
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface-card transition-all duration-300 hover:border-zinc-400 hover:shadow-cardHover">
+      {/* Top Floating Badges */}
+      <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between pointer-events-none">
+        {isDiscounted ? (
+          <span className="rounded-full bg-zinc-950 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+            -{Math.round(discount)}%
+          </span>
+        ) : (
+          <span />
+        )}
 
-      {isDiscounted && (
-        <span className="absolute left-3 top-3 z-10 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white">
-          {Math.round(discount)}% OFF
-        </span>
-      )}
+        <button
+          type="button"
+          onClick={handleToggleWishlist}
+          disabled={isWishlistMutating}
+          aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
+          className={`pointer-events-auto rounded-full p-2 shadow-sm transition-all duration-200 ${
+            wishlisted
+              ? 'bg-white text-red-500 scale-110'
+              : 'bg-white/90 text-zinc-400 hover:text-red-500 hover:bg-white hover:scale-110'
+          }`}
+        >
+          <Heart className={`h-3.5 w-3.5 ${wishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+        </button>
+      </div>
 
-      <Link to={`/products/${slug}`} onClick={handleClick} className="flex flex-1 flex-col">
-        <div className="relative aspect-square overflow-hidden bg-slate-100">
+      <Link to={`/products/${slug}`} className="flex flex-1 flex-col">
+        {/* Product Image Frame (4:5 Ratio) */}
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface-secondary/40 p-4 flex items-center justify-center">
           <img
             src={normalizeImageUrl(image)}
             onError={onImageError}
             alt={name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain mix-blend-multiply transition-transform duration-500 ease-out-expo group-hover:scale-105"
           />
-          {outOfStock && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-              <span className="flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+
+          {outOfStock ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-surface-card/85 backdrop-blur-[1px]">
+              <span className="flex items-center gap-1.5 rounded-full bg-zinc-950 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
                 <PackageX className="h-3.5 w-3.5" /> Out of stock
               </span>
+            </div>
+          ) : (
+            /* Floating Quick Add Trigger on Hover */
+            <div className="absolute inset-x-3 bottom-3 z-10 translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 hidden sm:block">
+              <button
+                type="button"
+                onClick={handleQuickAdd}
+                disabled={isCartMutating}
+                aria-label={`Quick add ${name} to cart`}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 py-2.5 text-xs font-bold text-white shadow-md hover:bg-zinc-800 transition-colors"
+              >
+                <ShoppingBag className="h-3.5 w-3.5" />
+                <span>Quick Add</span>
+              </button>
             </div>
           )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-1 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">{brand}</p>
-          <p className="line-clamp-2 text-sm font-medium text-ink">{name}</p>
+        {/* Product Meta & Pricing */}
+        <div className="flex flex-1 flex-col p-4 pt-3.5">
+          {brand && (
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 truncate">
+              {brand}
+            </p>
+          )}
 
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <RatingStars rating={Number(rating)} />
-            <span className="text-xs text-muted">({reviewCount?.toLocaleString('en-IN') || 0})</span>
+          <h3 className="line-clamp-2 text-sm font-semibold text-zinc-900 group-hover:text-primary transition-colors leading-snug mt-1">
+            {name}
+          </h3>
+
+          {/* Rating Summary */}
+          <div className="mt-2 flex items-center gap-1.5">
+            <RatingStars rating={Number(rating)} size="sm" />
+            <span className="text-[11px] font-medium text-zinc-500">
+              ({reviewCount ? Number(reviewCount).toLocaleString('en-IN') : 0})
+            </span>
           </div>
 
-          <div className="mt-auto flex items-center justify-between pt-3">
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-ink">{formatPrice(finalPrice)}</span>
+          {/* Price Block */}
+          <div className="mt-auto flex items-baseline justify-between pt-3 border-t border-surface-border/60">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-base font-bold text-zinc-950 tabular-nums">
+                {formatPrice(finalPrice)}
+              </span>
               {isDiscounted && (
-                <span className="text-xs text-muted line-through">{formatPrice(price)}</span>
+                <span className="text-xs text-zinc-400 line-through tabular-nums">
+                  {formatPrice(price)}
+                </span>
               )}
             </div>
 
+            {/* Mobile-visible Quick Add Icon Button */}
             {!outOfStock && (
               <button
                 type="button"
                 onClick={handleQuickAdd}
                 disabled={isCartMutating}
                 aria-label={`Add ${name} to cart`}
-                className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-secondary text-zinc-900 hover:bg-zinc-950 hover:text-white transition-colors sm:hidden"
               >
-                <ShoppingCart className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Add</span>
+                <Plus className="h-4 w-4" />
               </button>
             )}
           </div>

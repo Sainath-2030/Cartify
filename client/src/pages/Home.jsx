@@ -11,8 +11,8 @@ import {
   Star,
   Clock,
   Trash2,
-  TrendingUp,
   Award,
+  ArrowUpRight,
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
 import ProductSkeleton from '../components/ProductSkeleton.jsx';
@@ -27,33 +27,33 @@ import { productService } from '../services/productService.js';
 import { categoryService } from '../services/categoryService.js';
 import { getRecentlyViewedProducts } from '../utils/recentViews.js';
 
-// Legitimate Cartify Platform Pillars
-const TRUST_METRICS = [
+// Verified, legitimate Cartify Platform Pillars
+const TRUST_PILLARS = [
   {
     icon: Database,
-    title: '16,976 Products',
-    desc: 'Clean, dataset-independent catalogue',
+    title: '16,976 Verified Products',
+    desc: 'Pure, dataset-independent catalogue across 8 standard departments',
   },
   {
     icon: ShieldCheck,
-    title: 'ACID Transactions',
-    desc: 'Atomic stock & snapshot pricing',
+    title: 'ACID Transaction Engine',
+    desc: 'Atomic stock reservations, transactional checkout & price snapshots',
   },
   {
     icon: Layers,
-    title: 'Event Telemetry',
-    desc: 'Real-time behavioral stream tracking',
+    title: 'Interaction Telemetry',
+    desc: 'Real-time client view & search event stream tracking',
   },
   {
     icon: Cpu,
-    title: 'Neural Hybrid AI',
-    desc: 'Multi-model fusion recommendation',
+    title: 'Neural Hybrid AI Pipeline',
+    desc: 'Multi-model recommendation research foundation (NCF + CNN + GRU)',
   },
 ];
 
-const POPULAR_SEARCH_TAGS = [
-  { label: 'Headphones', query: 'headphones' },
+const POPULAR_SEARCH_SUGGESTIONS = [
   { label: 'Smartwatch', query: 'smartwatch' },
+  { label: 'Headphones', query: 'headphones' },
   { label: 'Shoes', query: 'shoes' },
   { label: 'Coffee', query: 'coffee' },
   { label: 'Cookware', query: 'cookware' },
@@ -64,34 +64,34 @@ export default function Home() {
   const navigate = useNavigate();
   const [heroSearchQuery, setHeroSearchQuery] = useState('');
 
-  // 1. Featured Products (Top rated & editor picks)
+  // 1. Featured Products (Selected via highest ratings & reviews)
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredError, setFeaturedError] = useState('');
 
-  // 2. Popular Products (High review volume)
+  // 2. Popular Products (Selected via highest community review counts)
   const [popularProducts, setPopularProducts] = useState([]);
   const [popularLoading, setPopularLoading] = useState(true);
   const [popularError, setPopularError] = useState('');
 
-  // 3. New Arrivals (Latest additions)
+  // 3. New Arrivals (Selected via newest chronological entries)
   const [newArrivals, setNewArrivals] = useState([]);
   const [newArrivalsLoading, setNewArrivalsLoading] = useState(true);
   const [newArrivalsError, setNewArrivalsError] = useState('');
 
-  // 4. Categories
+  // 4. Categories / Departments
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState('');
 
-  // 5. Community Rating Fallback for AI Section
+  // 5. Community Rating Baseline for AI Gateway Section
   const [communityPicks, setCommunityPicks] = useState([]);
   const [communityLoading, setCommunityLoading] = useState(true);
 
-  // 6. Recently Viewed Products (Local Session History)
+  // 6. Recently Viewed Session Products
   const [recentProducts, setRecentProducts] = useState([]);
 
-  // Fetch Featured Products
+  // Load Featured Products (sort=featured)
   const loadFeatured = async () => {
     setFeaturedLoading(true);
     setFeaturedError('');
@@ -99,13 +99,13 @@ export default function Home() {
       const res = await productService.list({ sort: 'featured', limit: 8 });
       setFeaturedProducts(res.data || []);
     } catch (err) {
-      setFeaturedError(err.message || 'Unable to load featured products.');
+      setFeaturedError(err.message || 'Unable to load featured collections.');
     } finally {
       setFeaturedLoading(false);
     }
   };
 
-  // Fetch Popular Products
+  // Load Popular Products (sort=popular)
   const loadPopular = async () => {
     setPopularLoading(true);
     setPopularError('');
@@ -119,7 +119,7 @@ export default function Home() {
     }
   };
 
-  // Fetch New Arrivals
+  // Load New Arrivals (sort=newest)
   const loadNewArrivals = async () => {
     setNewArrivalsLoading(true);
     setNewArrivalsError('');
@@ -133,7 +133,7 @@ export default function Home() {
     }
   };
 
-  // Fetch Categories
+  // Load Departments (GET /api/categories)
   const loadCategories = async () => {
     setCategoriesLoading(true);
     setCategoriesError('');
@@ -147,7 +147,7 @@ export default function Home() {
     }
   };
 
-  // Fetch Community Picks for AI Recommender Fallback
+  // Load Community Baseline for AI Gateway (sort=rating)
   const loadCommunityPicks = async () => {
     setCommunityLoading(true);
     try {
@@ -184,64 +184,64 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col gap-16 pb-20 overflow-x-hidden">
+    <div className="flex flex-col gap-16 sm:gap-24 pb-20 overflow-x-hidden bg-surface">
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 1: HERO SECTION                                        */}
+      {/* SECTION 1: EDITORIAL HERO SECTION                              */}
       {/* ------------------------------------------------------------- */}
       <section className="relative border-b border-surface-border bg-surface py-16 sm:py-24">
-        <Container>
+        <Container size="storefront">
           <div className="grid items-center gap-12 lg:grid-cols-12">
-            {/* Left Copy & Search Entry */}
+            {/* Left Column: Typography, Search & Actions */}
             <div className="flex flex-col items-start lg:col-span-7">
               <div className="flex items-center gap-2">
                 <Badge variant="primary" icon={Sparkles}>
-                  Next-Gen E-Commerce Platform
+                  Intelligent Discovery Platform
                 </Badge>
-                <span className="hidden sm:inline text-xs font-semibold text-muted">
-                  • 16,000+ Verified Items
+                <span className="hidden sm:inline text-xs font-semibold text-zinc-500">
+                  • 16,976 Verified Products
                 </span>
               </div>
 
-              <h1 className="text-display mt-4 font-black tracking-tight text-ink">
-                Intelligent Discovery,{' '}
-                <span className="text-primary">
-                  Personalized
+              <h1 className="text-display-xl mt-5 font-black tracking-tight text-ink">
+                The Modern Catalogue,{' '}
+                <span className="text-primary font-bold">
+                  Curated
                 </span>{' '}
-                For Your Lifestyle.
+                For You.
               </h1>
 
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
-                Explore a catalogue of verified electronics, fashion, home essentials, and more. Backed by real-time behavioral telemetry and academic AI recommendation models.
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
+                Discover verified electronics, fashion, home essentials, and lifestyle goods. Backed by real-time behavioral telemetry and academic AI recommendation research.
               </p>
 
-              {/* Quick Search Entry Input */}
+              {/* Prominent Hero Search Form */}
               <form
                 onSubmit={handleHeroSearchSubmit}
                 className="mt-8 flex w-full max-w-lg items-center rounded-2xl border border-surface-border bg-white p-1.5 shadow-sm hover:border-zinc-400 focus-within:border-ink focus-within:ring-2 focus-within:ring-ink/10 transition-all"
               >
-                <div className="flex items-center pl-3 text-muted">
-                  <Search className="h-5 w-5 text-zinc-500" />
+                <div className="flex items-center pl-3 text-zinc-400">
+                  <Search className="h-5 w-5" />
                 </div>
                 <input
                   type="text"
                   value={heroSearchQuery}
                   onChange={(e) => setHeroSearchQuery(e.target.value)}
-                  placeholder="Search 16,000+ products (e.g. smartwatch, shoes)..."
-                  className="w-full bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-muted-light"
+                  placeholder="Search 16,976 products (e.g. smartwatch, shoes, coffee)..."
+                  className="w-full bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
                 />
                 <Button type="submit" variant="primary" size="md">
                   Search
                 </Button>
               </form>
 
-              {/* Popular Tags */}
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span className="font-semibold text-ink">Popular:</span>
-                {POPULAR_SEARCH_TAGS.map((tag) => (
+              {/* Popular Suggested Search Tags */}
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                <span className="font-semibold text-zinc-800">Suggested:</span>
+                {POPULAR_SEARCH_SUGGESTIONS.map((tag) => (
                   <Link
                     key={tag.label}
                     to={`/products?q=${encodeURIComponent(tag.query)}`}
-                    className="rounded-xl bg-surface-secondary px-2.5 py-1 text-ink-light hover:bg-white hover:text-primary transition-colors border border-surface-border/60"
+                    className="rounded-xl bg-surface-secondary px-2.5 py-1 text-zinc-800 hover:bg-white hover:text-primary transition-colors border border-surface-border/60"
                   >
                     {tag.label}
                   </Link>
@@ -259,99 +259,80 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Hero Product Showcase */}
+            {/* Right Column: Preserved High-Contrast Carbon Obsidian Spotlight */}
             <div className="lg:col-span-5">
-              <div className="card relative overflow-hidden p-6 bg-gradient-to-br from-slate-900 to-ink text-white shadow-cardHover border-slate-800">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="card relative overflow-hidden p-6 sm:p-7 bg-zinc-950 text-white shadow-2xl border-zinc-800/80 rounded-3xl">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                   <div className="flex items-center gap-2">
                     <Award className="h-5 w-5 text-amber-400" />
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
                       Editor's Spotlight
                     </span>
                   </div>
-                  <span className="text-xs text-slate-400">PostgreSQL Verified</span>
+                  <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-900 px-2.5 py-0.5 rounded-full border border-zinc-800">
+                    Verified Catalogue
+                  </span>
                 </div>
 
                 <div className="mt-6">
                   {featuredLoading ? (
                     <div className="space-y-3 animate-pulse">
-                      <div className="h-48 w-full rounded-xl bg-slate-800" />
-                      <div className="h-5 w-3/4 rounded bg-slate-800" />
-                      <div className="h-4 w-1/2 rounded bg-slate-800" />
+                      <div className="h-40 w-full rounded-2xl bg-zinc-900" />
+                      <div className="h-4 w-3/4 rounded bg-zinc-900" />
+                      <div className="h-4 w-1/2 rounded bg-zinc-900" />
                     </div>
                   ) : featuredProducts.length > 0 ? (
                     <div className="space-y-4">
-                      <Link
-                        to={`/products/${featuredProducts[0].slug}`}
-                        className="group block overflow-hidden rounded-xl bg-white/5 border border-white/10 p-3 hover:bg-white/10 transition-colors"
-                      >
-                        <div className="flex gap-4 items-center">
-                          <img
-                            src={featuredProducts[0].main_image}
-                            alt={featuredProducts[0].name}
-                            className="h-20 w-20 rounded-lg object-cover bg-white"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-primary-300 uppercase">
-                              {featuredProducts[0].brand}
-                            </p>
-                            <h2 className="text-sm font-bold text-white truncate group-hover:text-primary-300 transition-colors">
-                              {featuredProducts[0].name}
-                            </h2>
-                            <div className="mt-1 flex items-center gap-2 text-xs">
-                              <span className="flex items-center gap-1 text-amber-400 font-bold">
-                                <Star className="h-3 w-3 fill-amber-400" />
-                                {featuredProducts[0].rating || 4.5}
-                              </span>
-                              <span className="text-slate-400">
-                                ({featuredProducts[0].review_count || 120} reviews)
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-
-                      {featuredProducts[1] && (
+                      {featuredProducts.slice(0, 2).map((item) => (
                         <Link
-                          to={`/products/${featuredProducts[1].slug}`}
-                          className="group block overflow-hidden rounded-xl bg-white/5 border border-white/10 p-3 hover:bg-white/10 transition-colors"
+                          key={item.id}
+                          to={`/products/${item.slug}`}
+                          className="group block overflow-hidden rounded-2xl bg-zinc-900/90 border border-zinc-800 p-3.5 hover:bg-zinc-900 hover:border-zinc-700 transition-all"
                         >
                           <div className="flex gap-4 items-center">
-                            <img
-                              src={featuredProducts[1].main_image}
-                              alt={featuredProducts[1].name}
-                              className="h-20 w-20 rounded-lg object-cover bg-white"
-                            />
+                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white p-1.5 flex items-center justify-center">
+                              <img
+                                src={item.main_image}
+                                alt={item.name}
+                                className="h-full w-full object-contain mix-blend-multiply"
+                              />
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-primary-300 uppercase">
-                                {featuredProducts[1].brand}
+                              <p className="text-[11px] font-bold text-primary-400 uppercase tracking-wider truncate">
+                                {item.brand || 'Verified Item'}
                               </p>
-                              <h2 className="text-sm font-bold text-white truncate group-hover:text-primary-300 transition-colors">
-                                {featuredProducts[1].name}
-                              </h2>
-                              <div className="mt-1 flex items-center gap-2 text-xs">
-                                <span className="flex items-center gap-1 text-amber-400 font-bold">
-                                  <Star className="h-3 w-3 fill-amber-400" />
-                                  {featuredProducts[1].rating || 4.8}
-                                </span>
-                                <span className="text-slate-400">
-                                  ({featuredProducts[1].review_count || 95} reviews)
+                              <h3 className="text-sm font-bold text-white truncate group-hover:text-primary-300 transition-colors">
+                                {item.name}
+                              </h3>
+                              <div className="mt-1.5 flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="flex items-center gap-1 text-amber-400 font-bold">
+                                    <Star className="h-3 w-3 fill-amber-400" />
+                                    {item.rating || 4.5}
+                                  </span>
+                                  <span className="text-zinc-500">
+                                    ({item.review_count || 0})
+                                  </span>
+                                </div>
+                                <span className="text-xs font-bold text-white tabular-nums">
+                                  ₹{Math.round(item.final_price).toLocaleString('en-IN')}
                                 </span>
                               </div>
                             </div>
                           </div>
                         </Link>
-                      )}
+                      ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400">Showcase items loading...</p>
+                    <p className="text-xs text-zinc-500">Showcase items loading...</p>
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                  <span>Fast Full-Text GIN Indexing</span>
-                  <Link to="/products" className="text-primary-400 font-semibold hover:underline">
-                    View Catalogue →
+                <div className="mt-6 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+                  <span>Fast Full-Text Discovery</span>
+                  <Link to="/products" className="inline-flex items-center gap-1 text-primary-400 font-semibold hover:underline">
+                    <span>View All</span>
+                    <ArrowUpRight className="h-3 w-3" />
                   </Link>
                 </div>
               </div>
@@ -361,37 +342,10 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 2: TRUST & PLATFORM HIGHLIGHTS                        */}
-      {/* ------------------------------------------------------------- */}
-      <section>
-        <Container>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {TRUST_METRICS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.title}
-                  className="card flex items-start gap-4 p-5 hover:border-slate-300 transition"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-ink">{item.title}</h2>
-                    <p className="text-caption mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Container>
-      </section>
-
-      {/* ------------------------------------------------------------- */}
-      {/* SECTION 3: BROWSE BY DEPARTMENT / CATEGORY                    */}
+      {/* SECTION 2: BROWSE BY DEPARTMENT                                */}
       {/* ------------------------------------------------------------- */}
       <section id="categories">
-        <Container>
+        <Container size="storefront">
           <SectionHeader
             title="Browse by Department"
             subtitle="Curated collections across our 8 standardized taxonomy categories"
@@ -403,16 +357,16 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="card p-4 space-y-3 animate-pulse">
-                  <div className="h-28 w-full rounded-lg bg-slate-200" />
-                  <div className="h-4 w-1/2 rounded bg-slate-200" />
-                  <div className="h-3 w-3/4 rounded bg-slate-200" />
+                  <div className="h-32 w-full rounded-xl bg-zinc-200" />
+                  <div className="h-4 w-1/2 rounded bg-zinc-200" />
+                  <div className="h-3 w-3/4 rounded bg-zinc-200" />
                 </div>
               ))}
             </div>
           ) : categoriesError ? (
             <ErrorState description={categoriesError} onRetry={loadCategories} />
           ) : categories.length === 0 ? (
-            <EmptyState title="No categories found" description="Categories are currently unpopulated." />
+            <EmptyState title="No departments found" description="Categories are currently unpopulated." />
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {categories.slice(0, 8).map((cat) => (
@@ -424,12 +378,12 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 4: FEATURED PRODUCT SHOWCASE                          */}
+      {/* SECTION 3: FEATURED CURATIONS (TOP RATED REAL PRODUCTS)        */}
       {/* ------------------------------------------------------------- */}
       <section>
-        <Container>
+        <Container size="storefront">
           <SectionHeader
-            title="Featured Products"
+            title="Featured Curations"
             subtitle="Top-rated catalogue selections based on authentic customer reviews"
             linkText="View All Featured"
             linkTo="/products?sort=featured"
@@ -452,10 +406,89 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 5: POPULAR & TRENDING PICKS                           */}
+      {/* SECTION 4: EDITORIAL AI RECOMMENDATION GATEWAY                 */}
+      {/* ------------------------------------------------------------- */}
+      <section className="border-y border-surface-border bg-surface-secondary/40 py-16">
+        <Container size="storefront">
+          <div className="card overflow-hidden border-zinc-800 bg-zinc-950 p-8 sm:p-12 text-white shadow-2xl rounded-3xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="max-w-2xl space-y-3.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-400 border border-amber-500/30">
+                    Research Foundation • Phase 5
+                  </span>
+                  <span className="text-xs font-semibold text-zinc-400">
+                    Telemetry Stream Ingestion Active
+                  </span>
+                </div>
+
+                <h2 className="text-display text-white font-extrabold">
+                  Personalized For You (Neural AI Engine)
+                </h2>
+
+                <p className="text-sm leading-relaxed text-zinc-300">
+                  Cartify is developing a modular hybrid recommendation engine combining Neural Collaborative Filtering (NCF), CNN visual embeddings, sequential GRU RNNs, and latent Autoencoders with attention fusion. As you browse, behavioral telemetry builds your personalized discovery profile.
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                <Link
+                  to="/products?rating=4.5"
+                  className="btn btn-md bg-white text-zinc-950 hover:bg-zinc-100 font-bold shadow-md"
+                >
+                  Browse Community Favorites <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Baseline Community Favorites (Real High-Rated Items) */}
+            <div className="mt-10 border-t border-zinc-800/80 pt-6">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">
+                Community-Rated Top Picks:
+              </p>
+              {communityLoading ? (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-24 rounded-2xl bg-zinc-900 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {communityPicks.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/products/${item.slug}`}
+                      className="group flex items-center gap-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3 hover:bg-zinc-900 hover:border-zinc-700 transition-all"
+                    >
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white p-1 flex items-center justify-center">
+                        <img
+                          src={item.main_image}
+                          alt={item.name}
+                          className="h-full w-full object-contain mix-blend-multiply"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-white truncate group-hover:text-primary-300 transition-colors">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-amber-400 font-semibold mt-0.5">
+                          ★ {item.rating || 4.5} Rating
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ------------------------------------------------------------- */}
+      {/* SECTION 5: POPULAR PICKS                                      */}
       {/* ------------------------------------------------------------- */}
       <section className="border-y border-surface-border bg-surface-secondary/60 py-16">
-        <Container>
+        <Container size="storefront">
           <SectionHeader
             title="Popular Picks"
             subtitle="Products with high community review volume and buyer demand"
@@ -481,10 +514,10 @@ export default function Home() {
       {/* SECTION 6: NEW ARRIVALS                                       */}
       {/* ------------------------------------------------------------- */}
       <section>
-        <Container>
+        <Container size="storefront">
           <SectionHeader
             title="New Arrivals"
-            subtitle="Recently added items and verified inventory"
+            subtitle="Recently verified inventory added to the catalogue"
             linkText="View All New Arrivals"
             linkTo="/products?sort=newest"
           />
@@ -504,85 +537,11 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* SECTION 7: AI RECOMMENDATION ARCHITECTURAL GATEWAY             */}
-      {/* ------------------------------------------------------------- */}
-      <section className="border-y border-surface-border bg-surface-secondary/40 py-16">
-        <Container>
-          <div className="card overflow-hidden border-zinc-800 bg-gradient-to-br from-zinc-950 via-ink to-zinc-900 p-8 sm:p-12 text-white shadow-cardHover">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-              <div className="max-w-2xl space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="warning" icon={Cpu}>
-                    Research Pipeline • Phase 5
-                  </Badge>
-                  <span className="text-xs font-semibold text-slate-400">
-                    Telemetry Ingestion Active
-                  </span>
-                </div>
-
-                <h2 className="text-h1 text-white font-extrabold">
-                  Personalized For You (Neural AI Engine)
-                </h2>
-
-                <p className="text-sm leading-relaxed text-slate-300">
-                  Cartify’s multi-model recommendation engine (combining Neural Collaborative Filtering, CNN Visual Embeddings, Sequential GRU RNN, and Latent Autoencoders) will personalize your feed as your behavioral interaction telemetry accumulates.
-                </p>
-              </div>
-
-              <div className="shrink-0">
-                <Link to="/products?rating=4.5" className="btn btn-md bg-white text-ink hover:bg-slate-100 font-bold shadow">
-                  Browse Community Favorites <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Fallback Baseline Showcase: High Community Ratings */}
-            <div className="mt-8 border-t border-slate-800 pt-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
-                Community-Rated Baseline Picks:
-              </p>
-              {communityLoading ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-28 rounded-lg bg-slate-800 animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {communityPicks.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/products/${item.slug}`}
-                      className="group flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 p-3 hover:bg-white/10 transition"
-                    >
-                      <img
-                        src={item.main_image}
-                        alt={item.name}
-                        className="h-14 w-14 rounded-lg object-cover bg-white"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-white truncate group-hover:text-primary-300 transition-colors">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-amber-400 font-semibold mt-0.5">
-                          ★ {item.rating || 4.5} Rating
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* ------------------------------------------------------------- */}
-      {/* SECTION 8: RECENTLY VIEWED PRODUCTS (SESSION HISTORY)          */}
+      {/* SECTION 7: RECENTLY VIEWED (SESSION HISTORY)                   */}
       {/* ------------------------------------------------------------- */}
       {recentProducts.length > 0 && (
         <section>
-          <Container>
+          <Container size="storefront">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <div className="flex items-center gap-2">
@@ -596,11 +555,11 @@ export default function Home() {
 
               <button
                 onClick={handleClearRecentlyViewed}
-                className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-error transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-red-600 transition-colors"
                 aria-label="Clear recently viewed products"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>Clear</span>
+                <span>Clear History</span>
               </button>
             </div>
 
@@ -612,6 +571,40 @@ export default function Home() {
           </Container>
         </section>
       )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* SECTION 8: PLATFORM PILLARS & TRUST ARCHITECTURE              */}
+      {/* ------------------------------------------------------------- */}
+      <section className="border-t border-surface-border bg-surface-secondary/30 py-16">
+        <Container size="storefront">
+          <div className="mb-10 text-center max-w-2xl mx-auto">
+            <h2 className="text-h2">Engineered for Intelligent Commerce</h2>
+            <p className="text-body-muted mt-1.5">
+              Built with rigorous database guarantees, dataset purity, and a research-grade recommendation foundation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {TRUST_PILLARS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.title}
+                  className="card flex items-start gap-4 p-6 hover:border-zinc-400 transition-all duration-200"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-surface-secondary text-zinc-900 border border-surface-border/80">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900">{item.title}</h3>
+                    <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Container>
+      </section>
     </div>
   );
 }
