@@ -41,6 +41,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/search" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/category/:slug" element={<Category />} />
