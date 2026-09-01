@@ -93,7 +93,7 @@ export const ContentManagerService = {
 
   // Updates product metadata
   async updateProduct({ user, id, updateData }) {
-    const existing = await ProductModel.findById(id);
+    const existing = await ContentManagerModel.findById(id);
     if (!existing) {
       throw new AppError('Product not found.', 404);
     }
@@ -135,7 +135,7 @@ export const ContentManagerService = {
 
   // Updates product images
   async updateProductImages({ user, id, mainImage, images }) {
-    const existing = await ProductModel.findById(id);
+    const existing = await ContentManagerModel.findById(id);
     if (!existing) {
       throw new AppError('Product not found.', 404);
     }

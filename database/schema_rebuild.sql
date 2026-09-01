@@ -24,6 +24,12 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(120) NOT NULL,
+    mobile VARCHAR(20) UNIQUE,
+    address TEXT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
+    date_of_birth DATE,
     role user_role DEFAULT 'USER' NOT NULL,
     avatar_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -66,11 +72,14 @@ CREATE TABLE products (
     images JSONB DEFAULT '[]'::jsonb NOT NULL,
     specifications JSONB DEFAULT '{}'::jsonb NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    verification_status VARCHAR(30) DEFAULT 'NEEDS_REVIEW' NOT NULL, -- 'VERIFIED', 'NEEDS_REVIEW', 'REJECTED'
     search_vector tsvector,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     CONSTRAINT uq_product_source_id UNIQUE (source, source_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_products_verification ON products(verification_status, is_active);
 
 -- 5. INTERACTIONS TABLE (Telemetry pipeline for AI/ML Recommendation Models)
 DROP TABLE IF EXISTS interactions CASCADE;

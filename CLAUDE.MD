@@ -1747,8 +1747,8 @@ STATUS: COMPLETE — Approved "Intelligent Minimalist Luxury" visual foundation 
 Phase 2.1 — Visual Refinement (Warm Stone / Ivory Background)
 STATUS: COMPLETE — Implemented warm stone/ivory color system (#F3F0EA canvas, #EAE6DE secondary surface, #FAF9F6 soft card surface, #DDD9D1 warm hairline border) with high-contrast preservation of the black editorial hero card (#09090B).
 
-Phase 2.2 — Home Page Redesign & Final Catalogue Integrity Pass (Phase 2.2-FINAL)
-STATUS: COMPLETE — Enforced reproducible catalogue quality pipeline (`build_final_clean_catalogue.js`) and strict CI/CD gate (`validate_final_catalogue.js`). 17,931 verified products across 8 departments, 0 duplicates, 0 broken images, 0 domain contradictions. Emitted clean CSV, rejected CSV, quality JSON, and 160-item visual QA contact sheet. Redesigned proportional hero, Carbon Obsidian spotlight, dynamic category cards with representative department imagery and tags, dark AI Gateway, 4:5 luxury ProductCard, and cross-shelf deduplication.
+Phase 2.2 — Home Page Redesign & Verified Product Display Gate
+STATUS: COMPLETE — Implemented non-destructive `verification_status` schema column ('VERIFIED', 'NEEDS_REVIEW', 'REJECTED') with indexes. Enforced public display gate (`WHERE is_active = true AND verification_status = 'VERIFIED'`) in PostgreSQL product model, category counter, search, single product lookups, cart, and wishlist. Executed reproducible verification gate pipeline (`apply_verified_product_gate.js` & `validate_final_catalogue.js`) certifying 17,926 verified products with 3-way consistency (Image ↔ Name ↔ Category), 5 in needs review, and 1,912 rejected. Emitted `verified-catalogue-report.json`. All 26/26 Master E2E backend regression tests and frontend Vite build passed 100%.
 
 ---
 

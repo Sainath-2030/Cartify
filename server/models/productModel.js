@@ -28,7 +28,7 @@ const SORT_MAP = {
 // Shared by listProducts() and searchProducts() so filter behavior stays
 // identical between /api/products and /api/products/search.
 function buildFilters(filters, startIndex = 1) {
-  const clauses = ['p.is_active = true'];
+  const clauses = ["p.is_active = true", "p.verification_status = 'VERIFIED'"];
   const params = [];
   let idx = startIndex;
 
@@ -110,7 +110,7 @@ export const ProductModel = {
   // brand filter checkboxes in the catalogue sidebar.
   async listBrands(categorySlug) {
     const params = [];
-    let where = 'p.is_active = true';
+    let where = "p.is_active = true AND p.verification_status = 'VERIFIED'";
     if (categorySlug) {
       where += ' AND c.slug = $1';
       params.push(categorySlug);
@@ -131,7 +131,7 @@ export const ProductModel = {
       `SELECT ${PRODUCT_DETAIL_COLUMNS}
        FROM products p
        LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.slug = $1 AND p.is_active = true`,
+       WHERE p.slug = $1 AND p.is_active = true AND p.verification_status = 'VERIFIED'`,
       [slug]
     );
     return result.rows[0] || null;
@@ -142,7 +142,7 @@ export const ProductModel = {
       `SELECT ${PRODUCT_DETAIL_COLUMNS}
        FROM products p
        LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.id = $1 AND p.is_active = true`,
+       WHERE p.id = $1 AND p.is_active = true AND p.verification_status = 'VERIFIED'`,
       [id]
     );
     return result.rows[0] || null;
@@ -155,7 +155,7 @@ export const ProductModel = {
       `SELECT ${PRODUCT_LIST_COLUMNS}
        FROM products p
        LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.category_id = $1 AND p.id != $2 AND p.is_active = true
+       WHERE p.category_id = $1 AND p.id != $2 AND p.is_active = true AND p.verification_status = 'VERIFIED'
        ORDER BY p.rating DESC
        LIMIT $3`,
       [categoryId, excludeProductId, limit]

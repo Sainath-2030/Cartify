@@ -9,6 +9,9 @@ export const AdminModel = {
           COUNT(*) AS total_products,
           COUNT(*) FILTER (WHERE is_active = true) AS active_products,
           COUNT(*) FILTER (WHERE is_active = false) AS inactive_products,
+          COUNT(*) FILTER (WHERE verification_status = 'VERIFIED') AS verified_products,
+          COUNT(*) FILTER (WHERE verification_status = 'NEEDS_REVIEW') AS needs_review_products,
+          COUNT(*) FILTER (WHERE verification_status = 'REJECTED') AS rejected_products,
           COUNT(*) FILTER (WHERE main_image IS NULL OR main_image = '') AS missing_images,
           COUNT(*) FILTER (WHERE description IS NULL OR description = '') AS missing_descriptions,
           COUNT(*) FILTER (WHERE rating IS NULL OR rating = 0) AS unrated_products,
@@ -23,7 +26,7 @@ export const AdminModel = {
           c.name AS category_name,
           c.slug AS category_slug,
           COUNT(p.id) AS product_count,
-          COUNT(p.id) FILTER (WHERE p.is_active = true) AS active_count,
+          COUNT(p.id) FILTER (WHERE p.is_active = true AND p.verification_status = 'VERIFIED') AS active_count,
           COALESCE(AVG(p.final_price), 0) AS average_price,
           COALESCE(AVG(p.rating), 0) AS average_rating
         FROM categories c
@@ -48,6 +51,9 @@ export const AdminModel = {
       totalProducts: parseInt(stats.total_products, 10),
       activeProducts: parseInt(stats.active_products, 10),
       inactiveProducts: parseInt(stats.inactive_products, 10),
+      verifiedProducts: parseInt(stats.verified_products || 0, 10),
+      needsReviewProducts: parseInt(stats.needs_review_products || 0, 10),
+      rejectedProducts: parseInt(stats.rejected_products || 0, 10),
       provenance: {
         amazon: parseInt(stats.amazon_products, 10),
         internal: parseInt(stats.internal_products, 10),

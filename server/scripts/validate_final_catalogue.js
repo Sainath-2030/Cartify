@@ -136,6 +136,14 @@ async function validateCatalogue() {
     const searchRes = await client.query("SELECT COUNT(*) as total FROM products WHERE search_vector @@ plainto_tsquery('english', 'headphones')");
     check(parseInt(searchRes.rows[0].total, 10) > 0, `Search vector functional (Found ${searchRes.rows[0].total} items for "headphones")`);
 
+    // 12. Verification Status Gate Check
+    const verifiedCountRes = await client.query("SELECT COUNT(*) as total FROM products WHERE verification_status = 'VERIFIED' AND is_active = true");
+    const verifiedTotal = parseInt(verifiedCountRes.rows[0].total, 10);
+    check(verifiedTotal >= 10000, `Public Verified products count: ${verifiedTotal} (Expected >= 10,000)`);
+
+    const badVerifiedRes = await client.query("SELECT COUNT(*) as bad FROM products WHERE verification_status NOT IN ('VERIFIED', 'NEEDS_REVIEW', 'REJECTED')");
+    check(parseInt(badVerifiedRes.rows[0].bad, 10) === 0, `All records have legitimate verification_status`);
+
     console.log(`\n================================================================`);
     if (failures === 0) {
       console.log('   ✓ ALL FINAL CATALOGUE INTEGRITY CHECKS PASSED (100%)         ');

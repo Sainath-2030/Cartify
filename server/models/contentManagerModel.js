@@ -104,19 +104,20 @@ export const ContentManagerModel = {
     images = [],
     specifications = {},
     isActive = true,
+    verificationStatus = 'VERIFIED',
   }) {
     const result = await query(
       `INSERT INTO products (
          source, source_id, name, slug, brand, category_id, subcategory,
          description, short_description, price, discount_percentage, final_price,
          rating, review_count, stock_quantity, seller_name, main_image, images,
-         specifications, is_active, search_vector, created_at, updated_at
+         specifications, is_active, verification_status, search_vector, created_at, updated_at
        )
        VALUES (
          $1::varchar, $2::varchar, $3::varchar, $4::varchar, $5::varchar, $6::int, $7::varchar,
          $8::text, $9::varchar, $10::numeric, $11::numeric, $12::numeric,
          NULL, 0, $13::int, $14::varchar, $15::text, $16::jsonb,
-         $17::jsonb, $18::boolean,
+         $17::jsonb, $18::boolean, $19::varchar,
          setweight(to_tsvector('english', coalesce($3::varchar, '')), 'A') ||
          setweight(to_tsvector('english', coalesce($5::varchar, '')), 'B') ||
          setweight(to_tsvector('english', coalesce($8::text, '')), 'C'),
@@ -142,9 +143,21 @@ export const ContentManagerModel = {
         JSON.stringify(images),
         JSON.stringify(specifications),
         isActive,
+        verificationStatus,
       ]
     );
     return result.rows[0];
+  },
+
+  async findById(id) {
+    const result = await query(
+      `SELECT p.*, c.name AS category_name, c.slug AS category_slug
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
   },
 
   // Updates product metadata via allowlist
@@ -162,6 +175,7 @@ export const ContentManagerModel = {
       'stock_quantity',
       'seller_name',
       'is_active',
+      'verification_status',
       'main_image',
       'images',
       'specifications',
