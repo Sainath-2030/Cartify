@@ -1750,6 +1750,19 @@ STATUS: COMPLETE — Implemented warm stone/ivory color system (#F3F0EA canvas, 
 Phase 2.3 — Product Catalogue & Discovery
 STATUS: COMPLETE — Redesigned `/products`, `/category/:slug`, `/search`, and `/categories` with editorial typography, breadcrumb hierarchy, active filter chips bar with single-click removal, desktop sticky `FilterSidebar`, responsive mobile filter drawer with 44px+ touch targets, rupee price range validator, star rating filters, in-stock toggle, luxury 4:5 aspect ratio `ProductCard` with hover quick-add & wishlist toggle, 4:5 loading skeleton, and empty/error states. 100% build pass and regression pass.
 
+Section 5 — NCF (Neural Collaborative Filtering) Model & ML Service Scaffold
+STATUS: COMPLETE (Offline Scaffold & Training Verified)
+- Python ML Service initialized in `ml-service/` with dedicated virtual environment.
+- Read-only PostgreSQL integration implemented in `ml-service/common/db.py` reading `DATABASE_URL` from `.env` and pulling interactions safely using direct cursor queries into DataFrames.
+- Interaction weights configured across all event types: purchase (5), review (4), rating (4), cart_add (3), wishlist_add (3), product_click (2), product_view (1).
+- NeuMF (GMF + MLP fusion, He et al., 2017) architecture configured and trained in `ml-service/ncf/`.
+- Training pipeline verified with negative sampling and leave-one-out evaluation. Artifacts saved: `ml-service/artifacts/ncf_model.pt` and `ml-service/artifacts/ncf_id_maps.json`.
+
+Git Repository & Dataset Management
+STATUS: SYNCHRONIZED & COMMITTED
+- Large raw CSV `data/Amazon-Products.csv` (179.87 MB) excluded via `.gitignore` to adhere strictly to GitHub's 100MB file limit.
+- All ~120 processed and category dataset CSV files and database schema files tracked and pushed cleanly to remote repository (`https://github.com/Sainath-2030/Cartify.git` on `main` branch).
+
 ---
 
 # 43. CURRENT NEXT STEP

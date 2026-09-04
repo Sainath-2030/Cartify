@@ -26,3 +26,12 @@ Thumbs.db
 
 # Large Datasets (>100MB)
 data/Amazon-Products.csv
+
+# Python / ML Service
+ml-service/venv/
+ml-service/.env
+ml-service/data/images/
+ml-service/artifacts/
+**/__pycache__/
+*.py[cod]
+*$py.class
