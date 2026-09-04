@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-08-31T17:50:57.579Z",
+  "rawRecordsScanned": 572083,
+  "finalCertifiedProducts": 17931,
+  "rejectedRecordsCount": 4653,
+  "rejectionBreakdown": {
+    "Duplicate product title fingerprint": 1490,
+    "Missing both actual and discount prices": 542,
+    "Duplicate ASIN": 353,
+    "Price below minimum retail threshold (₹90)": 351,
+    "Non-fashion / Furniture / Toy item in Fashion": 13,
+    "Nursery/Diaper/Non-beauty product in Beauty": 41,
+    "Suspicious image reuse across different departments": 3,
+    "Title missing or too short": 1,
+    "Non-food product in Grocery": 3,
+    "Generic cable in Gaming": 1856
+  },
+  "categoryDistribution": {
+    "fashion": 3000,
+    "electronics": 3000,
+    "beauty": 2983,
+    "sports": 3000,
+    "home-kitchen": 3000,
+    "grocery": 2717,
+    "gaming": 216,
+    "books": 15
+  }
+}

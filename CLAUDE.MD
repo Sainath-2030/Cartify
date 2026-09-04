@@ -209,7 +209,7 @@ client/src/
 
 ├── components/
 │   ├── Navbar
-│   ├── Footer
+│   ├── Footer 
 │   ├── ProductCard
 │   ├── ProductGrid
 │   ├── ProductGallery

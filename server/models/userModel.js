@@ -3,22 +3,41 @@ import { query } from '../config/db.js';
 // Columns that are safe to ever return to the client.
 // password_hash is intentionally excluded everywhere below.
 const PUBLIC_COLUMNS = `
-  id, email, full_name, role, avatar_url, created_at, updated_at
+  id, email, full_name, role, mobile, address, city, state, postal_code, date_of_birth, avatar_url, created_at, updated_at
 `;
 
 export const UserModel = {
-  async create({ fullName, email, passwordHash, role = 'USER', avatarUrl = null }) {
+  async create({
+    fullName,
+    email,
+    passwordHash,
+    mobile,
+    address = null,
+    city = null,
+    state = null,
+    postalCode = null,
+    dateOfBirth = null,
+    role = 'USER',
+    avatarUrl = null,
+  }) {
     const result = await query(
-      `INSERT INTO users (full_name, email, password_hash, role, avatar_url)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING ${PUBLIC_COLUMNS}`,
-      [fullName, email, passwordHash, role, avatarUrl]
+      `INSERT INTO users (
+        full_name, email, password_hash, mobile, address, city, state, postal_code, date_of_birth, role, avatar_url
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING ${PUBLIC_COLUMNS}`,
+      [fullName, email, passwordHash, mobile, address, city, state, postalCode, dateOfBirth, role, avatarUrl]
     );
     return result.rows[0];
   },
 
   async findByEmail(email) {
     const result = await query('SELECT * FROM users WHERE email = $1', [email]);
+    return result.rows[0] || null;
+  },
+
+  async findByMobile(mobile) {
+    const result = await query('SELECT * FROM users WHERE mobile = $1', [mobile]);
     return result.rows[0] || null;
   },
 
@@ -54,3 +73,4 @@ export const UserModel = {
     return result.rows[0] || null;
   },
 };
+

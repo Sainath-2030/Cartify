@@ -1,0 +1,38 @@
+{
+  "originalRows": 551587,
+  "rowsParsed": 551586,
+  "excludedMissingName": 41,
+  "excludedInvalidPrice": 17811,
+  "excludedBadImage": 0,
+  "excludedUnclassifiableCategory": 43584,
+  "totalValidProductsBeforeDedup": 490150,
+  "duplicateAsinsMerged": 69620,
+  "uniqueAsinCount": 420530,
+  "classificationMethodStats": {
+    "bySubCategory": 228473,
+    "byPureMainCategory": 46121,
+    "byWordBoundaryKeywords": 215556
+  },
+  "validProductsByDepartment": {
+    "fashion": 309797,
+    "electronics": 74938,
+    "home-kitchen": 9533,
+    "beauty": 11386,
+    "sports": 11202,
+    "grocery": 3398,
+    "gaming": 276,
+    "books": 0
+  },
+  "selectedProductsByDepartment": {
+    "fashion": 3500,
+    "electronics": 3200,
+    "home-kitchen": 2800,
+    "beauty": 2500,
+    "sports": 2500,
+    "grocery": 2200,
+    "gaming": 276,
+    "books": 0
+  },
+  "finalProductCount": 16976,
+  "durationSeconds": "12.62"
+}

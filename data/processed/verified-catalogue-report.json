@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-09-01T07:06:26.293Z",
+  "summary": {
+    "totalRawScanned": 572084,
+    "totalInDatabase": 17931,
+    "totalVerified": 17926,
+    "totalNeedsReview": 5,
+    "totalRejected": 1912
+  },
+  "verifiedByDepartment": {
+    "fashion": 2999,
+    "electronics": 3000,
+    "beauty": 2981,
+    "sports": 2998,
+    "home-kitchen": 3000,
+    "grocery": 2717,
+    "gaming": 216,
+    "books": 15
+  },
+  "rejectionBreakdown": {
+    "Non-fashion / Furniture / Toy item in Fashion department": 13,
+    "Non-beauty product assigned to Beauty department": 40,
+    "Non-grocery product in Grocery department": 3,
+    "Generic cable in Gaming": 1856
+  }
+}
