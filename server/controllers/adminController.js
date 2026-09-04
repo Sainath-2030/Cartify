@@ -73,9 +73,24 @@ export const updateBusinessRules = asyncHandler(async (req, res) => {
   });
 });
 
+// GET /api/admin/models/recommendations
+export const getNcfRecommendations = asyncHandler(async (req, res) => {
+  const userId = parseInt(req.query.userId, 10) || 1;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 5));
+  const result = await AdminService.getNcfRecommendations({ userId, topK });
+  res.status(200).json(result);
+});
+
+// GET /api/admin/models/affinity-matrix
+export const getNcfAffinityMatrix = asyncHandler(async (req, res) => {
+  const result = await AdminService.getNcfAffinityMatrix();
+  res.status(200).json({ success: true, data: result });
+});
+
 // GET /api/admin/audit-logs
 export const getAuditLogs = asyncHandler(async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
   const logs = await AdminService.getAuditLogs(limit);
   res.status(200).json({ success: true, data: logs });
 });
+

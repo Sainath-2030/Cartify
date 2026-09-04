@@ -4,6 +4,8 @@ import {
   getInteractionAnalytics,
   getModelMetrics,
   getModelStatus,
+  getNcfRecommendations,
+  getNcfAffinityMatrix,
   requestRetraining,
   getBusinessRules,
   updateBusinessRules,
@@ -20,6 +22,8 @@ router.get('/catalogue/health', getCatalogueHealth);
 router.get('/analytics/interactions', getInteractionAnalytics);
 router.get('/models/metrics', getModelMetrics);
 router.get('/models/status', getModelStatus);
+router.get('/models/recommendations', getNcfRecommendations);
+router.get('/models/affinity-matrix', getNcfAffinityMatrix);
 router.post('/models/retrain', requestRetraining);
 router.get('/business-rules', getBusinessRules);
 router.patch('/business-rules', updateBusinessRules);
