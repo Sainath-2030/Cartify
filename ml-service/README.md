@@ -32,12 +32,23 @@ GMF + MLP fused (He et al., 2017 architecture).
 python -m ncf.train
 ```
 
-- Reads `interactions` (user_id, product_id, interaction_type, created_at) via `common/db.py`.
-- `ncf/config.py` maps `interaction_type` → implicit-feedback weight —
-  **verify these string values against real data first**:
-  `SELECT DISTINCT interaction_type FROM interactions;`
+- Reads `interactions` (`user_id`, `product_id`, `interaction_type`, `created_at`) via `common/db.py`.
+- `ncf/config.py` maps `interaction_type` → implicit-feedback weights (`purchase`: 5, `review`: 4, `rating`: 4, `cart_add`: 3, `wishlist_add`: 3, `product_click`: 2, `product_view`: 1).
 - Trains with negative sampling, evaluates with leave-one-out HR@10.
 - Saves `artifacts/ncf_model.pt` + `artifacts/ncf_id_maps.json` (raw DB id ↔ dense embedding index — keeps product IDs stable, per CLAUDE.MD Section 29).
+
+### Checking the NCF Model Output & Generating Recommendations
+
+To inspect the model status and predicted affinity score matrix for all learned user/item pairs:
+```bash
+python -m ncf.recommend --inspect
+```
+
+To generate the **Top-K personalized product recommendations** for a specific user:
+```bash
+python -m ncf.recommend --user 1 --top_k 5
+python -m ncf.recommend --user 3 --top_k 5
+```
 
 ## CNN (product image feature extractor)
 

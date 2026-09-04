@@ -82,11 +82,13 @@ def load_products() -> pd.DataFrame:
             query = """
                 SELECT 
                     id,
-                    title,
+                    name,
                     main_image,
                     price,
+                    final_price,
                     rating,
-                    category_id
+                    category_id,
+                    brand
                 FROM products
                 ORDER BY id ASC;
             """
