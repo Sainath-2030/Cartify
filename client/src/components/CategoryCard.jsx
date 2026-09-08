@@ -20,12 +20,12 @@ export default function CategoryCard({ category, featured = false }) {
   return (
     <Link
       to={`/category/${slug}`}
-      className={`group relative flex flex-col overflow-hidden rounded-3xl border border-surface-border bg-surface-card transition-all duration-300 hover:border-zinc-400 hover:shadow-cardHover ${
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-card transition-colors duration-200 hover:border-border-strong ${
         featured ? 'lg:col-span-2 lg:flex-row' : ''
       }`}
     >
       <div
-        className={`overflow-hidden bg-surface-secondary/40 p-2.5 ${
+        className={`overflow-hidden bg-card-elevated p-2 ${
           featured ? 'lg:w-1/2 aspect-[16/10] lg:aspect-auto' : 'aspect-[16/10]'
         }`}
       >
@@ -34,25 +34,25 @@ export default function CategoryCard({ category, featured = false }) {
           onError={onImageError}
           alt={name}
           loading="lazy"
-          className="h-full w-full rounded-2xl object-cover transition-transform duration-500 ease-out-expo group-hover:scale-105"
+          className="h-full w-full rounded-xl object-cover transition-transform duration-300 group-hover:scale-105 opacity-90 group-hover:opacity-100"
         />
       </div>
 
-      <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
+      <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
         <div>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="font-display text-lg font-bold text-zinc-950 group-hover:text-primary transition-colors">
+            <h3 className="text-base font-semibold text-ink group-hover:text-accent transition-colors">
               {name}
             </h3>
             {productCount !== undefined && (
-              <span className="text-[11px] font-bold text-zinc-600 bg-surface-secondary px-2.5 py-0.5 rounded-full border border-surface-border">
+              <span className="text-[11px] font-medium text-muted bg-card-elevated px-2 py-0.5 rounded-lg border border-border-subtle">
                 {productCount.toLocaleString('en-IN')} items
               </span>
             )}
           </div>
 
           {description && (
-            <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed mt-2">
+            <p className="text-xs text-muted line-clamp-2 leading-relaxed mt-1.5">
               {description}
             </p>
           )}
@@ -63,7 +63,7 @@ export default function CategoryCard({ category, featured = false }) {
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-lg bg-surface-secondary/70 px-2 py-0.5 text-[10px] font-medium text-zinc-600 border border-surface-border/50"
+                  className="rounded-lg bg-card-elevated px-2 py-0.5 text-[10px] font-medium text-muted border border-border-subtle"
                 >
                   {tag}
                 </span>
@@ -72,9 +72,9 @@ export default function CategoryCard({ category, featured = false }) {
           )}
         </div>
 
-        <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-zinc-900 group-hover:text-primary transition-colors">
-          <span>Explore Department</span>
-          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+        <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-accent transition-colors">
+          <span>Explore collection</span>
+          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-1" />
         </div>
       </div>
     </Link>

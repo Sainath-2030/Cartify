@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, ShoppingCart, ArrowLeft, ArrowRight, Trash2, PackageX } from 'lucide-react';
+import { Heart, ShoppingCart, ArrowLeft, ArrowRight, Trash2, PackageX } from 'lucide-react';
 import { useWishlist } from '../hooks/useWishlist.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { formatPrice } from '../utils/format.js';
@@ -24,12 +24,12 @@ export default function Wishlist() {
 
   if (!isAuthenticated) {
     return (
-      <div className="container-page py-16 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Heart className="h-8 w-8" />
+      <div className="container-page py-16 text-center bg-surface min-h-screen">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-card-elevated border border-border-subtle text-accent">
+          <Heart className="h-7 w-7" />
         </div>
         <h1 className="mt-4 text-2xl font-bold text-ink">Sign in to view your wishlist</h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-1 text-xs text-muted">
           Your saved favorite products are synchronized across your devices.
         </p>
         <div className="mt-6 flex justify-center gap-3">
@@ -50,17 +50,17 @@ export default function Wishlist() {
 
   if (items.length === 0) {
     return (
-      <div className="container-page py-20 text-center">
-        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-muted">
-          <Heart className="h-12 w-12" />
+      <div className="container-page py-20 text-center bg-surface min-h-screen">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-card border border-border-subtle text-muted">
+          <Heart className="h-8 w-8" />
         </div>
-        <h1 className="mt-6 text-3xl font-extrabold tracking-tight text-ink">Your wishlist is empty</h1>
-        <p className="mt-2 text-base text-muted">
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink">Your wishlist is empty</h1>
+        <p className="mt-1 text-xs text-muted">
           Explore our catalogue and click the heart icon on any product to save it for later.
         </p>
-        <div className="mt-8 flex justify-center">
-          <Link to="/products" className="btn-primary">
-            Explore Products <ArrowRight className="h-4 w-4" />
+        <div className="mt-6 flex justify-center">
+          <Link to="/products" className="btn btn-primary">
+            Explore products <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -68,35 +68,35 @@ export default function Wishlist() {
   }
 
   return (
-    <div className="container-page py-10">
+    <div className="container-page py-8 bg-surface min-h-screen">
       {/* Top Controls */}
       <div className="mb-6 flex items-center justify-between">
         <Link
           to="/products"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-primary"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-ink transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Products
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to catalogue
         </Link>
         <button
           onClick={clearWishlist}
           disabled={isMutating}
-          className="text-xs font-medium text-muted hover:text-red-600"
+          className="text-xs font-medium text-muted hover:text-error transition-colors"
         >
-          Clear Wishlist
+          Clear wishlist
         </button>
       </div>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-ink">
           My Wishlist ({totalItems} {totalItems === 1 ? 'item' : 'items'})
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-0.5 text-xs text-muted">
           Items you've saved for future shopping.
         </p>
       </div>
 
       {/* Wishlist Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {items.map((item) => {
           const isDiscounted = Number(item.discountPercentage) > 0;
           const outOfStock = Number(item.stockQuantity) <= 0;
@@ -104,36 +104,36 @@ export default function Wishlist() {
           return (
             <div
               key={item.id}
-              className="card group relative flex flex-col overflow-hidden transition-shadow hover:shadow-cardHover"
+              className="card group relative flex flex-col p-3 rounded-2xl border border-border-subtle hover:border-border-strong transition-colors"
             >
               {/* Remove button */}
               <button
                 onClick={() => removeItem(item.productId)}
                 disabled={isMutating}
                 aria-label="Remove from wishlist"
-                className="absolute right-3 top-3 z-10 rounded-full bg-white/90 p-2 text-muted shadow-sm transition-colors hover:text-red-600"
+                className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-1.5 text-muted hover:text-error transition-colors"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
 
               {/* Discount Badge */}
               {isDiscounted && (
-                <span className="absolute left-3 top-3 z-10 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white">
-                  {Math.round(item.discountPercentage)}% OFF
+                <span className="absolute left-4 top-4 z-10 rounded-lg bg-accent px-2 py-0.5 text-xs font-bold text-accent-ink">
+                  Sale {Math.round(item.discountPercentage)}%
                 </span>
               )}
 
               {/* Thumbnail */}
-              <Link to={`/products/${item.slug}`} className="relative aspect-square overflow-hidden bg-slate-100">
+              <Link to={`/products/${item.slug}`} className="relative aspect-square overflow-hidden rounded-xl bg-card-elevated p-2 flex items-center justify-center">
                 <img
                   src={normalizeImageUrl(item.mainImage || item.image)}
                   alt={item.name}
                   onError={onImageError}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                 />
                 {outOfStock && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                    <span className="flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                    <span className="flex items-center gap-1.5 rounded-lg bg-card-elevated px-2.5 py-1 text-xs font-medium text-error">
                       <PackageX className="h-3.5 w-3.5" /> Out of stock
                     </span>
                   </div>
@@ -141,11 +141,11 @@ export default function Wishlist() {
               </Link>
 
               {/* Card Body */}
-              <div className="flex flex-1 flex-col p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">{item.brand}</p>
+              <div className="flex flex-1 flex-col pt-3">
+                <p className="text-xs font-medium text-muted">{item.brand}</p>
                 <Link
                   to={`/products/${item.slug}`}
-                  className="line-clamp-2 text-sm font-medium text-ink hover:text-primary"
+                  className="line-clamp-2 text-sm font-medium text-ink hover:text-accent transition-colors mt-0.5"
                 >
                   {item.name}
                 </Link>
@@ -156,10 +156,10 @@ export default function Wishlist() {
                 </div>
 
                 <div className="mt-auto pt-3">
-                  <div className="flex items-baseline gap-2 pb-3">
-                    <span className="text-base font-bold text-ink">{formatPrice(item.finalPrice)}</span>
+                  <div className="flex items-baseline gap-2 pb-2.5">
+                    <span className="text-sm font-bold text-ink">{formatPrice(item.finalPrice)}</span>
                     {isDiscounted && (
-                      <span className="text-xs text-muted line-through">{formatPrice(item.price)}</span>
+                      <span className="text-xs text-ink-subtle line-through">{formatPrice(item.price)}</span>
                     )}
                   </div>
 

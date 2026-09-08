@@ -4,14 +4,14 @@ export default function Skeleton({
   width,
   height,
 }) {
-  let baseStyle = 'animate-pulse bg-zinc-200/80';
+  let baseStyle = 'animate-pulse bg-card-elevated';
 
   if (variant === 'circular') {
     baseStyle += ' rounded-full';
   } else if (variant === 'text') {
     baseStyle += ' rounded-md h-4 my-1';
   } else {
-    baseStyle += ' rounded-xl';
+    baseStyle += ' rounded-lg';
   }
 
   const style = {};
@@ -23,13 +23,13 @@ export default function Skeleton({
 
 export function ProductCardSkeleton() {
   return (
-    <div className="card p-4 flex flex-col gap-3">
-      <Skeleton variant="rectangular" className="aspect-square w-full rounded-xl bg-zinc-100" />
+    <div className="card p-3 flex flex-col gap-3">
+      <Skeleton variant="rectangular" className="aspect-square w-full rounded-xl bg-card-elevated" />
       <Skeleton variant="text" className="w-1/3 h-3" />
       <Skeleton variant="text" className="w-full h-4" />
       <div className="mt-auto flex items-center justify-between pt-2">
         <Skeleton variant="text" className="w-1/4 h-5" />
-        <Skeleton variant="rectangular" className="h-8 w-16 rounded-xl" />
+        <Skeleton variant="rectangular" className="h-7 w-7 rounded-lg" />
       </div>
     </div>
   );
@@ -37,7 +37,7 @@ export function ProductCardSkeleton() {
 
 export function TableRowSkeleton({ columns = 4 }) {
   return (
-    <tr className="border-b border-zinc-100 animate-pulse">
+    <tr className="border-b border-border-subtle animate-pulse">
       {Array.from({ length: columns }).map((_, i) => (
         <td key={i} className="p-4">
           <Skeleton variant="text" className="w-full h-4" />

@@ -1,17 +1,28 @@
 import { useState, useEffect } from 'react';
-import { X, Check, Star, RefreshCw, Filter, ArrowRight } from 'lucide-react';
+import { X, Check, ChevronDown, Filter } from 'lucide-react';
 import RatingStars from './RatingStars.jsx';
 import Button from './Button.jsx';
 
 const RATING_OPTIONS = [4, 3, 2, 1];
 
 function FilterSection({ title, children, defaultOpen = true }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
-    <div className="border-b border-surface-border py-5 first:pt-0 last:border-b-0">
-      <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-zinc-950">
-        {title}
-      </h3>
-      {children}
+    <div className="border-b border-border-subtle py-4 first:pt-0 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between py-1 text-sm font-medium text-ink hover:text-accent transition-colors"
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={`h-4 w-4 text-muted transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+      {isOpen && <div className="pt-3">{children}</div>}
     </div>
   );
 }
@@ -56,39 +67,39 @@ export default function FilterSidebar({
   );
 
   const filterContent = (
-    <div className="flex flex-col text-zinc-900">
+    <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-surface-border">
+      <div className="flex items-center justify-between pb-3.5 border-b border-border-subtle">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-zinc-700" />
-          <h2 className="font-display text-base font-bold text-zinc-950">Filter Catalogue</h2>
+          <Filter className="h-4 w-4 text-muted" />
+          <h2 className="text-sm font-semibold text-ink">Filters</h2>
         </div>
         {activeCount > 0 && (
           <button
             type="button"
             onClick={onClear}
-            className="text-xs font-bold text-primary hover:underline"
+            className="text-xs font-medium text-muted hover:text-accent transition-colors"
           >
-            Clear All ({activeCount})
+            Reset all ({activeCount})
           </button>
         )}
       </div>
 
       {/* 1. Category Filter */}
       {!hideCategoryFilter && (
-        <FilterSection title="Department">
-          <ul className="flex flex-col gap-1.5">
+        <FilterSection title="Category">
+          <ul className="flex flex-col gap-1">
             <li>
               <button
                 type="button"
                 onClick={() => onChange({ category: undefined })}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   !filters.category
-                    ? 'bg-zinc-950 text-white shadow-xs'
-                    : 'text-zinc-700 hover:bg-surface-secondary'
+                    ? 'bg-card-elevated text-ink font-semibold'
+                    : 'text-muted hover:text-ink hover:bg-card-elevated/50'
                 }`}
               >
-                <span>All Departments</span>
+                <span>All categories</span>
               </button>
             </li>
             {categories.map((cat) => {
@@ -98,19 +109,15 @@ export default function FilterSidebar({
                   <button
                     type="button"
                     onClick={() => onChange({ category: cat.slug })}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                       isSelected
-                        ? 'bg-zinc-950 text-white shadow-xs'
-                        : 'text-zinc-700 hover:bg-surface-secondary'
+                        ? 'bg-card-elevated text-ink font-semibold'
+                        : 'text-muted hover:text-ink hover:bg-card-elevated/50'
                     }`}
                   >
                     <span className="truncate">{cat.name}</span>
                     {cat.product_count !== undefined && (
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                          isSelected ? 'bg-zinc-800 text-zinc-300' : 'text-zinc-500 bg-surface-secondary'
-                        }`}
-                      >
+                      <span className="text-[11px] text-ink-subtle">
                         {Number(cat.product_count).toLocaleString('en-IN')}
                       </span>
                     )}
@@ -131,7 +138,7 @@ export default function FilterSidebar({
               placeholder="Search brands..."
               value={brandSearch}
               onChange={(e) => setBrandSearch(e.target.value)}
-              className="mb-2.5 w-full rounded-lg border border-surface-border bg-surface px-2.5 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
+              className="mb-2.5 w-full rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none"
             />
           )}
           <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto pr-1">
@@ -139,14 +146,14 @@ export default function FilterSidebar({
               <button
                 type="button"
                 onClick={() => onChange({ brand: undefined })}
-                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   !filters.brand
-                    ? 'font-bold text-primary bg-surface-secondary'
-                    : 'text-zinc-700 hover:bg-surface-secondary'
+                    ? 'bg-card-elevated text-ink font-semibold'
+                    : 'text-muted hover:text-ink hover:bg-card-elevated/50'
                 }`}
               >
-                <span>All Brands</span>
-                {!filters.brand && <Check className="h-3.5 w-3.5 text-primary" />}
+                <span>All brands</span>
+                {!filters.brand && <Check className="h-3.5 w-3.5 text-accent" />}
               </button>
             </li>
             {filteredBrands.map((b) => {
@@ -156,14 +163,14 @@ export default function FilterSidebar({
                   <button
                     type="button"
                     onClick={() => onChange({ brand: isSelected ? undefined : b })}
-                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                       isSelected
-                        ? 'font-bold text-primary bg-surface-secondary'
-                        : 'text-zinc-700 hover:bg-surface-secondary'
+                        ? 'bg-card-elevated text-ink font-semibold'
+                        : 'text-muted hover:text-ink hover:bg-card-elevated/50'
                     }`}
                   >
                     <span className="truncate">{b}</span>
-                    {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                    {isSelected && <Check className="h-3.5 w-3.5 text-accent" />}
                   </button>
                 </li>
               );
@@ -173,58 +180,48 @@ export default function FilterSidebar({
       )}
 
       {/* 3. Price Range Filter */}
-      <FilterSection title="Price Range (₹)">
+      <FilterSection title="Price (₹)">
         <form onSubmit={handleApplyPrice} className="space-y-2.5">
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400">
-                ₹
-              </span>
-              <input
-                type="number"
-                min="0"
-                placeholder="Min"
-                value={priceMin}
-                onChange={(e) => setPriceMin(e.target.value)}
-                className="w-full rounded-xl border border-surface-border bg-white pl-6 pr-2.5 py-1.5 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
-                aria-label="Minimum price in Rupees"
-              />
-            </div>
-            <span className="text-zinc-400 text-xs font-bold">–</span>
-            <div className="relative flex-1">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400">
-                ₹
-              </span>
-              <input
-                type="number"
-                min="0"
-                placeholder="Max"
-                value={priceMax}
-                onChange={(e) => setPriceMax(e.target.value)}
-                className="w-full rounded-xl border border-surface-border bg-white pl-6 pr-2.5 py-1.5 text-xs font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
-                aria-label="Maximum price in Rupees"
-              />
-            </div>
+            <input
+              type="number"
+              min="0"
+              placeholder="Min"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+              className="w-full rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none"
+              aria-label="Minimum price in Rupees"
+            />
+            <span className="text-ink-subtle text-xs">–</span>
+            <input
+              type="number"
+              min="0"
+              placeholder="Max"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+              className="w-full rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-subtle focus:border-accent focus:outline-none"
+              aria-label="Maximum price in Rupees"
+            />
           </div>
           <Button type="submit" variant="secondary" size="sm" className="w-full justify-center">
-            Apply Price Range
+            Apply price
           </Button>
         </form>
       </FilterSection>
 
       {/* 4. Rating Filter */}
-      <FilterSection title="Minimum Rating">
-        <ul className="flex flex-col gap-1.5">
+      <FilterSection title="Customer rating">
+        <ul className="flex flex-col gap-1">
           <li>
             <button
               type="button"
               onClick={() => onChange({ rating: undefined })}
-              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                !filters.rating ? 'font-bold text-primary bg-surface-secondary' : 'text-zinc-700 hover:bg-surface-secondary'
+              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                !filters.rating ? 'bg-card-elevated text-ink font-semibold' : 'text-muted hover:text-ink hover:bg-card-elevated/50'
               }`}
             >
-              <span>Any Rating</span>
-              {!filters.rating && <Check className="h-3.5 w-3.5 text-primary" />}
+              <span>Any rating</span>
+              {!filters.rating && <Check className="h-3.5 w-3.5 text-accent" />}
             </button>
           </li>
           {RATING_OPTIONS.map((r) => {
@@ -234,15 +231,15 @@ export default function FilterSidebar({
                 <button
                   type="button"
                   onClick={() => onChange({ rating: isSelected ? undefined : r })}
-                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    isSelected ? 'font-bold text-primary bg-surface-secondary' : 'text-zinc-700 hover:bg-surface-secondary'
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    isSelected ? 'bg-card-elevated text-ink font-semibold' : 'text-muted hover:text-ink hover:bg-card-elevated/50'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <RatingStars rating={r} size="sm" />
-                    <span>& Up</span>
+                    <span>& up</span>
                   </div>
-                  {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                  {isSelected && <Check className="h-3.5 w-3.5 text-accent" />}
                 </button>
               </li>
             );
@@ -252,14 +249,14 @@ export default function FilterSidebar({
 
       {/* 5. In Stock Availability */}
       <FilterSection title="Availability">
-        <label className="flex items-center gap-2.5 text-xs font-semibold text-zinc-800 cursor-pointer select-none">
+        <label className="flex items-center gap-2.5 text-xs font-medium text-ink cursor-pointer select-none">
           <input
             type="checkbox"
             checked={!!filters.inStock}
             onChange={(e) => onChange({ inStock: e.target.checked ? 'true' : undefined })}
-            className="h-4 w-4 rounded-md border-surface-border text-zinc-950 focus:ring-zinc-950 focus:ring-offset-0 cursor-pointer"
+            className="h-4 w-4 rounded border-border-subtle bg-card-elevated text-accent focus:ring-accent accent-[#D7FF3D] cursor-pointer"
           />
-          <span>In Stock Inventory Only</span>
+          <span>In stock items only</span>
         </label>
       </FilterSection>
     </div>
@@ -267,9 +264,9 @@ export default function FilterSidebar({
 
   return (
     <>
-      {/* Desktop Sticky Sidebar */}
-      <aside className="hidden w-64 shrink-0 lg:block xl:w-72">
-        <div className="sticky top-24 rounded-3xl border border-surface-border bg-surface-card p-5 shadow-xs">
+      {/* Desktop Sticky Sidebar (260px) */}
+      <aside className="hidden w-[260px] shrink-0 lg:block">
+        <div className="sticky top-24 rounded-2xl border border-border-subtle bg-card p-4">
           {filterContent}
         </div>
       </aside>
@@ -278,19 +275,19 @@ export default function FilterSidebar({
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs transition-opacity"
+            className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
             onClick={onCloseMobile}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-surface-border bg-surface-card p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
-            <div className="flex items-center justify-between pb-4 border-b border-surface-border mb-4">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-border-subtle bg-card p-5 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between pb-3.5 border-b border-border-subtle mb-4">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-zinc-800" />
-                <h3 className="font-display text-base font-bold text-zinc-950">Filters</h3>
+                <Filter className="h-4 w-4 text-muted" />
+                <h3 className="text-sm font-semibold text-ink">Filters</h3>
               </div>
               <button
                 type="button"
                 onClick={onCloseMobile}
-                className="rounded-full p-2 text-zinc-400 hover:text-zinc-900 hover:bg-surface-secondary transition-colors"
+                className="rounded-lg p-1.5 text-muted hover:text-ink hover:bg-card-elevated transition-colors"
                 aria-label="Close filter drawer"
               >
                 <X className="h-5 w-5" />
@@ -299,14 +296,14 @@ export default function FilterSidebar({
 
             {filterContent}
 
-            <div className="mt-6 pt-4 border-t border-surface-border">
+            <div className="mt-5 pt-4 border-t border-border-subtle">
               <Button
                 variant="primary"
                 size="lg"
-                className="w-full justify-center shadow-md font-bold"
+                className="w-full justify-center"
                 onClick={onCloseMobile}
               >
-                Show Results
+                Show results
               </Button>
             </div>
           </div>

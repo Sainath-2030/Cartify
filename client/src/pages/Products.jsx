@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { SlidersHorizontal, Search, RotateCcw, X, Sparkles, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronRight, RotateCcw } from 'lucide-react';
 import FilterSidebar from '../components/FilterSidebar.jsx';
 import SortDropdown from '../components/SortDropdown.jsx';
 import ProductGrid from '../components/ProductGrid.jsx';
 import Pagination from '../components/Pagination.jsx';
 import Button from '../components/Button.jsx';
 import Container from '../components/Container.jsx';
-import Badge from '../components/Badge.jsx';
 import { productService } from '../services/productService.js';
 import { categoryService } from '../services/categoryService.js';
 import { useInteractionTracking } from '../hooks/useInteractionTracking.js';
@@ -51,7 +50,6 @@ export default function Products() {
           next.set(key, value);
         }
       });
-      // Reset page back to 1 on any filter or sort modification
       if (!('page' in updates)) next.delete('page');
       setSearchParams(next);
     },
@@ -84,7 +82,7 @@ export default function Products() {
       .catch(() => {});
   }, [filters.category]);
 
-  // Fetch products via authoritative API
+  // Fetch products
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -117,7 +115,6 @@ export default function Products() {
   const rangeStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const rangeEnd = Math.min(pagination.page * pagination.limit, pagination.total);
 
-  // Find category name if category filter is active
   const selectedCategoryName = useMemo(() => {
     if (!filters.category) return null;
     const found = categories.find((c) => c.slug === filters.category);
@@ -126,69 +123,57 @@ export default function Products() {
 
   return (
     <div className="bg-surface min-h-screen pb-20">
-      {/* ------------------------------------------------------------- */}
-      {/* 1. EDITORIAL HEADER & BREADCRUMBS                             */}
-      {/* ------------------------------------------------------------- */}
-      <div className="border-b border-surface-border bg-surface py-8 sm:py-10">
+      {/* 1. Header & Breadcrumbs */}
+      <div className="border-b border-border-subtle bg-surface py-6 sm:py-8">
         <Container size="storefront">
-          {/* Breadcrumb Navigation */}
-          <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-xs text-zinc-500">
-            <Link to="/" className="hover:text-primary transition-colors">
+          <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-muted">
+            <Link to="/" className="hover:text-ink transition-colors">
               Home
             </Link>
-            <ChevronRight className="h-3 w-3 text-zinc-400" />
-            <Link to="/products" className="hover:text-primary transition-colors">
-              Catalogue
+            <ChevronRight className="h-3 w-3 text-ink-subtle" />
+            <Link to="/products" className="hover:text-ink transition-colors">
+              All items
             </Link>
             {selectedCategoryName && (
               <>
-                <ChevronRight className="h-3 w-3 text-zinc-400" />
-                <span className="font-semibold text-zinc-900">{selectedCategoryName}</span>
+                <ChevronRight className="h-3 w-3 text-ink-subtle" />
+                <span className="font-medium text-ink">{selectedCategoryName}</span>
               </>
             )}
             {searchQuery && (
               <>
-                <ChevronRight className="h-3 w-3 text-zinc-400" />
-                <span className="font-semibold text-zinc-900">"{searchQuery}"</span>
+                <ChevronRight className="h-3 w-3 text-ink-subtle" />
+                <span className="font-medium text-ink">"{searchQuery}"</span>
               </>
             )}
           </nav>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="primary" icon={Sparkles}>
-                  Verified Catalogue
-                </Badge>
-                <span className="text-xs text-zinc-500 font-semibold">
-                  • 100% Guaranteed Purity
-                </span>
-              </div>
-
-              <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-ink">
+              <h1 className="text-display text-ink font-bold leading-tight">
                 {searchQuery
                   ? `Search: "${searchQuery}"`
                   : selectedCategoryName
-                  ? `${selectedCategoryName} Collection`
-                  : 'All Products'}
+                  ? selectedCategoryName
+                  : 'All items'}
               </h1>
 
-              <p className="mt-1.5 text-xs sm:text-sm text-zinc-600 max-w-xl leading-relaxed">
+              <p className="mt-1 text-xs sm:text-sm text-muted max-w-xl leading-relaxed">
                 {searchQuery
-                  ? `Showing results matching your search terms across our verified departments.`
+                  ? `Showing results matching your query across our verified catalogue.`
                   : selectedCategoryName
-                  ? `Explore authenticated ${selectedCategoryName} curated with verified specifications and reviews.`
-                  : 'Browse verified inventory across electronics, luxury fashion, home living, beauty, and literature.'}
+                  ? `Explore authenticated ${selectedCategoryName} curated with verified specifications.`
+                  : 'Browse verified inventory across electronics, luxury fashion, home living, beauty, and books.'}
               </p>
             </div>
 
-            <div className="text-xs sm:text-sm text-zinc-500 shrink-0 font-medium">
+            <div className="text-xs text-muted shrink-0 font-medium">
               {isLoading ? (
                 <span className="animate-pulse">Loading catalogue…</span>
               ) : (
                 <span>
-                  Showing <strong className="text-zinc-900">{rangeStart}–{rangeEnd}</strong> of{' '}
-                  <strong className="text-zinc-900">{pagination.total.toLocaleString('en-IN')}</strong> items
+                  Showing <strong className="text-ink">{rangeStart}–{rangeEnd}</strong> of{' '}
+                  <strong className="text-ink">{pagination.total.toLocaleString('en-IN')}</strong> items
                 </span>
               )}
             </div>
@@ -196,95 +181,109 @@ export default function Products() {
         </Container>
       </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* 2. CATALOGUE CONTROLS & ACTIVE FILTER PILLS                   */}
-      {/* ------------------------------------------------------------- */}
+      {/* 2. Filter Pills & Controls */}
       <Container size="storefront" className="pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4">
           <Button
             variant="secondary"
             size="md"
-            className="lg:hidden font-bold shadow-xs hover:border-zinc-400"
+            className="lg:hidden"
             onClick={() => setMobileFiltersOpen(true)}
           >
             <SlidersHorizontal className="h-4 w-4" />
             <span>Filters</span>
             {activeFilterCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-zinc-950 px-2 py-0.5 text-[11px] font-bold text-white">
+              <span className="ml-1 rounded-md bg-accent px-1.5 py-0.2 text-[11px] font-bold text-accent-ink">
                 {activeFilterCount}
               </span>
             )}
           </Button>
 
-          {/* Active Filter Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-            {filters.category && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('category')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>Dept: {selectedCategoryName}</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {filters.brand && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('brand')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>Brand: {filters.brand}</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {(filters.minPrice || filters.maxPrice) && (
-              <button
-                type="button"
-                onClick={() => {
-                  updateParams({ minPrice: undefined, maxPrice: undefined });
-                }}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>
-                  Price: ₹{filters.minPrice || 0} – ₹{filters.maxPrice || '∞'}
-                </span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {filters.rating && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('rating')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>★ {filters.rating} & up</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {filters.inStock && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('inStock')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>In Stock Only</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {activeFilterCount > 1 && (
+          {/* Filter Chips according to design.md */}
+          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+            {activeFilterCount > 0 && (
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-xs font-bold text-primary hover:underline ml-1"
+                className="inline-flex items-center gap-1 text-xs text-muted hover:text-accent transition-colors mr-1"
               >
-                Reset All
+                <RotateCcw className="h-3 w-3" />
+                <span>Reset filters</span>
               </button>
+            )}
+
+            {filters.category && (
+              <span className="pill-chip">
+                <span>{selectedCategoryName}</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('category')}
+                  aria-label={`Remove category filter`}
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.brand && (
+              <span className="pill-chip">
+                <span>{filters.brand}</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('brand')}
+                  aria-label={`Remove brand filter`}
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {(filters.minPrice || filters.maxPrice) && (
+              <span className="pill-chip">
+                <span>
+                  ₹{filters.minPrice || 0} – ₹{filters.maxPrice || '∞'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateParams({ minPrice: undefined, maxPrice: undefined });
+                  }}
+                  aria-label={`Remove price range filter`}
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.rating && (
+              <span className="pill-chip">
+                <span>★ {filters.rating} & up</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('rating')}
+                  aria-label={`Remove rating filter`}
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.inStock && (
+              <span className="pill-chip">
+                <span>In stock</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('inStock')}
+                  aria-label={`Remove stock filter`}
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
             )}
           </div>
 
@@ -293,10 +292,8 @@ export default function Products() {
           </div>
         </div>
 
-        {/* ------------------------------------------------------------- */}
-        {/* 3. MAIN CATALOGUE LAYOUT (SIDEBAR + GRID)                     */}
-        {/* ------------------------------------------------------------- */}
-        <div className="flex gap-8 pt-8 items-start">
+        {/* 3. Catalogue Grid (260px Sidebar + Content) */}
+        <div className="flex gap-8 pt-6 items-start">
           <FilterSidebar
             categories={categories}
             brands={brands}

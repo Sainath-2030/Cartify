@@ -11,12 +11,12 @@ export default function EmptyState({
   className = '',
 }) {
   return (
-    <div className={`flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-6 py-16 text-center ${className}`}>
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900">
+    <div className={`flex flex-col items-center justify-center gap-3 rounded-2xl border border-border-subtle bg-card px-6 py-16 text-center ${className}`}>
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-card-elevated border border-border-subtle text-muted">
         <Icon className="h-6 w-6" />
       </div>
-      <h3 className="text-h3 text-ink mt-1 font-semibold">{title}</h3>
-      {description && <p className="max-w-md text-sm text-zinc-500 leading-relaxed">{description}</p>}
+      <h3 className="text-base font-semibold text-ink mt-1">{title}</h3>
+      {description && <p className="max-w-md text-xs text-muted leading-relaxed">{description}</p>}
       {action ? (
         <div className="mt-2">{action}</div>
       ) : actionText && onAction ? (

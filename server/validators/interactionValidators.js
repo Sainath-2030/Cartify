@@ -1,17 +1,27 @@
 // Interaction & Telemetry request validators
 
-const ALLOWED_CLIENT_INTERACTIONS = ['VIEW', 'SEARCH'];
+const TYPE_NORMALIZATION = {
+  VIEW: 'VIEW',
+  PRODUCT_VIEW: 'VIEW',
+  PRODUCT_CLICK: 'VIEW',
+  CLICK: 'VIEW',
+  SEARCH: 'SEARCH',
+  CATEGORY_VIEW: 'SEARCH',
+};
+
+const ALLOWED_CLIENT_INTERACTIONS = Object.keys(TYPE_NORMALIZATION);
 const SENSITIVE_KEYS = ['password', 'token', 'jwt', 'secret', 'authorization', 'creditCard', 'card', 'cvv'];
 
 export function validateClientInteraction(body = {}) {
   const errors = {};
   const { interactionType, productId, product_id, sessionId, session_id, metadata } = body;
 
-  const type = String(interactionType || '').toUpperCase().trim();
-  if (!type) {
+  const rawType = String(interactionType || '').toUpperCase().trim();
+  const type = TYPE_NORMALIZATION[rawType];
+  if (!rawType) {
     errors.interactionType = 'interactionType is required.';
-  } else if (!ALLOWED_CLIENT_INTERACTIONS.includes(type)) {
-    errors.interactionType = `Invalid client interactionType. Allowed client types: ${ALLOWED_CLIENT_INTERACTIONS.join(', ')}. Action events (PURCHASE, CART_ADD, etc.) are recorded exclusively by authoritative server services.`;
+  } else if (!type) {
+    errors.interactionType = `Invalid client interactionType. Allowed client types: VIEW, SEARCH, PRODUCT_VIEW, PRODUCT_CLICK, CATEGORY_VIEW.`;
   }
 
   const rawProdId = productId !== undefined ? productId : product_id;

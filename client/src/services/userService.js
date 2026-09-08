@@ -3,4 +3,5 @@ import { api } from './api.js';
 export const userService = {
   getMe: () => api.get('/users/me', { auth: true }),
   updateMe: (payload) => api.put('/users/me', payload, { auth: true }),
+  getRecommendations: (topK = 6) => api.get(`/users/recommendations?topK=${topK}`, { auth: true }),
 };

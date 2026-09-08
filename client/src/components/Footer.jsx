@@ -3,61 +3,61 @@ import { ShoppingBag, ArrowUpRight } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer id="contact" className="border-t border-surface-border bg-surface-secondary/50 text-zinc-600">
+    <footer id="contact" className="border-t border-border-subtle bg-surface text-muted">
       {/* Main 4-Column Editorial Footer */}
       <div className="container-page py-14">
         <div className="grid gap-10 md:grid-cols-5">
           {/* Brand & Purpose */}
-          <div className="md:col-span-2 space-y-4 pr-4">
+          <div className="md:col-span-2 space-y-3.5 pr-4">
             <Link to="/" className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-ink">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-950 text-white">
-                <ShoppingBag className="h-4 w-4" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-accent-ink">
+                <ShoppingBag className="h-3.5 w-3.5 stroke-[2.5]" />
               </div>
-              <span className="font-display font-extrabold text-xl tracking-tight text-ink">
-                Cartify<span className="text-primary">.</span>
+              <span className="font-display font-bold text-lg tracking-tight text-ink">
+                Cartify
               </span>
             </Link>
-            <p className="text-sm text-zinc-600 leading-relaxed max-w-sm">
-              An intelligent, dataset-agnostic e-commerce platform built on PostgreSQL and structured for modular multi-model hybrid recommendation research.
+            <p className="text-xs text-muted leading-relaxed max-w-sm">
+              An intelligent, dataset-agnostic dark commerce platform built on PostgreSQL and structured for modular multi-model hybrid recommendation research.
             </p>
-            <div className="flex items-center gap-3 pt-2 text-xs font-semibold text-zinc-500">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-card px-3 py-1 text-zinc-800 border border-surface-border">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                Live Catalogue Active
+            <div className="flex items-center gap-2.5 pt-1 text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-card px-2.5 py-1 text-ink border border-border-subtle text-[11px]">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                Live catalogue active
               </span>
-              <span>16,976 Verified Items</span>
+              <span className="text-[11px] text-ink-subtle">16,976 verified items</span>
             </div>
           </div>
 
           {/* Column 2: Catalogue */}
           <div>
-            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-900">
+            <h3 className="mb-3.5 text-xs font-semibold uppercase tracking-wider text-ink">
               Catalogue
             </h3>
-            <ul className="flex flex-col gap-2.5 text-xs text-zinc-600">
+            <ul className="flex flex-col gap-2 text-xs text-muted">
               <li>
-                <Link to="/products" className="hover:text-zinc-950 transition-colors">
-                  All Products
+                <Link to="/products" className="hover:text-ink transition-colors">
+                  All products
                 </Link>
               </li>
               <li>
-                <Link to="/categories" className="hover:text-zinc-950 transition-colors">
-                  Departments
+                <Link to="/categories" className="hover:text-ink transition-colors">
+                  Categories
                 </Link>
               </li>
               <li>
-                <Link to="/products?sort=featured" className="hover:text-zinc-950 transition-colors">
-                  Featured Curations
+                <Link to="/products?sort=featured" className="hover:text-ink transition-colors">
+                  Bestsellers
                 </Link>
               </li>
               <li>
-                <Link to="/products?sort=rating" className="hover:text-zinc-950 transition-colors">
-                  Top Rated
+                <Link to="/products?sort=rating" className="hover:text-ink transition-colors">
+                  Top rated
                 </Link>
               </li>
               <li>
-                <Link to="/products?sort=newest" className="hover:text-zinc-950 transition-colors">
-                  New Arrivals
+                <Link to="/products?sort=newest" className="hover:text-ink transition-colors">
+                  New arrivals
                 </Link>
               </li>
             </ul>
@@ -65,33 +65,33 @@ export default function Footer() {
 
           {/* Column 3: Customer Hub */}
           <div>
-            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-900">
-              Customer Hub
+            <h3 className="mb-3.5 text-xs font-semibold uppercase tracking-wider text-ink">
+              Customer hub
             </h3>
-            <ul className="flex flex-col gap-2.5 text-xs text-zinc-600">
+            <ul className="flex flex-col gap-2 text-xs text-muted">
               <li>
-                <Link to="/cart" className="hover:text-zinc-950 transition-colors">
-                  Shopping Cart
+                <Link to="/cart" className="hover:text-ink transition-colors">
+                  Shopping cart
                 </Link>
               </li>
               <li>
-                <Link to="/wishlist" className="hover:text-zinc-950 transition-colors">
-                  Saved Wishlist
+                <Link to="/wishlist" className="hover:text-ink transition-colors">
+                  Saved wishlist
                 </Link>
               </li>
               <li>
-                <Link to="/profile" className="hover:text-zinc-950 transition-colors">
-                  Account & Orders
+                <Link to="/profile" className="hover:text-ink transition-colors">
+                  Account & orders
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="hover:text-zinc-950 transition-colors">
-                  Sign In
+                <Link to="/login" className="hover:text-ink transition-colors">
+                  Sign in
                 </Link>
               </li>
               <li>
-                <Link to="/signup" className="hover:text-zinc-950 transition-colors">
-                  Create Account
+                <Link to="/signup" className="hover:text-ink transition-colors">
+                  Create account
                 </Link>
               </li>
             </ul>
@@ -99,45 +99,45 @@ export default function Footer() {
 
           {/* Column 4: Operational Consoles */}
           <div>
-            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-900">
+            <h3 className="mb-3.5 text-xs font-semibold uppercase tracking-wider text-ink">
               Operations & RBAC
             </h3>
-            <ul className="flex flex-col gap-2.5 text-xs text-zinc-600">
+            <ul className="flex flex-col gap-2 text-xs text-muted">
               <li>
                 <Link
                   to="/admin"
-                  className="inline-flex items-center gap-1 hover:text-zinc-950 transition-colors"
+                  className="inline-flex items-center gap-1 hover:text-ink transition-colors"
                 >
-                  <span>Admin Console</span>
-                  <ArrowUpRight className="h-3 w-3 text-zinc-500" />
+                  <span>Admin console</span>
+                  <ArrowUpRight className="h-3 w-3 text-muted" />
                 </Link>
               </li>
               <li>
                 <Link
                   to="/content-manager"
-                  className="inline-flex items-center gap-1 hover:text-zinc-950 transition-colors"
+                  className="inline-flex items-center gap-1 hover:text-ink transition-colors"
                 >
-                  <span>Content Studio</span>
-                  <ArrowUpRight className="h-3 w-3 text-zinc-500" />
+                  <span>Content studio</span>
+                  <ArrowUpRight className="h-3 w-3 text-muted" />
                 </Link>
               </li>
               <li>
-                <span className="text-zinc-500">REST API v1 (Locked)</span>
+                <span className="text-ink-subtle">REST API v1</span>
               </li>
               <li>
-                <span className="text-zinc-500">PostgreSQL Engine</span>
+                <span className="text-ink-subtle">PostgreSQL engine</span>
               </li>
             </ul>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-surface-border pt-8 text-xs text-zinc-500">
-          <p>© {new Date().getFullYear()} Cartify Platform. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <span className="hover:text-zinc-800 transition-colors">Clean Data Architecture</span>
-            <span className="hover:text-zinc-800 transition-colors">Interaction Telemetry</span>
-            <span className="hover:text-zinc-800 transition-colors">Academic Research Foundation</span>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border-subtle pt-6 text-xs text-ink-subtle">
+          <p>© {new Date().getFullYear()} Cartify. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <span className="hover:text-muted transition-colors">Clean data architecture</span>
+            <span className="hover:text-muted transition-colors">Interaction telemetry</span>
+            <span className="hover:text-muted transition-colors">Academic research</span>
           </div>
         </div>
       </div>

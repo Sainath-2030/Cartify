@@ -59,43 +59,43 @@ export default function ReviewModal({ isOpen, onClose, product, onReviewSubmitte
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-ink/50 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Dialog */}
       <div
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl transition-all"
+        className="relative w-full max-w-lg rounded-2xl bg-card border border-border-subtle p-6 shadow-modal transition-all"
         role="dialog"
         aria-modal="true"
         aria-labelledby="review-modal-title"
       >
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-border-subtle pb-4">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <h2 id="review-modal-title" className="text-lg font-bold text-ink">
+            <MessageSquare className="h-5 w-5 text-accent" />
+            <h2 id="review-modal-title" className="text-base font-semibold text-ink">
               Write a Review
             </h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-muted hover:bg-slate-100 hover:text-ink"
+            className="rounded-lg p-1.5 text-muted hover:bg-card-elevated hover:text-ink"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="mt-3 text-xs text-muted line-clamp-1 font-medium">
-          Product: <span className="text-ink">{product.name}</span>
+        <p className="mt-3 text-xs text-muted line-clamp-1">
+          Product: <span className="text-ink font-medium">{product.name}</span>
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
           {/* Star Rating Picker */}
           <div>
-            <label className="block text-sm font-semibold text-ink">
-              Overall Rating <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-ink">
+              Overall rating <span className="text-error">*</span>
             </label>
             <div className="mt-2 flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -109,15 +109,15 @@ export default function ReviewModal({ isOpen, onClose, product, onReviewSubmitte
                   aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
                 >
                   <Star
-                    className={`h-7 w-7 ${
+                    className={`h-6 w-6 ${
                       star <= activeRating
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'text-slate-300 hover:text-slate-400'
+                        ? 'fill-accent text-accent'
+                        : 'text-border-subtle hover:text-muted'
                     }`}
                   />
                 </button>
               ))}
-              <span className="ml-2 text-xs font-medium text-muted">
+              <span className="ml-2 text-xs text-muted">
                 {ratingDescriptions[activeRating]}
               </span>
             </div>
@@ -125,8 +125,8 @@ export default function ReviewModal({ isOpen, onClose, product, onReviewSubmitte
 
           {/* Review Text */}
           <div>
-            <label htmlFor="review-text" className="block text-sm font-semibold text-ink">
-              Your Review <span className="text-red-500">*</span>
+            <label htmlFor="review-text" className="block text-xs font-semibold text-ink">
+              Your review <span className="text-error">*</span>
             </label>
             <textarea
               id="review-text"
@@ -135,7 +135,7 @@ export default function ReviewModal({ isOpen, onClose, product, onReviewSubmitte
               onChange={(e) => setReviewText(e.target.value)}
               placeholder="What did you like or dislike about this product? How was the quality?"
               maxLength={2000}
-              className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="input-field mt-1.5 p-3 resize-none"
             />
             <div className="mt-1 flex justify-between text-[11px] text-muted">
               <span>Min. 5 characters</span>
@@ -144,7 +144,7 @@ export default function ReviewModal({ isOpen, onClose, product, onReviewSubmitte
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600">
+            <div className="rounded-lg bg-error/15 border border-error/30 p-2.5 text-xs text-error">
               {error}
             </div>
           )}
@@ -154,7 +154,7 @@ export default function ReviewModal({ isOpen, onClose, product, onReviewSubmitte
               Cancel
             </Button>
             <Button variant="primary" type="submit" disabled={isSubmitting}>
-              <Send className="h-4 w-4" /> {isSubmitting ? 'Publishing...' : 'Submit Review'}
+              <Send className="h-4 w-4" /> {isSubmitting ? 'Publishing...' : 'Submit review'}
             </Button>
           </div>
         </form>

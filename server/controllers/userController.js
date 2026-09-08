@@ -14,3 +14,13 @@ export const updateMe = asyncHandler(async (req, res) => {
     data: { user: updated },
   });
 });
+
+export const getRecommendations = asyncHandler(async (req, res) => {
+  const topK = parseInt(req.query.topK, 10) || 6;
+  const recommendations = await UserService.getRecommendations(req.user.id, topK);
+  res.status(200).json({
+    success: true,
+    data: { recommendations },
+  });
+});
+

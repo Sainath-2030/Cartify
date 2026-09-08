@@ -27,7 +27,6 @@ export default function ReviewSection({ product, onRefresh }) {
       showToast('Please log in to write a review.', 'error');
       return;
     }
-    // Check if user already reviewed
     const hasReviewed = reviews.some((r) => r.user_id && Number(r.user_id) === Number(user?.id));
     if (hasReviewed) {
       showToast('You have already submitted a review for this product.', 'info');
@@ -58,7 +57,7 @@ export default function ReviewSection({ product, onRefresh }) {
           <div className="text-center md:text-left">
             <p className="text-4xl font-bold text-ink">{Number(rating).toFixed(1)}</p>
             <RatingStars rating={Number(rating)} size="lg" />
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-xs text-muted">
               {reviewCount.toLocaleString('en-IN')} {reviewCount === 1 ? 'rating' : 'ratings'}
             </p>
           </div>
@@ -70,12 +69,12 @@ export default function ReviewSection({ product, onRefresh }) {
               return (
                 <div key={star} className="flex items-center gap-2 text-xs text-muted">
                   <span className="flex w-8 items-center gap-0.5">
-                    {star} <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    {star} <Star className="h-3 w-3 fill-accent text-accent" />
                   </span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-card-elevated border border-border-subtle">
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="w-8 text-right">{count}</span>
+                  <span className="w-8 text-right text-ink-subtle">{count}</span>
                 </div>
               );
             })}
@@ -83,13 +82,13 @@ export default function ReviewSection({ product, onRefresh }) {
 
           <div className="mt-2">
             <Button variant="secondary" onClick={handleWriteReviewClick} className="w-full text-xs">
-              <MessageSquarePlus className="h-4 w-4" /> Write a Review
+              <MessageSquarePlus className="h-4 w-4" /> Write a review
             </Button>
           </div>
         </div>
 
         {/* Right: Review List */}
-        <div className="flex flex-col divide-y divide-slate-200">
+        <div className="flex flex-col divide-y divide-border-subtle">
           {reviews.length === 0 ? (
             <div className="py-6 text-center">
               <EmptyState
@@ -97,7 +96,7 @@ export default function ReviewSection({ product, onRefresh }) {
                 description="Be the first to share your thoughts on this product."
               />
               <Button variant="primary" onClick={handleWriteReviewClick} className="mt-4 text-xs">
-                Write the First Review
+                Write the first review
               </Button>
             </div>
           ) : (
@@ -107,13 +106,13 @@ export default function ReviewSection({ product, onRefresh }) {
 
               return (
                 <div key={review.id} className="flex gap-3 py-4 first:pt-0">
-                  <UserCircle2 className="h-9 w-9 shrink-0 text-slate-300" />
+                  <UserCircle2 className="h-8 w-8 shrink-0 text-muted" />
                   <div className="flex flex-1 flex-col gap-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold text-ink">{review.reviewer_name}</span>
                         {isAuthor && (
-                          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                          <span className="rounded-lg bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent">
                             You
                           </span>
                         )}
@@ -125,7 +124,7 @@ export default function ReviewSection({ product, onRefresh }) {
                           onClick={() => handleDeleteReview(review.id)}
                           disabled={isDeleting === review.id}
                           aria-label="Delete review"
-                          className="text-xs text-muted hover:text-red-600"
+                          className="text-xs text-muted hover:text-error transition-colors"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -134,7 +133,7 @@ export default function ReviewSection({ product, onRefresh }) {
 
                     <RatingStars rating={review.rating} />
                     {review.review_text && (
-                      <p className="mt-1 text-sm text-ink/80">{review.review_text}</p>
+                      <p className="mt-1 text-xs sm:text-sm text-ink-light leading-relaxed">{review.review_text}</p>
                     )}
                   </div>
                 </div>

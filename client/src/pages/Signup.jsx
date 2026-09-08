@@ -82,16 +82,18 @@ export default function Signup() {
   };
 
   return (
-    <div className="container-page flex items-center justify-center py-16">
-      <div className="card w-full max-w-2xl p-8">
+    <div className="container-page flex items-center justify-center py-16 bg-surface">
+      <div className="card w-full max-w-2xl p-8 border border-border-subtle bg-card rounded-2xl">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <ShoppingBag className="h-8 w-8 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-ink">
+            <ShoppingBag className="h-5 w-5 stroke-[2.5]" />
+          </div>
           <h1 className="text-2xl font-bold text-ink">Create your account</h1>
-          <p className="text-sm text-muted">Join Cartify and shop smarter, not harder.</p>
+          <p className="text-xs text-muted">Join Cartify and shop smarter, not harder.</p>
         </div>
 
         {formError && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>
+          <div className="mb-4 rounded-lg bg-error/15 border border-error/30 px-3.5 py-2.5 text-xs text-error">{formError}</div>
         )}
 
         <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
@@ -169,15 +171,15 @@ export default function Signup() {
           </FormField>
 
           <div className="sm:col-span-2">
-            <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
+            <Button type="submit" variant="primary" isLoading={isSubmitting} className="mt-2 w-full">
               Create Account
             </Button>
           </div>
         </form>
 
-        <p className="mt-6 text-center text-sm text-muted">
+        <p className="mt-6 text-center text-xs text-muted">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-primary hover:underline">
+          <Link to="/login" className="font-semibold text-accent hover:underline">
             Log in
           </Link>
         </p>
