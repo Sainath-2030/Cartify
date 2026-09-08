@@ -117,36 +117,6 @@ export default function Login() {
           </Button>
         </form>
 
-        <div className="mt-6 border-t border-border-subtle pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted text-center mb-2.5">
-            Quick Demo Accounts
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setForm({ email: 'shopper@cartify.com', password: 'ShopperPassword123!' });
-                setErrors({});
-              }}
-              className="flex flex-col items-start rounded-xl border border-border-subtle bg-card-elevated p-2.5 text-left transition hover:border-accent hover:bg-surface"
-            >
-              <span className="text-xs font-bold text-ink">Demo Shopper</span>
-              <span className="text-[10px] text-muted">shopper@cartify.com</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setForm({ email: 'admin@cartify.com', password: 'AdminPassword123!' });
-                setErrors({});
-              }}
-              className="flex flex-col items-start rounded-xl border border-border-subtle bg-card-elevated p-2.5 text-left transition hover:border-accent hover:bg-surface"
-            >
-              <span className="text-xs font-bold text-ink">System Admin</span>
-              <span className="text-[10px] text-muted">admin@cartify.com</span>
-            </button>
-          </div>
-        </div>
-
         <p className="mt-6 text-center text-xs text-muted">
           Don't have an account?{' '}
           <Link to="/signup" className="font-semibold text-accent hover:underline">
