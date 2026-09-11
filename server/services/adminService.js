@@ -310,35 +310,10 @@ export const AdminService = {
   },
 
   // Generates visual similarity recommendations using CNN ResNet18 embeddings
-  async getCnnVisualSimilarities({ productId = 14592, topK = 6 }) {
+  async getCnnVisualSimilarities({ productId = 3129, topK = 6, categoryId = null, allCategories = false }) {
     const mlDir = getMlDir();
     const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
     const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
-
-    const tryPython = () =>
-      new Promise((resolve, reject) => {
-        execFile(
-          pythonExe,
-          ['-m', 'cnn.similarity', '--product', String(productId), '--top_k', String(topK), '--json'],
-          { cwd: mlDir, timeout: 5000 },
-          (error, stdout, stderr) => {
-            if (error) return reject(error);
-            try {
-              const parsed = JSON.parse(stdout.trim());
-              resolve(parsed);
-            } catch (e) {
-              reject(e);
-            }
-          }
-        );
-      });
-
-    let rawSimilarities = [];
-    try {
-      rawSimilarities = await tryPython();
-    } catch (err) {
-      console.warn('CNN python similarity script warning:', err.message);
-    }
 
     // Fetch target product details
     let targetProduct = null;
@@ -363,6 +338,39 @@ export const AdminService = {
         categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
         categoryName: p.category_name || '',
       };
+    }
+
+    const effectiveCatId = categoryId || targetProduct?.categoryId || null;
+    const cliArgs = ['-m', 'cnn.similarity', '--product', String(productId), '--top_k', String(topK), '--json'];
+    if (allCategories) {
+      cliArgs.push('--all_categories');
+    } else if (effectiveCatId) {
+      cliArgs.push('--category', String(effectiveCatId));
+    }
+
+    const tryPython = () =>
+      new Promise((resolve, reject) => {
+        execFile(
+          pythonExe,
+          cliArgs,
+          { cwd: mlDir, timeout: 5000 },
+          (error, stdout, stderr) => {
+            if (error) return reject(error);
+            try {
+              const parsed = JSON.parse(stdout.trim());
+              resolve(parsed);
+            } catch (e) {
+              reject(e);
+            }
+          }
+        );
+      });
+
+    let rawSimilarities = [];
+    try {
+      rawSimilarities = await tryPython();
+    } catch (err) {
+      console.warn('CNN python similarity script warning:', err.message);
     }
 
     let similarProducts = [];

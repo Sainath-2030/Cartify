@@ -89,9 +89,11 @@ export const getNcfAffinityMatrix = asyncHandler(async (req, res) => {
 
 // GET /api/admin/models/visual-similarity
 export const getCnnVisualSimilarities = asyncHandler(async (req, res) => {
-  const productId = parseInt(req.query.productId, 10) || 14592;
+  const productId = parseInt(req.query.productId, 10) || 3129;
   const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 6));
-  const result = await AdminService.getCnnVisualSimilarities({ productId, topK });
+  const categoryId = req.query.categoryId ? parseInt(req.query.categoryId, 10) : null;
+  const allCategories = req.query.allCategories === 'true';
+  const result = await AdminService.getCnnVisualSimilarities({ productId, topK, categoryId, allCategories });
   res.status(200).json({ success: true, data: result });
 });
 

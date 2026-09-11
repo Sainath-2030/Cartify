@@ -21,8 +21,11 @@ export const adminService = {
     return res.data;
   },
 
-  getCnnVisualSimilarities: async (productId = 14592, topK = 6) => {
-    const res = await api.get(`/admin/models/visual-similarity?productId=${productId}&topK=${topK}`);
+  getCnnVisualSimilarities: async (productId = 3129, topK = 6, categoryId = null, allCategories = false) => {
+    let url = `/admin/models/visual-similarity?productId=${productId}&topK=${topK}`;
+    if (categoryId) url += `&categoryId=${categoryId}`;
+    if (allCategories) url += `&allCategories=true`;
+    const res = await api.get(url);
     return res.data;
   },
 

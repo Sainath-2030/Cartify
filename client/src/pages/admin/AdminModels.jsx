@@ -43,24 +43,42 @@ export default function AdminModels() {
   const [simResult, setSimResult] = useState(null);
 
   // CNN Visual Similarity Simulator State
-  const [cnnProductId, setCnnProductId] = useState(14592);
+  const [cnnProductId, setCnnProductId] = useState(3129);
   const [cnnTopK, setCnnTopK] = useState(4);
   const [cnnLoading, setCnnLoading] = useState(false);
   const [cnnResult, setCnnResult] = useState(null);
+  const [enforceSameCategory, setEnforceSameCategory] = useState(true);
 
   // Retraining State
   const [retraining, setRetraining] = useState(false);
   const [retrainTarget, setRetrainTarget] = useState('all');
 
-  // Sample verified product IDs for quick CNN similarity testing
+  // Sample verified product IDs accurately mapped to real categories
   const sampleProducts = [
-    { id: 14592, name: 'Sample Fashion / Apparel' },
-    { id: 6214, name: 'Sample Electronics' },
-    { id: 13817, name: 'Sample Home & Kitchen' },
-    { id: 14516, name: 'Sample Beauty & Care' },
-    { id: 16638, name: 'Sample Sports Item' },
-    { id: 107, name: 'Sample Grocery Item' },
+    { id: 3129, name: 'CLAVIER Neo Wired Earphones', category: 'Electronics', catId: 1 },
+    { id: 50, name: "GRECIILOOKS Men's Casual Shirt", category: 'Fashion', catId: 2 },
+    { id: 14592, name: 'Frizty Cervical Contour Memory Foam Pillow', category: 'Home & Kitchen', catId: 3 },
+    { id: 6214, name: 'LoveChild Masaba Matte Liquid Lipstick', category: 'Beauty', catId: 4 },
+    { id: 11578, name: 'Yonex Badminton Sports T-Shirt', category: 'Sports', catId: 5 },
+    { id: 16638, name: 'Organic California Almonds 750g', category: 'Grocery', catId: 6 },
+    { id: 17877, name: 'DOC Razer Sports Sneakers', category: 'Gaming', catId: 7 },
+    { id: 17925, name: 'Designing Data-Intensive Applications', category: 'Books', catId: 8 },
   ];
+
+  const PERSONA_NAMES = [
+    'Tech & Gaming Enthusiast',
+    'Fashion & Beauty Stylist',
+    'Fitness & Health Seeker',
+    'Home & Gourmet Chef',
+    'Bookworm & Knowledge Seeker',
+    'Lifestyle & Trend Explorer',
+  ];
+
+  const getUserLabel = (uid) => {
+    if (uid === 1) return `User #1 (Tech & Gaming - Admin)`;
+    const pName = PERSONA_NAMES[(uid - 1) % PERSONA_NAMES.length];
+    return `User #${uid} (${pName})`;
+  };
 
   // Load initial diagnostics
   const fetchData = async () => {
@@ -80,7 +98,7 @@ export default function AdminModels() {
 
       // Auto-run baseline inferences
       runRecommendation(1, 4);
-      runCnnSimilarity(14592, 4);
+      runCnnSimilarity(3129, 4, true);
     } catch (err) {
       showToast(err.message || 'Failed to load model diagnostics.', 'error');
     } finally {
@@ -104,10 +122,10 @@ export default function AdminModels() {
     }
   };
 
-  const runCnnSimilarity = async (productId, topK) => {
+  const runCnnSimilarity = async (productId, topK, sameCategory = enforceSameCategory) => {
     try {
       setCnnLoading(true);
-      const res = await adminService.getCnnVisualSimilarities(productId, topK);
+      const res = await adminService.getCnnVisualSimilarities(productId, topK, null, !sameCategory);
       setCnnResult(res);
     } catch (err) {
       showToast(err.message || 'CNN visual similarity search failed.', 'error');
@@ -323,11 +341,11 @@ export default function AdminModels() {
                     setCnnProductId(pid);
                     runCnnSimilarity(pid, cnnTopK);
                   }}
-                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-emerald-500 focus:outline-none"
+                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-emerald-500 focus:outline-none max-w-[280px] truncate"
                 >
                   {sampleProducts.map((p) => (
                     <option key={p.id} value={p.id}>
-                      #{p.id} - {p.name}
+                      #{p.id} - {p.name} ({p.category})
                     </option>
                   ))}
                   {cnn.sampleProductIds &&
@@ -336,7 +354,7 @@ export default function AdminModels() {
                       .slice(0, 5)
                       .map((id) => (
                         <option key={id} value={id}>
-                          Product #{id}
+                          Product #{id} (Catalogue Verified)
                         </option>
                       ))}
                 </select>
@@ -358,6 +376,20 @@ export default function AdminModels() {
                   <option value={6}>Top 6</option>
                 </select>
               </div>
+
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-muted hover:text-ink">
+                <input
+                  type="checkbox"
+                  checked={enforceSameCategory}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setEnforceSameCategory(val);
+                    runCnnSimilarity(cnnProductId, cnnTopK, val);
+                  }}
+                  className="rounded border-border text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                />
+                <span>Same Category Only</span>
+              </label>
 
               <button
                 onClick={() => runCnnSimilarity(cnnProductId, cnnTopK)}
@@ -560,12 +592,16 @@ export default function AdminModels() {
                 <label className="text-xs font-semibold text-muted">Target User:</label>
                 <select
                   value={simUserId}
-                  onChange={(e) => setSimUserId(Number(e.target.value))}
-                  className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none"
+                  onChange={(e) => {
+                    const uid = Number(e.target.value);
+                    setSimUserId(uid);
+                    runRecommendation(uid, simTopK);
+                  }}
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none max-w-[280px] truncate"
                 >
-                  {(ncf.userIds || [1, 3]).map((uid) => (
+                  {(ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
                     <option key={uid} value={uid}>
-                      User #{uid} {uid === 1 ? '(Admin / Shopper)' : `(Test User #${uid})`}
+                      {getUserLabel(uid)}
                     </option>
                   ))}
                 </select>
@@ -575,7 +611,11 @@ export default function AdminModels() {
                 <label className="text-xs font-semibold text-muted">Top K:</label>
                 <select
                   value={simTopK}
-                  onChange={(e) => setSimTopK(Number(e.target.value))}
+                  onChange={(e) => {
+                    const k = Number(e.target.value);
+                    setSimTopK(k);
+                    runRecommendation(simUserId, k);
+                  }}
                   className="rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none"
                 >
                   <option value={2}>Top 2</option>
@@ -593,6 +633,19 @@ export default function AdminModels() {
                 {simLoading ? 'Predicting...' : 'Run Inference'}
               </button>
             </div>
+          </div>
+
+          {/* Active Profile Persona Banner */}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/20 bg-accent/10 px-3.5 py-2">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-ink">Selected Profile:</span>
+              <span className="rounded bg-accent/20 px-2 py-0.5 font-bold text-ink">
+                {getUserLabel(simUserId)}
+              </span>
+            </div>
+            <span className="text-[11px] font-semibold text-muted">
+              50 Trained Users • Personalized Collaborative Latent Space
+            </span>
           </div>
 
           {/* Results Showcase */}

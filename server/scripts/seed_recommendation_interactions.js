@@ -1,5 +1,12 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env');
+dotenv.config({ path: envPath });
+
 import bcrypt from 'bcrypt';
-import { pool } from '../config/db.js';
+const { pool } = await import('../config/db.js');
 
 const SALT_ROUNDS = 10;
 
@@ -60,7 +67,7 @@ async function seedData() {
 
     const defaultPasswordHash = await bcrypt.hash('ShopperPassword123!', SALT_ROUNDS);
 
-    const targetUserCount = 35;
+    const targetUserCount = 50;
     const usersNeeded = targetUserCount - userIds.length;
 
     if (usersNeeded > 0) {

@@ -21,7 +21,7 @@ def load_index():
     return normalized, id_map
 
 
-def top_k_similar(product_id, k: int = 10):
+def top_k_similar(product_id, k: int = 10, category_id = None):
     product_id_str = str(product_id)
     normalized, id_map = load_index()
     id_map_str = [str(x) for x in id_map]
@@ -33,9 +33,39 @@ def top_k_similar(product_id, k: int = 10):
     scores = normalized @ query_vec
     ranked = np.argsort(-scores)
 
+    # Determine allowed category products to prevent cross-category pollution
+    allowed_ids = None
+    if category_id != "all":
+        try:
+            import sys
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+            from common.db import get_db_connection
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            target_cat = category_id
+            if target_cat is None:
+                cur.execute("SELECT category_id FROM products WHERE id = %s", (int(product_id_str),))
+                row = cur.fetchone()
+                if row and row[0]:
+                    target_cat = row[0]
+
+            if target_cat is not None:
+                cur.execute("SELECT id FROM products WHERE category_id = %s", (int(target_cat),))
+                allowed_ids = set(str(r[0]) for r in cur.fetchall())
+
+            cur.close()
+            conn.close()
+        except Exception as e:
+            # If DB is not reachable, proceed without category filter
+            pass
+
     results = []
     for i in ranked:
-        if id_map_str[i] == product_id_str:
+        pid_str = id_map_str[i]
+        if pid_str == product_id_str:
+            continue
+        if allowed_ids is not None and pid_str not in allowed_ids:
             continue
         results.append({
             "product_id": int(id_map[i]) if str(id_map[i]).isdigit() else id_map[i],
@@ -92,11 +122,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CNN Image Similarity and Inspection")
     parser.add_argument("--product", type=str, help="Product ID to find visual similarities for")
     parser.add_argument("--top_k", type=int, default=5, help="Number of visual neighbors to return")
+    parser.add_argument("--category", type=str, default=None, help="Filter by specific category ID or 'all'")
+    parser.add_argument("--all_categories", action="store_true", help="Do not restrict to same category")
     parser.add_argument("--matrix_sample", action="store_true", help="Return sample embedding vectors")
     parser.add_argument("--inspect", action="store_true", help="Inspect CNN embedding matrix and status")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()
+
+    cat_filter = "all" if args.all_categories else args.category
 
     if args.matrix_sample:
         samples = get_matrix_sample(n=args.top_k or 6)
@@ -112,7 +146,7 @@ if __name__ == "__main__":
             print("CNN Model Status:", status)
     elif args.product:
         try:
-            results = top_k_similar(str(args.product), k=args.top_k)
+            results = top_k_similar(str(args.product), k=args.top_k, category_id=cat_filter)
             if args.json:
                 print(json.dumps(results))
             else:
@@ -130,5 +164,5 @@ if __name__ == "__main__":
             for r in top_k_similar(pid):
                 print(r)
         else:
-            print("Usage: python similarity.py --product <product_id> [--top_k 5] [--json]")
+            print("Usage: python similarity.py --product <product_id> [--top_k 5] [--category <id>] [--json]")
 
