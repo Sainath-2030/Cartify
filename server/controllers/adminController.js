@@ -87,6 +87,21 @@ export const getNcfAffinityMatrix = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: result });
 });
 
+// GET /api/admin/models/visual-similarity
+export const getCnnVisualSimilarities = asyncHandler(async (req, res) => {
+  const productId = parseInt(req.query.productId, 10) || 14592;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 6));
+  const result = await AdminService.getCnnVisualSimilarities({ productId, topK });
+  res.status(200).json({ success: true, data: result });
+});
+
+// GET /api/admin/models/cnn-matrix
+export const getCnnEmbeddingMatrixSample = asyncHandler(async (req, res) => {
+  const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 6));
+  const result = await AdminService.getCnnEmbeddingMatrixSample(limit);
+  res.status(200).json({ success: true, data: result });
+});
+
 // GET /api/admin/audit-logs
 export const getAuditLogs = asyncHandler(async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));

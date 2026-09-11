@@ -6,6 +6,8 @@ import {
   getModelStatus,
   getNcfRecommendations,
   getNcfAffinityMatrix,
+  getCnnVisualSimilarities,
+  getCnnEmbeddingMatrixSample,
   requestRetraining,
   getBusinessRules,
   updateBusinessRules,
@@ -24,6 +26,8 @@ router.get('/models/metrics', getModelMetrics);
 router.get('/models/status', getModelStatus);
 router.get('/models/recommendations', getNcfRecommendations);
 router.get('/models/affinity-matrix', getNcfAffinityMatrix);
+router.get('/models/visual-similarity', getCnnVisualSimilarities);
+router.get('/models/cnn-matrix', getCnnEmbeddingMatrixSample);
 router.post('/models/retrain', requestRetraining);
 router.get('/business-rules', getBusinessRules);
 router.patch('/business-rules', updateBusinessRules);

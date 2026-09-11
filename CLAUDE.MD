@@ -1241,19 +1241,28 @@ Never randomly shuffle sequences before sequence modeling.
 
 ---
 
-# 26. CNN — PLANNED
+# 26. CNN — IMPLEMENTED
 
-CNN will use product images/content.
+CNN uses product images and visual content.
 
 Conceptually:
 
 Product Image
       ↓
-CNN
+CNN (ResNet18 Backbone + Trainable Projection Head)
       ↓
-Image/Product Embedding
+256-dim Image/Product Embedding (L2-Normalized)
 
-The frontend product image architecture should therefore remain independent from the source dataset.
+Implementation Details:
+- Backbone: Pretrained ResNet18 (`torchvision.models.resnet18(weights=IMAGENET1K_V1)`), 512-dim pooled features.
+- Projection Head: `Linear(512, 256) -> ReLU() -> LayerNorm(256)` trained with category semantic alignment supervision.
+- Embeddings: 256-dimensional unit-norm vectors saved to `ml-service/artifacts/cnn_embeddings.npy`.
+- Product Mapping: ID mapping file saved to `ml-service/artifacts/cnn_id_map.json`.
+- Checkpoint: Full model checkpoint saved to `ml-service/artifacts/cnn_model.pt`.
+- Similarity CLI: `python -m cnn.similarity --product <id> --top_k <k> --json` and `--inspect` / `--matrix_sample`.
+- Admin UI Integration: Integrated into `/admin/models` with live visual similarity simulator and latent space vector inspector.
+
+The frontend product image architecture remains independent from the source dataset.
 
 ---
 
@@ -1720,16 +1729,20 @@ STATUS: COMPLETE & DEPLOYED (Training & Top-K Inference Verified)
   - `ml-service/artifacts/ncf_id_maps.json`
 - Top-K recommendation CLI and affinity inspector (`python -m ncf.recommend`) fully functional and integrated with `/admin/models`.
 
-Section 4 — Verified Dataset Pipeline & Gate
-STATUS: COMPLETE — 17,931 verified authentic Amazon India items stratified across 8 standard categories (Electronics, Fashion, Home & Kitchen, Beauty, Sports, Grocery, Gaming, Books) with verified image URLs and full-text search tsvectors.
+Section 6 — CNN (Product Image Feature Extractor)
+STATUS: COMPLETE — Pretrained ResNet18 backbone with trainable projection head producing 256-dim embeddings, verified on 999 cached images. Artifacts saved:
+- `ml-service/artifacts/cnn_model.pt`
+- `ml-service/artifacts/cnn_embeddings.npy`
+- `ml-service/artifacts/cnn_id_map.json`
+Similarity CLI and inspect endpoints operational, and integrated into `/admin/models` with live visual similarity simulator and latent space vector preview.
 
 ---
 
 # 43. CURRENT NEXT STEP
 
-Section 6 — CNN (Product Image Feature Extractor)
+Section 25 / 7 — GRU (Sequential Session-Based Recommender) or Section 27 / 8 — Autoencoder (Latent Interaction Reduction)
 STATUS: READY TO PROCEED
-- Implement CNN feature extractor with pretrained ResNet backbone to extract 256-dimensional image embeddings for content-based similarity and cold-start discovery (`ml-service/cnn/`).
+- Implement GRU session sequence modeling or Autoencoder interaction dimensionality reduction per Section 43 multi-model roadmap.
 
 ---
 

@@ -21,6 +21,16 @@ export const adminService = {
     return res.data;
   },
 
+  getCnnVisualSimilarities: async (productId = 14592, topK = 6) => {
+    const res = await api.get(`/admin/models/visual-similarity?productId=${productId}&topK=${topK}`);
+    return res.data;
+  },
+
+  getCnnEmbeddingMatrixSample: async (limit = 6) => {
+    const res = await api.get(`/admin/models/cnn-matrix?limit=${limit}`);
+    return res.data;
+  },
+
   requestRetraining: async (payload = {}) => {
     return api.post('/admin/models/retrain', payload);
   },
