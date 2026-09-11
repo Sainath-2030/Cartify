@@ -17,7 +17,14 @@ const VALID_ALL_TYPES = [
 export const InteractionService = {
   // Records client-reported telemetry (VIEW, SEARCH)
   async recordClientInteraction({ user, productId, interactionType, sessionId, metadata = {} }) {
-    if (!['VIEW', 'SEARCH'].includes(interactionType)) {
+    const rawType = String(interactionType || '').toUpperCase().trim();
+    const normType = ['PRODUCT_VIEW', 'PRODUCT_CLICK', 'CLICK', 'VIEW'].includes(rawType)
+      ? 'VIEW'
+      : ['CATEGORY_VIEW', 'SEARCH'].includes(rawType)
+      ? 'SEARCH'
+      : rawType;
+
+    if (!['VIEW', 'SEARCH'].includes(normType)) {
       throw new AppError('Invalid client interaction type.', 422);
     }
 
@@ -36,7 +43,7 @@ export const InteractionService = {
     const row = await InteractionModel.record({
       userId,
       productId: verifiedProductId,
-      interactionType,
+      interactionType: normType,
       sessionId: finalSessionId,
       metadata,
     });

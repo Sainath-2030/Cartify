@@ -2,24 +2,24 @@ import { CheckCircle2, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
 const STYLES = {
   success: {
-    border: 'border-emerald-500/30 bg-white text-emerald-950',
+    border: 'border-success/30 bg-card text-ink',
     icon: CheckCircle2,
-    iconColor: 'text-emerald-600',
+    iconColor: 'text-success',
   },
   error: {
-    border: 'border-red-500/30 bg-white text-red-950',
+    border: 'border-error/30 bg-card text-ink',
     icon: XCircle,
-    iconColor: 'text-red-600',
+    iconColor: 'text-error',
   },
   warning: {
-    border: 'border-amber-500/30 bg-white text-amber-950',
+    border: 'border-warning/30 bg-card text-ink',
     icon: AlertCircle,
-    iconColor: 'text-amber-600',
+    iconColor: 'text-warning',
   },
   info: {
-    border: 'border-sky-500/30 bg-white text-sky-950',
+    border: 'border-accent/30 bg-card text-ink',
     icon: Info,
-    iconColor: 'text-sky-600',
+    iconColor: 'text-accent',
   },
 };
 
@@ -30,18 +30,18 @@ export default function Toast({ message, type = 'success', onClose }) {
   return (
     <div
       role="status"
-      className={`rounded-2xl border ${currentStyle.border} flex w-88 max-w-sm items-start gap-3 p-4 shadow-xl transition-all duration-200`}
+      className={`rounded-2xl border ${currentStyle.border} flex w-88 max-w-sm items-start gap-3 p-3.5 shadow-dropdown transition-all duration-200`}
     >
-      <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${currentStyle.iconColor}`} />
+      <Icon className={`h-4 w-4 shrink-0 mt-0.5 ${currentStyle.iconColor}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold leading-snug text-zinc-900">{message}</p>
+        <p className="text-xs font-medium leading-snug text-ink">{message}</p>
       </div>
       <button
         onClick={onClose}
-        className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+        className="rounded-lg p-1 text-muted hover:bg-card-elevated hover:text-ink transition-colors"
         aria-label="Dismiss notification"
       >
-        <X className="h-4 w-4" />
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );

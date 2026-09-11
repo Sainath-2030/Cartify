@@ -10,12 +10,12 @@ export default function RatingStars({ rating = 0, size = 'sm' }) {
     <div className="flex items-center gap-0.5" role="img" aria-label={`Rated ${rating} out of 5`}>
       {Array.from({ length: 5 }).map((_, i) => {
         if (i < full) {
-          return <Star key={i} className={`${dims} fill-amber-400 text-amber-400`} />;
+          return <Star key={i} className={`${dims} fill-accent text-accent`} />;
         }
         if (i === full && hasHalf) {
-          return <StarHalf key={i} className={`${dims} fill-amber-400 text-amber-400`} />;
+          return <StarHalf key={i} className={`${dims} fill-accent text-accent`} />;
         }
-        return <Star key={i} className={`${dims} text-slate-300`} />;
+        return <Star key={i} className={`${dims} text-border-subtle`} />;
       })}
     </div>
   );

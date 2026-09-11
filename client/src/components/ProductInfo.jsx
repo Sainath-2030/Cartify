@@ -35,9 +35,6 @@ export default function ProductInfo({ product }) {
     setIsAdding(true);
     const res = await addItem(productId, quantity, { openDrawer: true });
     setIsAdding(false);
-    if (res.success) {
-      showToast('Proceeding to checkout is coming in Section 4. Item added to cart!', 'info');
-    }
   };
 
   const handleToggleWishlist = async () => {
@@ -47,60 +44,64 @@ export default function ProductInfo({ product }) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wide text-primary">{brand}</p>
-        <h1 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">{name}</h1>
+        {brand && (
+          <p className="text-xs font-medium text-muted">{brand}</p>
+        )}
+        <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-ink leading-tight">{name}</h1>
       </div>
 
       <div className="flex items-center gap-2">
         <RatingStars rating={Number(rating)} size="md" />
-        <span className="text-sm font-medium text-ink">{Number(rating).toFixed(1)}</span>
-        <span className="text-sm text-muted">({reviewCount?.toLocaleString('en-IN') || 0} reviews)</span>
+        <span className="text-sm font-semibold text-ink">{Number(rating).toFixed(1)}</span>
+        <span className="text-xs text-muted">({reviewCount?.toLocaleString('en-IN') || 0} reviews)</span>
       </div>
 
       <div className="flex items-baseline gap-3">
         <span className="text-3xl font-bold text-ink">{formatPrice(finalPrice)}</span>
         {isDiscounted && (
           <>
-            <span className="text-lg text-muted line-through">{formatPrice(price)}</span>
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+            <span className="text-base text-ink-subtle line-through">{formatPrice(price)}</span>
+            <span className="rounded-lg bg-accent px-2 py-0.5 text-xs font-bold text-accent-ink">
               {Math.round(discount)}% OFF
             </span>
           </>
         )}
       </div>
 
-      <p className={`text-sm font-medium ${inStock ? 'text-emerald-600' : 'text-red-600'}`}>
+      <p className={`text-xs font-semibold ${inStock ? 'text-success' : 'text-error'}`}>
         {inStock ? `In stock (${stock} available)` : 'Out of stock'}
       </p>
 
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <Store className="h-4 w-4" /> Sold by <span className="font-medium text-ink">{seller}</span>
-      </div>
+      {seller && (
+        <div className="flex items-center gap-2 text-xs text-muted">
+          <Store className="h-4 w-4 text-muted" /> Sold by <span className="font-medium text-ink">{seller}</span>
+        </div>
+      )}
 
       {inStock && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-ink">Quantity</span>
-          <div className="flex items-center rounded-lg border border-slate-300">
+        <div className="flex items-center gap-3 pt-1">
+          <span className="text-xs font-medium text-muted">Quantity</span>
+          <div className="flex items-center rounded-lg border border-border-subtle bg-card-elevated">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               aria-label="Decrease quantity"
-              className="p-2 text-ink/70 hover:bg-slate-50"
+              className="p-2 text-muted hover:text-ink"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+            <span className="w-8 text-center text-xs font-semibold text-ink">{quantity}</span>
             <button
               onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
               aria-label="Increase quantity"
-              className="p-2 text-ink/70 hover:bg-slate-50"
+              className="p-2 text-muted hover:text-ink"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       )}
 
-      <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+      <div className="flex flex-col gap-3 pt-3 sm:flex-row">
         <Button
           variant="primary"
           disabled={!inStock || isAdding || isCartMutating}
@@ -110,27 +111,27 @@ export default function ProductInfo({ product }) {
           <ShoppingCart className="h-4 w-4" /> {isAdding ? 'Adding...' : 'Add to Cart'}
         </Button>
         <Button
-          variant={wishlisted ? 'secondary' : 'secondary'}
+          variant="secondary"
           disabled={isWishlistMutating}
           onClick={handleToggleWishlist}
-          className={`flex-1 ${wishlisted ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' : ''}`}
+          className={`flex-1 ${wishlisted ? 'border-accent text-accent' : ''}`}
         >
-          <Heart className={`h-4 w-4 ${wishlisted ? 'fill-red-600 text-red-600' : ''}`} />
+          <Heart className={`h-4 w-4 ${wishlisted ? 'fill-accent text-accent' : ''}`} />
           {wishlisted ? 'In Wishlist' : 'Add to Wishlist'}
         </Button>
       </div>
 
       <Button
-        variant="ghost"
+        variant="secondary"
         disabled={!inStock || isAdding || isCartMutating}
         onClick={handleBuyNow}
-        className="w-full border border-slate-200"
+        className="w-full"
       >
         Buy Now
       </Button>
 
-      <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-muted">
-        <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+      <div className="mt-2 flex items-center gap-2 rounded-xl border border-border-subtle bg-card p-3 text-xs text-muted">
+        <ShieldCheck className="h-4 w-4 shrink-0 text-accent" />
         <span>Cart items are saved persistently to your account.</span>
       </div>
     </div>

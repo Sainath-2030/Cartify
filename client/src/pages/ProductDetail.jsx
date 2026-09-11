@@ -29,7 +29,7 @@ export default function ProductDetail() {
       const res = await productService.getBySlug(slug);
       setProduct(res.data);
       addRecentlyViewedProduct(res.data);
-      track('product_view', { productId: res.data.id, metadata: { slug } });
+      track('VIEW', { productId: res.data.id, metadata: { slug, categoryId: res.data.category_id } });
     } catch (err) {
       if (err.status === 404) setNotFound(true);
       else setError(err.message || 'Unable to load this product right now.');
@@ -64,18 +64,18 @@ export default function ProductDetail() {
   const TABS = [
     { id: 'description', label: 'Description' },
     { id: 'specifications', label: 'Specifications' },
-    { id: 'seller', label: 'Seller Info' },
-    { id: 'reviews', label: `Reviews (${product.review_count})` },
+    { id: 'seller', label: 'Seller info' },
+    { id: 'reviews', label: `Reviews (${product.review_count || 0})` },
   ];
 
   return (
-    <div className="container-page py-8">
+    <div className="container-page py-8 bg-surface min-h-screen">
       <div className="mb-6 flex items-center gap-1.5 text-xs text-muted">
-        <Link to="/" className="hover:text-primary">Home</Link>
-        <ChevronRight className="h-3 w-3" />
-        <Link to={`/category/${product.category_slug}`} className="hover:text-primary">{product.category_name}</Link>
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-ink line-clamp-1">{product.name}</span>
+        <Link to="/" className="hover:text-ink transition-colors">Home</Link>
+        <ChevronRight className="h-3 w-3 text-ink-subtle" />
+        <Link to={`/category/${product.category_slug}`} className="hover:text-ink transition-colors">{product.category_name}</Link>
+        <ChevronRight className="h-3 w-3 text-ink-subtle" />
+        <span className="text-ink font-medium line-clamp-1">{product.name}</span>
       </div>
 
       <div className="grid gap-10 lg:grid-cols-2">
@@ -83,42 +83,45 @@ export default function ProductDetail() {
         <ProductInfo product={product} />
       </div>
 
-      <div className="mt-14">
-        <div className="flex gap-6 overflow-x-auto border-b border-slate-200">
+      <div className="mt-12">
+        <div className="flex gap-6 overflow-x-auto border-b border-border-subtle">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-ink'
+              className={`relative shrink-0 pb-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id ? 'text-ink' : 'text-muted hover:text-ink'
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
+              )}
             </button>
           ))}
         </div>
 
-        <div className="py-8">
+        <div className="py-6">
           {activeTab === 'description' && (
-            <p className="max-w-3xl text-sm leading-relaxed text-ink/80">{product.description}</p>
+            <p className="max-w-prose text-xs sm:text-sm leading-relaxed text-muted">{product.description}</p>
           )}
 
           {activeTab === 'specifications' && (
-            <dl className="grid max-w-2xl grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+            <dl className="grid max-w-2xl grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
               {Object.entries(product.specifications || {}).map(([key, value]) => (
-                <div key={key} className="flex justify-between border-b border-slate-100 py-2 text-sm">
+                <div key={key} className="flex justify-between border-b border-border-subtle py-2 text-xs">
                   <dt className="text-muted">{key}</dt>
-                  <dd className="font-medium text-ink">{String(value)}</dd>
+                  <dd className="font-semibold text-ink">{String(value)}</dd>
                 </div>
               ))}
             </dl>
           )}
 
           {activeTab === 'seller' && (
-            <div className="max-w-md rounded-xl border border-slate-200 p-5">
+            <div className="max-w-md rounded-2xl border border-border-subtle bg-card p-5">
               <p className="text-sm font-semibold text-ink">{product.seller_name}</p>
-              <p className="mt-1 text-sm text-muted">
-                Ships directly from this seller. Detailed seller ratings and policies will be available in a future section.
+              <p className="mt-1 text-xs text-muted leading-relaxed">
+                Ships directly from verified manufacturer or authorised distributor.
               </p>
             </div>
           )}
@@ -133,8 +136,8 @@ export default function ProductDetail() {
       </div>
 
       {product.relatedProducts?.length > 0 && (
-        <div className="mt-6 border-t border-slate-200 pt-10">
-          <h2 className="mb-5 text-lg font-semibold text-ink">Related Products</h2>
+        <div className="mt-8 border-t border-border-subtle pt-10">
+          <h2 className="mb-5 text-lg font-bold text-ink">Related items</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {product.relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />

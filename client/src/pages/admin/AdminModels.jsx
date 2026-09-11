@@ -214,7 +214,7 @@ export default function AdminModels() {
               <select
                 value={simUserId}
                 onChange={(e) => setSimUserId(Number(e.target.value))}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-sm focus:border-primary focus:outline-none"
+                className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none"
               >
                 {(ncf.userIds || [1, 3]).map((uid) => (
                   <option key={uid} value={uid}>
@@ -229,7 +229,7 @@ export default function AdminModels() {
               <select
                 value={simTopK}
                 onChange={(e) => setSimTopK(Number(e.target.value))}
-                className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink shadow-sm focus:border-primary focus:outline-none"
+                className="rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none"
               >
                 <option value={2}>Top 2</option>
                 <option value={4}>Top 4</option>
@@ -240,7 +240,7 @@ export default function AdminModels() {
             <button
               onClick={() => runRecommendation(simUserId, simTopK)}
               disabled={simLoading}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-bold text-accent-ink transition-all hover:bg-[#cbf730] active:scale-95 disabled:opacity-50"
             >
               <Play className={`h-3 w-3 ${simLoading ? 'animate-spin' : ''}`} />
               {simLoading ? 'Predicting...' : 'Run Inference'}
@@ -252,7 +252,7 @@ export default function AdminModels() {
         {simLoading ? (
           <div className="flex min-h-[220px] items-center justify-center">
             <div className="flex flex-col items-center gap-2">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
               <p className="text-xs font-medium text-muted">Executing neural network forward pass...</p>
             </div>
           </div>
@@ -261,18 +261,18 @@ export default function AdminModels() {
             {simResult.recommendations.map((rec) => (
               <div
                 key={rec.productId}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/80 bg-white p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border-subtle bg-card-elevated p-4 transition-all hover:border-border-strong"
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-bold text-neutral-700">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
                     Rank #{rec.rank}
                   </span>
-                  <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                  <span className="inline-flex items-center rounded-md bg-accent/20 px-2 py-0.5 text-[11px] font-bold text-accent">
                     {rec.affinityPercentage}% Match
                   </span>
                 </div>
 
-                <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-neutral-50 p-2">
+                <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-card-elevated p-2">
                   <img
                     src={rec.mainImage || '/placeholder.png'}
                     alt={rec.name}

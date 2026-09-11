@@ -1,4 +1,10 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Normalize base URL to always strip trailing slashes and guarantee the '/api' suffix
+let rawBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+rawBaseUrl = rawBaseUrl.trim().replace(/\/+$/, '');
+if (!rawBaseUrl.endsWith('/api')) {
+  rawBaseUrl += '/api';
+}
+const API_BASE_URL = rawBaseUrl;
 
 // Thin fetch wrapper: attaches the JWT (if present in localStorage), parses JSON,
 // and normalizes errors into a single shape the UI can rely on.

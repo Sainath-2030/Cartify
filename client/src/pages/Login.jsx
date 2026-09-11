@@ -35,7 +35,7 @@ export default function Login() {
     return Object.values(next).every((v) => !v);
   };
 
-    const onSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
     if (!validate()) return;
@@ -45,9 +45,6 @@ export default function Login() {
       const loggedInUser = await login(form.email, form.password);
       showToast('Welcome back!');
 
-      // Admins/Content Managers land on their dashboard by default; a
-      // deep-link (location.state.from) still takes priority for anyone
-      // who was redirected here from a protected page.
       const roleHome =
         loggedInUser?.role === 'ADMIN' ? '/admin'
         : loggedInUser?.role === 'CONTENT_MANAGER' ? '/content-manager'
@@ -63,16 +60,18 @@ export default function Login() {
   };
 
   return (
-    <div className="container-page flex min-h-[80vh] items-center justify-center py-16">
-      <div className="card w-full max-w-md p-8">
+    <div className="container-page flex min-h-[80vh] items-center justify-center py-16 bg-surface">
+      <div className="card w-full max-w-md p-8 border border-border-subtle bg-card rounded-2xl">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <ShoppingBag className="h-8 w-8 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-ink">
+            <ShoppingBag className="h-5 w-5 stroke-[2.5]" />
+          </div>
           <h1 className="text-2xl font-bold text-ink">Welcome back</h1>
-          <p className="text-sm text-muted">Log in to continue to Cartify.</p>
+          <p className="text-xs text-muted">Log in to continue to Cartify.</p>
         </div>
 
         {formError && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>
+          <div className="mb-4 rounded-lg bg-error/15 border border-error/30 px-3.5 py-2.5 text-xs text-error">{formError}</div>
         )}
 
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -113,14 +112,14 @@ export default function Login() {
             </div>
           </FormField>
 
-          <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
+          <Button type="submit" variant="primary" isLoading={isSubmitting} className="mt-2 w-full">
             Log In
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-muted">
+        <p className="mt-6 text-center text-xs text-muted">
           Don't have an account?{' '}
-          <Link to="/signup" className="font-semibold text-primary hover:underline">
+          <Link to="/signup" className="font-semibold text-accent hover:underline">
             Create one
           </Link>
         </p>

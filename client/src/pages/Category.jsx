@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { SlidersHorizontal, ChevronRight, X, Sparkles, Layers } from 'lucide-react';
+import { SlidersHorizontal, ChevronRight, X, RotateCcw } from 'lucide-react';
 import FilterSidebar from '../components/FilterSidebar.jsx';
 import SortDropdown from '../components/SortDropdown.jsx';
 import ProductGrid from '../components/ProductGrid.jsx';
 import Pagination from '../components/Pagination.jsx';
 import Button from '../components/Button.jsx';
 import Container from '../components/Container.jsx';
-import Badge from '../components/Badge.jsx';
 import ErrorState from '../components/ErrorState.jsx';
 import { categoryService } from '../services/categoryService.js';
 import { productService } from '../services/productService.js';
@@ -112,7 +111,8 @@ export default function Category() {
       <Container size="storefront" className="py-20">
         <ErrorState
           title="Department not found"
-          description="This department taxonomy does not exist or may have been updated."
+          description={`The department "${slug}" does not exist in our standardized catalog.`}
+          onBack={() => window.history.back()}
         />
       </Container>
     );
@@ -123,144 +123,136 @@ export default function Category() {
 
   return (
     <div className="bg-surface min-h-screen pb-20">
-      {/* ------------------------------------------------------------- */}
-      {/* 1. EDITORIAL DEPARTMENT HERO BANNER                           */}
-      {/* ------------------------------------------------------------- */}
-      <div className="border-b border-surface-border bg-surface">
-        {/* Breadcrumb Navigation */}
-        <div className="border-b border-surface-border/80 py-3">
-          <Container size="storefront">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <Link to="/" className="hover:text-primary transition-colors">
-                Home
-              </Link>
-              <ChevronRight className="h-3 w-3 text-zinc-400" />
-              <Link to="/categories" className="hover:text-primary transition-colors">
-                Departments
-              </Link>
-              <ChevronRight className="h-3 w-3 text-zinc-400" />
-              <span className="font-semibold text-zinc-900">{category?.name || 'Department'}</span>
-            </nav>
-          </Container>
-        </div>
+      {/* 1. Category Editorial Header */}
+      <div className="border-b border-border-subtle bg-surface py-6 sm:py-8">
+        <Container size="storefront">
+          <nav aria-label="Breadcrumb" className="mb-3 flex items-center gap-1.5 text-xs text-muted">
+            <Link to="/" className="hover:text-ink transition-colors">
+              Home
+            </Link>
+            <ChevronRight className="h-3 w-3 text-ink-subtle" />
+            <Link to="/categories" className="hover:text-ink transition-colors">
+              Categories
+            </Link>
+            <ChevronRight className="h-3 w-3 text-ink-subtle" />
+            <span className="font-medium text-ink">{category?.name || slug}</span>
+          </nav>
 
-        {/* Hero Banner with Representative Photography */}
-        {category && (
-          <div className="relative overflow-hidden bg-zinc-950 text-white">
-            <div className="absolute inset-0 z-0">
-              <img
-                src={category.image}
-                onError={onImageError}
-                alt={category.name}
-                className="h-full w-full object-cover opacity-25 filter grayscale contrast-125"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
-            </div>
-
-            <Container size="storefront" className="relative z-10 py-12 sm:py-16">
-              <div className="max-w-2xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white border border-white/20">
-                    Standard Department
-                  </span>
-                  {category.product_count !== undefined && (
-                    <span className="text-xs text-zinc-400 font-semibold">
-                      • {Number(category.product_count).toLocaleString('en-IN')} verified items
-                    </span>
-                  )}
-                </div>
-
-                <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
-                  {category.name}
-                </h1>
-
-                <p className="mt-2.5 text-sm sm:text-base text-zinc-300 leading-relaxed max-w-xl">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-display text-ink font-bold leading-tight">
+                {category?.name || 'Department'}
+              </h1>
+              {category?.description && (
+                <p className="mt-1 text-xs sm:text-sm text-muted max-w-xl leading-relaxed">
                   {category.description}
                 </p>
-              </div>
-            </Container>
+              )}
+            </div>
+
+            <div className="text-xs text-muted shrink-0 font-medium">
+              {isLoading ? (
+                <span className="animate-pulse">Loading catalogue…</span>
+              ) : (
+                <span>
+                  Showing <strong className="text-ink">{rangeStart}–{rangeEnd}</strong> of{' '}
+                  <strong className="text-ink">{pagination.total.toLocaleString('en-IN')}</strong> items
+                </span>
+              )}
+            </div>
           </div>
-        )}
+        </Container>
       </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* 2. CONTROLS & ACTIVE FILTER PILLS                             */}
-      {/* ------------------------------------------------------------- */}
+      {/* 2. Controls & Filter Pills */}
       <Container size="storefront" className="pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4">
           <Button
             variant="secondary"
             size="md"
-            className="lg:hidden font-bold shadow-xs hover:border-zinc-400"
+            className="lg:hidden"
             onClick={() => setMobileFiltersOpen(true)}
           >
             <SlidersHorizontal className="h-4 w-4" />
             <span>Filters</span>
             {activeFilterCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-zinc-950 px-2 py-0.5 text-[11px] font-bold text-white">
+              <span className="ml-1 rounded-md bg-accent px-1.5 py-0.2 text-[11px] font-bold text-accent-ink">
                 {activeFilterCount}
               </span>
             )}
           </Button>
 
           {/* Active Filter Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-            {filters.brand && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('brand')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>Brand: {filters.brand}</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {(filters.minPrice || filters.maxPrice) && (
-              <button
-                type="button"
-                onClick={() => {
-                  updateParams({ minPrice: undefined, maxPrice: undefined });
-                }}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>
-                  Price: ₹{filters.minPrice || 0} – ₹{filters.maxPrice || '∞'}
-                </span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {filters.rating && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('rating')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>★ {filters.rating} & up</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {filters.inStock && (
-              <button
-                type="button"
-                onClick={() => removeSingleFilter('inStock')}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-zinc-800 border border-surface-border hover:border-zinc-400 transition-all"
-              >
-                <span>In Stock Only</span>
-                <X className="h-3 w-3 text-zinc-400 group-hover:text-red-600" />
-              </button>
-            )}
-
-            {activeFilterCount > 1 && (
+          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+            {activeFilterCount > 0 && (
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-xs font-bold text-primary hover:underline ml-1"
+                className="inline-flex items-center gap-1 text-xs text-muted hover:text-accent transition-colors mr-1"
               >
-                Reset All
+                <RotateCcw className="h-3 w-3" />
+                <span>Reset filters</span>
               </button>
+            )}
+
+            {filters.brand && (
+              <span className="pill-chip">
+                <span>{filters.brand}</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('brand')}
+                  aria-label="Remove brand filter"
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {(filters.minPrice || filters.maxPrice) && (
+              <span className="pill-chip">
+                <span>
+                  ₹{filters.minPrice || 0} – ₹{filters.maxPrice || '∞'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateParams({ minPrice: undefined, maxPrice: undefined });
+                  }}
+                  aria-label="Remove price filter"
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.rating && (
+              <span className="pill-chip">
+                <span>★ {filters.rating} & up</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('rating')}
+                  aria-label="Remove rating filter"
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.inStock && (
+              <span className="pill-chip">
+                <span>In stock</span>
+                <button
+                  type="button"
+                  onClick={() => removeSingleFilter('inStock')}
+                  aria-label="Remove stock filter"
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
             )}
           </div>
 
@@ -269,23 +261,18 @@ export default function Category() {
           </div>
         </div>
 
-        {/* ------------------------------------------------------------- */}
-        {/* 3. MAIN DEPARTMENT CATALOGUE LAYOUT                           */}
-        {/* ------------------------------------------------------------- */}
-        <div className="flex gap-8 pt-8 items-start">
+        {/* 3. Layout with 260px Filter Sidebar */}
+        <div className="flex gap-8 pt-6 items-start">
           <FilterSidebar
             categories={categories}
             brands={brands}
-            filters={{ ...filters, category: slug }}
-            onChange={(updates) => {
-              const { category: _ignored, ...rest } = updates;
-              updateParams(rest);
-            }}
+            filters={filters}
+            onChange={updateParams}
             onClear={clearFilters}
             activeCount={activeFilterCount}
             isMobileOpen={mobileFiltersOpen}
             onCloseMobile={() => setMobileFiltersOpen(false)}
-            hideCategoryFilter
+            hideCategoryFilter={true}
           />
 
           <div className="flex-1 min-w-0">
@@ -295,8 +282,8 @@ export default function Category() {
               error={error}
               onRetry={fetchData}
               onClearFilters={activeFilterCount > 0 ? clearFilters : undefined}
-              emptyTitle="No products match your filters"
-              emptyDescription={`Try adjusting or clearing your filters to see more ${category?.name || ''} products.`}
+              emptyTitle={`No items found in ${category?.name || slug}`}
+              emptyDescription="Try relaxing your price, brand, or rating filter constraints."
             />
 
             {!isLoading && pagination.totalPages > 1 && (
