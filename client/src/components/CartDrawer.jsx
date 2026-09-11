@@ -164,7 +164,7 @@ export default function CartDrawer() {
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4 py-4 first:pt-0">
                     <Link
-                      to={`/products/${item.slug}`}
+                      to={`/products/${item.slug || item.productId || item.id}`}
                       onClick={closeCart}
                       className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-card-elevated p-1 flex items-center justify-center"
                     >
@@ -185,7 +185,7 @@ export default function CartDrawer() {
                             </p>
                           )}
                           <Link
-                            to={`/products/${item.slug}`}
+                            to={`/products/${item.slug || item.productId || item.id}`}
                             onClick={closeCart}
                             className="line-clamp-1 text-sm font-medium text-ink hover:text-accent transition-colors"
                           >

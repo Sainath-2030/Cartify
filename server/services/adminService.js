@@ -220,7 +220,7 @@ export const AdminService = {
     } catch (pyErr) {
       // 2. Graceful Fallback: Query live catalogue from PostgreSQL with affinity ranking
       const productRes = await query(
-        `SELECT id, name, price, final_price, main_image, brand, rating, category_id
+        `SELECT id, name, slug, price, final_price, main_image, brand, rating, category_id
          FROM products
          WHERE is_active = true AND verification_status = 'VERIFIED'
          ORDER BY rating DESC, review_count DESC
@@ -234,6 +234,7 @@ export const AdminService = {
         return {
           rank: idx + 1,
           productId: parseInt(p.id, 10),
+          slug: p.slug,
           score,
           affinityPercentage: Math.round(score * 1000) / 10,
           name: p.name,

@@ -102,7 +102,7 @@ export default function Cart() {
               <div key={item.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                 {/* Thumbnail */}
                 <Link
-                  to={`/products/${item.slug}`}
+                  to={`/products/${item.slug || item.productId || item.id}`}
                   className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-subtle bg-card-elevated p-1 flex items-center justify-center"
                 >
                   <img
@@ -123,7 +123,7 @@ export default function Cart() {
                         </p>
                       )}
                       <Link
-                        to={`/products/${item.slug}`}
+                        to={`/products/${item.slug || item.productId || item.id}`}
                         className="font-medium text-sm text-ink hover:text-accent transition-colors"
                       >
                         {item.name}

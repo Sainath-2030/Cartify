@@ -424,6 +424,7 @@ export default function AdminModels() {
                     <span className="text-[11px] font-semibold text-muted">
                       Category: {cnnResult.targetProduct.categoryName}
                     </span>
+<<<<<<< HEAD
                   )}
                 </div>
                 <h4 className="mt-1 text-xs font-bold text-ink truncate" title={cnnResult.targetProduct.name}>
@@ -431,6 +432,19 @@ export default function AdminModels() {
                 </h4>
                 <div className="mt-0.5 text-[11px] text-muted">
                   Brand: {cnnResult.targetProduct.brand} • ₹{Number(cnnResult.targetProduct.finalPrice || cnnResult.targetProduct.price || 0).toLocaleString('en-IN')}
+=======
+                    {rec.rating > 0 && (
+                      <span className="ml-2 text-[11px] font-medium text-amber-600">★ {rec.rating}</span>
+                    )}
+                  </div>
+                  <Link
+                    to={`/products/${rec.slug || rec.productId}`}
+                    target="_blank"
+                    className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    View <ArrowUpRight className="h-3 w-3" />
+                  </Link>
+>>>>>>> 8966ea4 (fix: resolve product routing fallbacks, safe recommendation slugs, and database SSL config)
                 </div>
               </div>
             </div>

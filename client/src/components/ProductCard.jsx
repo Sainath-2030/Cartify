@@ -97,7 +97,7 @@ export default function ProductCard({ product }) {
 
       {/* Meta & Info */}
       <Link
-        to={`/products/${slug}`}
+        to={`/products/${slug || id}`}
         onClick={() => track('VIEW', { productId: id })}
         className="mt-3 flex flex-1 flex-col"
       >

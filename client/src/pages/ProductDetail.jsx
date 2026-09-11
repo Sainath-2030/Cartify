@@ -22,6 +22,11 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState('description');
 
   const fetchProduct = useCallback(async () => {
+    if (!slug || slug === 'undefined') {
+      setNotFound(true);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError('');
     setNotFound(false);

@@ -25,7 +25,13 @@ export const ProductService = {
   },
 
   async getProductBySlug(slug) {
-    const product = await ProductModel.findBySlug(slug);
+    if (!slug || slug === 'undefined') {
+      throw new AppError('Product not found.', 404);
+    }
+    let product = await ProductModel.findBySlug(slug);
+    if (!product && /^\d+$/.test(slug)) {
+      product = await ProductModel.findById(parseInt(slug, 10));
+    }
     if (!product) {
       throw new AppError('Product not found.', 404);
     }
@@ -44,7 +50,12 @@ export const ProductService = {
     if (!product) {
       throw new AppError('Product not found.', 404);
     }
-    return product;
+    const [reviews, ratingBreakdown, related] = await Promise.all([
+      ReviewModel.findByProduct(product.id, 10),
+      ReviewModel.ratingBreakdown(product.id),
+      ProductModel.findRelated(product.category_id, product.id, 4),
+    ]);
+    return { ...product, reviews, ratingBreakdown, relatedProducts: related };
   },
 
   async listBrands(categorySlug) {

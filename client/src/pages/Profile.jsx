@@ -211,7 +211,7 @@ export default function Profile() {
                 {recommendations.map((rec) => (
                   <Link
                     key={rec.productId}
-                    to={`/products/${rec.productId}`}
+                    to={`/products/${rec.slug || rec.productId}`}
                     className="group flex flex-col justify-between rounded-xl border border-border-subtle bg-card-elevated p-3 transition-all hover:border-accent hover:shadow-md"
                   >
                     <div>
