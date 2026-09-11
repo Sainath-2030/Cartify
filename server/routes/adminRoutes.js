@@ -8,6 +8,7 @@ import {
   getNcfAffinityMatrix,
   getCnnVisualSimilarities,
   getCnnEmbeddingMatrixSample,
+  getGruRecommendations,
   requestRetraining,
   getBusinessRules,
   updateBusinessRules,
@@ -28,6 +29,7 @@ router.get('/models/recommendations', getNcfRecommendations);
 router.get('/models/affinity-matrix', getNcfAffinityMatrix);
 router.get('/models/visual-similarity', getCnnVisualSimilarities);
 router.get('/models/cnn-matrix', getCnnEmbeddingMatrixSample);
+router.get('/models/gru-recommendations', getGruRecommendations);
 router.post('/models/retrain', requestRetraining);
 router.get('/business-rules', getBusinessRules);
 router.patch('/business-rules', updateBusinessRules);

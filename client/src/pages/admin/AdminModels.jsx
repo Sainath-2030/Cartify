@@ -33,7 +33,7 @@ export default function AdminModels() {
   const [affinityData, setAffinityData] = useState(null);
   const [cnnMatrixData, setCnnMatrixData] = useState(null);
 
-  // Active View Tab: 'all' | 'ncf' | 'cnn'
+  // Active View Tab: 'all' | 'ncf' | 'cnn' | 'gru'
   const [activeTab, setActiveTab] = useState('all');
 
   // NCF Simulator State
@@ -41,6 +41,12 @@ export default function AdminModels() {
   const [simTopK, setSimTopK] = useState(4);
   const [simLoading, setSimLoading] = useState(false);
   const [simResult, setSimResult] = useState(null);
+
+  // GRU Simulator State
+  const [gruUserId, setGruUserId] = useState(1);
+  const [gruTopK, setGruTopK] = useState(4);
+  const [gruLoading, setGruLoading] = useState(false);
+  const [gruResult, setGruResult] = useState(null);
 
   // CNN Visual Similarity Simulator State
   const [cnnProductId, setCnnProductId] = useState(3129);
@@ -99,6 +105,7 @@ export default function AdminModels() {
       // Auto-run baseline inferences
       runRecommendation(1, 4);
       runCnnSimilarity(3129, 4, true);
+      runGruRecommendation(1, 4);
     } catch (err) {
       showToast(err.message || 'Failed to load model diagnostics.', 'error');
     } finally {
@@ -134,6 +141,18 @@ export default function AdminModels() {
     }
   };
 
+  const runGruRecommendation = async (userId, topK) => {
+    try {
+      setGruLoading(true);
+      const res = await adminService.getGruRecommendations(userId, topK);
+      setGruResult(res);
+    } catch (err) {
+      showToast(err.message || 'GRU sequence inference failed.', 'error');
+    } finally {
+      setGruLoading(false);
+    }
+  };
+
   const handleRetrainRequest = async () => {
     try {
       setRetraining(true);
@@ -162,9 +181,11 @@ export default function AdminModels() {
 
   const ncf = modelStatus?.ncfDetails || {};
   const cnn = modelStatus?.cnnDetails || {};
+  const gru = modelStatus?.gruDetails || {};
   const isNcfActive = ncf.status === 'ACTIVE';
   const isCnnActive = cnn.status === 'ACTIVE';
-  const activeCount = modelStatus?.activeModelCount || (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0);
+  const isGruActive = gru.status === 'ACTIVE';
+  const activeCount = modelStatus?.activeModelCount || (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0) + (isGruActive ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -178,11 +199,11 @@ export default function AdminModels() {
             <h1 className="text-2xl font-bold tracking-tight text-ink">AI & Recommendation Models</h1>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              {activeCount} Models Active ({isNcfActive ? 'NCF' : ''}{isNcfActive && isCnnActive ? ' + ' : ''}{isCnnActive ? 'CNN' : ''})
+              {activeCount} Models Active ({isNcfActive ? 'NCF' : ''}{isNcfActive && isCnnActive ? ', CNN' : isCnnActive ? 'CNN' : ''}{isGruActive ? ', GRU' : ''})
             </span>
           </div>
           <p className="mt-1.5 text-sm text-muted">
-            Neural Collaborative Filtering (NCF NeuMF) and ResNet18 CNN Visual Feature Extractor diagnostics, live inference telemetry, and visual similarity simulator.
+            Neural Collaborative Filtering (NCF NeuMF), ResNet18 CNN Visual Feature Extractor, and GRU Session Sequence diagnostics.
           </p>
         </div>
 
@@ -253,7 +274,19 @@ export default function AdminModels() {
         >
           <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
           CNN (ResNet18 Visual Embeddings)
-          <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800">
+        </button>
+
+        <button
+          onClick={() => setActiveTab('gru')}
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+            activeTab === 'gru'
+              ? 'bg-ink text-white shadow-sm'
+              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+          }`}
+        >
+          <Clock className="h-3.5 w-3.5 text-blue-600" />
+          GRU (Session Sequence)
+          <span className="rounded-full bg-blue-100 px-1.5 py-0.2 text-[10px] font-bold text-blue-800">
             NEW
           </span>
         </button>
@@ -267,10 +300,10 @@ export default function AdminModels() {
             <Layers className="h-4 w-4 text-primary" />
           </div>
           <div className="mt-3">
-            <span className="text-xl font-bold text-ink">NCF + CNN</span>
+            <span className="text-xl font-bold text-ink">NCF, CNN, GRU</span>
             <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">v1.0.0</span>
           </div>
-          <p className="mt-1 text-xs text-muted">Dual Branch: Collaborative Filtering + Visual Embeddings</p>
+          <p className="mt-1 text-xs text-muted">Collaborative + Visual + Sequence Session Embeddings</p>
         </div>
 
         <div className="card flex flex-col justify-between p-5">
@@ -305,11 +338,11 @@ export default function AdminModels() {
           <div className="mt-3 flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             <span className="text-lg font-bold text-ink">
-              {isNcfActive && isCnnActive ? '2 Models Ready' : isNcfActive ? 'NCF Online' : 'Standby'}
+              {activeCount} Models Ready
             </span>
           </div>
           <p className="mt-1 truncate text-xs text-muted">
-            Checkpoints: ncf_model.pt & cnn_model.pt
+            Checkpoints: ncf, cnn, gru
           </p>
         </div>
       </div>
@@ -777,6 +810,151 @@ export default function AdminModels() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* GRU Live Sequence Simulator (Shown on 'all' and 'gru' tabs) */}
+      {(activeTab === 'all' || activeTab === 'gru') && (
+        <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-blue-500">
+          <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <h2 className="text-base font-bold text-ink">GRU Session Sequence Inference</h2>
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                  LIVE MODEL
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">
+                Predicts the next most likely product interaction based on a user's recent chronological session sequence.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-muted">Target User:</label>
+                <select
+                  value={gruUserId}
+                  onChange={(e) => {
+                    const uid = Number(e.target.value);
+                    setGruUserId(uid);
+                    runGruRecommendation(uid, gruTopK);
+                  }}
+                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none max-w-[280px] truncate"
+                >
+                  {(gru.userIds || ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
+                    <option key={uid} value={uid}>
+                      {getUserLabel(uid)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-muted">Top K:</label>
+                <select
+                  value={gruTopK}
+                  onChange={(e) => {
+                    const k = Number(e.target.value);
+                    setGruTopK(k);
+                    runGruRecommendation(gruUserId, k);
+                  }}
+                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none"
+                >
+                  <option value={2}>Top 2</option>
+                  <option value={4}>Top 4</option>
+                  <option value={6}>Top 6</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => runGruRecommendation(gruUserId, gruTopK)}
+                disabled={gruLoading}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 shadow-sm"
+              >
+                <Play className={`h-3.5 w-3.5 ${gruLoading ? 'animate-spin' : ''}`} />
+                {gruLoading ? 'Predicting...' : 'Predict Next Item'}
+              </button>
+            </div>
+          </div>
+
+          {/* Results Showcase */}
+          {gruLoading ? (
+            <div className="flex min-h-[180px] items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                <p className="text-xs font-medium text-muted">Processing recent sequence through GRU cell layers...</p>
+              </div>
+            </div>
+          ) : gruResult?.recommendations && gruResult.recommendations.length > 0 ? (
+            <div>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                  Input Sequence Length: {gruResult.sequenceLength} items
+                </span>
+                <span className="text-xs text-muted">Predicting next likely interaction...</span>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {gruResult.recommendations.map((rec) => (
+                  <div
+                    key={rec.productId}
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border-subtle bg-card-elevated p-4 transition-all hover:border-blue-500 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
+                        Rank #{rec.rank}
+                      </span>
+                      <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
+                        {rec.affinityPercentage}% Prob
+                      </span>
+                    </div>
+
+                    <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                      <img
+                        src={rec.mainImage || '/placeholder.png'}
+                        alt={rec.name}
+                        className="h-28 w-28 object-contain transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&fit=crop&q=80';
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] font-semibold text-muted">{rec.brand}</div>
+                      <h4 className="mt-0.5 line-clamp-2 text-xs font-bold text-ink" title={rec.name}>
+                        {rec.name}
+                      </h4>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                      <div>
+                        <span className="text-xs font-extrabold text-ink">
+                          ₹{Number(rec.finalPrice || rec.price || 0).toLocaleString('en-IN')}
+                        </span>
+                        {rec.rating > 0 && (
+                          <span className="ml-2 text-[11px] font-medium text-amber-600">★ {rec.rating}</span>
+                        )}
+                      </div>
+                      <Link
+                        to={`/products/${rec.productId}`}
+                        target="_blank"
+                        className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        View <ArrowUpRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-neutral-50/50 p-6 text-center">
+              <Info className="h-5 w-5 text-muted" />
+              <p className="mt-2 text-xs font-medium text-ink">No sequence predictions available.</p>
+              <p className="text-[11px] text-muted">User might not have enough recent interaction history.</p>
+            </div>
+          )}
         </div>
       )}
 

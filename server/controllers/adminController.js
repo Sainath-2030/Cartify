@@ -104,6 +104,14 @@ export const getCnnEmbeddingMatrixSample = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: result });
 });
 
+// GET /api/admin/models/gru-recommendations
+export const getGruRecommendations = asyncHandler(async (req, res) => {
+  const userId = parseInt(req.query.userId, 10) || 1;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 5));
+  const result = await AdminService.getGruRecommendations({ userId, topK });
+  res.status(200).json(result);
+});
+
 // GET /api/admin/audit-logs
 export const getAuditLogs = asyncHandler(async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));

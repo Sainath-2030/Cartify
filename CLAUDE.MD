@@ -1214,15 +1214,15 @@ Do not implement until the NCF section begins.
 
 ---
 
-# 25. GRU — PLANNED
+# 25. GRU — IMPLEMENTED
 
-GRU will use chronological user behavior.
+GRU uses chronological user behavior.
 
-Important fields:
+Important fields used from `interactions`:
 
 user_id
 product_id
-timestamp
+timestamp (created_at)
 session_id
 
 Conceptually:
@@ -1236,6 +1236,15 @@ Chronological products
 GRU
  ↓
 Sequential preference embedding
+
+Implementation Details:
+- Framework: PyTorch (`nn.GRU`).
+- Model Architecture: `nn.Embedding(num_items+1, 64) -> nn.GRU(64, 64) -> Linear(64, num_items+1)`.
+- Padding: `0` index used for padding sequences to a fixed length (max length 10).
+- Checkpoints: Trained model saved to `ml-service/artifacts/gru_model.pt`.
+- ID Mappings: `ml-service/artifacts/gru_id_map.json`.
+- Inference CLI: `python -m gru.recommend --user <id> --top_k <k> --json`.
+- Admin UI Integration: Integrated into `/admin/models` with live sequential session inference simulator.
 
 Never randomly shuffle sequences before sequence modeling.
 
