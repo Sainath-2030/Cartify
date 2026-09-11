@@ -126,7 +126,7 @@ export const UserService = {
       try {
         // Query high quality candidates for the active session category
         const catRes = await pool.query(
-          `SELECT p.id, p.name, p.brand, p.price, p.final_price, p.rating, p.main_image, p.category_id
+          `SELECT p.id, p.name, p.slug, p.brand, p.price, p.final_price, p.rating, p.main_image, p.category_id
            FROM products p
            WHERE p.category_id = $1 AND p.is_active = true
            ORDER BY p.rating DESC, p.review_count DESC
@@ -148,6 +148,7 @@ export const UserService = {
             const score = 0.94 - sessionAdded * 0.02;
             slate.push({
               productId: pid,
+              slug: p.slug,
               score: parseFloat(score.toFixed(4)),
               affinityPercentage: Math.round(score * 1000) / 10,
               name: p.name,
@@ -179,14 +180,15 @@ export const UserService = {
         // 3. Fallback fill if NCF candidates are fewer than topK
         if (slate.length < topK) {
           const { ProductModel } = await import('../models/productModel.js');
-          const fallback = await ProductModel.findAll({ sort: 'popular', limit: topK });
-          for (const fb of fallback) {
+          const fallbackRes = await ProductModel.list({ filters: {}, sort: 'popular', page: 1, limit: topK });
+          for (const fb of (fallbackRes.rows || [])) {
             if (slate.length >= topK) break;
             const pid = parseInt(fb.id, 10);
             if (!seenIds.has(pid)) {
               seenIds.add(pid);
               slate.push({
                 productId: pid,
+                slug: fb.slug,
                 score: 0.80,
                 affinityPercentage: 80,
                 name: fb.name,
@@ -219,10 +221,11 @@ export const UserService = {
 
     // 4. Fallback if user has no embedding history and no recent interactions
     const { ProductModel } = await import('../models/productModel.js');
-    const fallback = await ProductModel.findAll({ sort: 'popular', limit: topK });
-    return fallback.map((p, idx) => ({
+    const fallbackRes = await ProductModel.list({ filters: {}, sort: 'popular', page: 1, limit: topK });
+    return (fallbackRes.rows || []).map((p, idx) => ({
       rank: idx + 1,
       productId: parseInt(p.id, 10),
+      slug: p.slug,
       score: 0.85 - idx * 0.05,
       affinityPercentage: Math.round((0.85 - idx * 0.05) * 100),
       name: p.name,

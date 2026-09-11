@@ -526,7 +526,7 @@ export default function AdminModels() {
                       )}
                     </div>
                     <Link
-                      to={`/products/${item.productId}`}
+                      to={`/products/${item.slug || item.productId}`}
                       target="_blank"
                       className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
                     >

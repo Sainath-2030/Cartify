@@ -161,7 +161,7 @@ export default function FlashDealCard({ dealProduct }) {
             </button>
 
             <Link
-              to={`/products/${product.slug || ''}`}
+              to={`/products/${product?.slug || product?.id || ''}`}
               className="btn btn-secondary px-5 py-2.5"
             >
               <span>View specs</span>

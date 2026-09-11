@@ -124,7 +124,7 @@ export default function Wishlist() {
               )}
 
               {/* Thumbnail */}
-              <Link to={`/products/${item.slug}`} className="relative aspect-square overflow-hidden rounded-xl bg-card-elevated p-2 flex items-center justify-center">
+              <Link to={`/products/${item.slug || item.productId || item.id}`} className="relative aspect-square overflow-hidden rounded-xl bg-card-elevated p-2 flex items-center justify-center">
                 <img
                   src={normalizeImageUrl(item.mainImage || item.image)}
                   alt={item.name}
@@ -144,7 +144,7 @@ export default function Wishlist() {
               <div className="flex flex-1 flex-col pt-3">
                 <p className="text-xs font-medium text-muted">{item.brand}</p>
                 <Link
-                  to={`/products/${item.slug}`}
+                  to={`/products/${item.slug || item.productId || item.id}`}
                   className="line-clamp-2 text-sm font-medium text-ink hover:text-accent transition-colors mt-0.5"
                 >
                   {item.name}
