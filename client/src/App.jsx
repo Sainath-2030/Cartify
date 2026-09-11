@@ -88,7 +88,7 @@ export default function App() {
       <Route
         path="/content-manager"
         element={
-          <RoleProtectedRoute allowedRoles={['CONTENT_MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['CONTENT_MANAGER', 'ADMIN']}>
             <ContentManagerLayout />
           </RoleProtectedRoute>
         }

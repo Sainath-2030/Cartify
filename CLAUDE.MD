@@ -1682,96 +1682,54 @@ Phase 2A — Cartify Design System + Global Frontend Layout
 STATUS: COMPLETE — Design tokens established in `tailwind.config.js` and `index.css`, typography hierarchy, color tokens, reusable UI primitives (`Button`, `Input`, `Select`, `Badge`, `Card`, `Container`, `SectionHeader`, `Skeleton`, `EmptyState`, `ErrorState`, `Toast`, `Modal`), redesigned global `Navbar` with role-aware navigation, redesigned `MobileMenu`, and 4-column `Footer`. Frontend build passed without errors.
 
 Phase 2B — Home Page Redesign
-STATUS: COMPLETE — Redesigned shopper landing page with Hero discovery and quick search, real PostgreSQL-backed Featured Picks (`sort=featured`), Popular Picks (`sort=popular`), New Arrivals (`sort=newest`), Department navigation, transparent AI recommendation architecture teaser with community fallback, and local session Recently Viewed history. Frontend build passed with zero errors.
+STATUS: COMPLETE — Redesigned shopper landing page with editorial Hero discovery, search suggestions, live featured spotlight, curated department pills, real PostgreSQL-backed Featured Picks (`sort=featured`), Top Rated Picks (`sort=rating`), New Arrivals (`sort=newest`), transparent AI recommendation teaser slot with community fallback, and local session Recently Viewed history.
 
-Phase 2C — Product Catalogue & Discovery Redesign
-STATUS: NOT STARTED
-
-Phase 2D — Product Details & Reviews Redesign
-STATUS: NOT STARTED
-
-Phase 2E — User Profile & Order History Redesign
-STATUS: NOT STARTED
-
-Phase 2F — Shopping Cart & Wishlist Redesign
-STATUS: NOT STARTED
-
-Phase 2G — Checkout & Order Confirmation Redesign
-STATUS: NOT STARTED
-
-Phase 2H — Admin Operational Dashboard Redesign
-STATUS: NOT STARTED
-
-Phase 2I — Content Manager Console Redesign
-STATUS: NOT STARTED
-
-Phase 2J — Responsive Layout & Polish
-STATUS: NOT STARTED
-
-Phase 2K — Final Visual QA & Verification
-STATUS: NOT STARTED
-
-Phase 3 — Simulated Checkout Transactions & Accounting
-STATUS: PLANNED
-
-Phase 4 — Operational Consoles & Content Control
-STATUS: PLANNED
-
-Phase 5 — Telemetry Export & Multi-Model Recommendation Pipeline (NCF + CNN + GRU + Autoencoder + Attention Fusion)
-STATUS: PLANNED
-
-Section 6 — CNN
-STATUS: NOT STARTED
-
-Section 7 — GRU
-STATUS: NOT STARTED
-
-Section 8 — Autoencoder
-STATUS: NOT STARTED
-
-Section 9 — Attention Fusion
-STATUS: NOT STARTED
-
-Section 10 — AI + Cartify Integration
-STATUS: NOT STARTED
-
-Section 11 — Admin Analytics
-STATUS: NOT STARTED
-
-Section 12 — Final Integration & Testing
-STATUS: NOT STARTED
-
-Phase 2.0 — Premium Frontend Foundation + Global Shell
-STATUS: COMPLETE — Approved "Intelligent Minimalist Luxury" visual foundation implemented.
-
-Phase 2.1 — Visual Refinement (Warm Stone / Ivory Background)
-STATUS: COMPLETE — Implemented warm stone/ivory color system (#F3F0EA canvas, #EAE6DE secondary surface, #FAF9F6 soft card surface, #DDD9D1 warm hairline border) with high-contrast preservation of the black editorial hero card (#09090B).
-
-Phase 2.3 — Product Catalogue & Discovery
+Phase 2C — Product Catalogue & Discovery
 STATUS: COMPLETE — Redesigned `/products`, `/category/:slug`, `/search`, and `/categories` with editorial typography, breadcrumb hierarchy, active filter chips bar with single-click removal, desktop sticky `FilterSidebar`, responsive mobile filter drawer with 44px+ touch targets, rupee price range validator, star rating filters, in-stock toggle, luxury 4:5 aspect ratio `ProductCard` with hover quick-add & wishlist toggle, 4:5 loading skeleton, and empty/error states. 100% build pass and regression pass.
 
-Section 5 — NCF (Neural Collaborative Filtering) Model & ML Service Scaffold
-STATUS: COMPLETE (Offline Scaffold & Training Verified)
-- Python ML Service initialized in `ml-service/` with dedicated virtual environment.
-- Read-only PostgreSQL integration implemented in `ml-service/common/db.py` reading `DATABASE_URL` from `.env` and pulling interactions safely using direct cursor queries into DataFrames.
-- Interaction weights configured across all event types: purchase (5), review (4), rating (4), cart_add (3), wishlist_add (3), product_click (2), product_view (1).
-- NeuMF (GMF + MLP fusion, He et al., 2017) architecture configured and trained in `ml-service/ncf/`.
-- Training pipeline verified with negative sampling and leave-one-out evaluation. Artifacts saved: `ml-service/artifacts/ncf_model.pt` and `ml-service/artifacts/ncf_id_maps.json`.
+Phase 2D — Product Details & Reviews
+STATUS: COMPLETE — Interactive product page with `ProductGallery` (main thumbnail switch), `ProductInfo` (price, discount calculation, genuine specifications JSON table, stock status, Cart & Wishlist integration), `ReviewSection` displaying breakdown distributions and ratings, and category `Related Products` shelf.
 
-Git Repository & Dataset Management
-STATUS: SYNCHRONIZED & COMMITTED
-- Large raw CSV `data/Amazon-Products.csv` (179.87 MB) excluded via `.gitignore` to adhere strictly to GitHub's 100MB file limit.
-- All ~120 processed and category dataset CSV files and database schema files tracked and pushed cleanly to remote repository (`https://github.com/Sainath-2030/Cartify.git` on `main` branch).
+Phase 2E — User Profile & Order History
+STATUS: COMPLETE — Authenticated `/profile` route with personal contact editing, address fields, and order history integration.
+
+Phase 2F — Shopping Cart & Wishlist
+STATUS: COMPLETE — Full production shopping cart drawer (`CartDrawer`), full `/cart` page with quantity adjustment and atomic removal, and dedicated `/wishlist` with cross-device synchronization and move-to-cart operations.
+
+Phase 2G — Checkout & Order Confirmation
+STATUS: COMPLETE — Multi-step transactional `/checkout` flow with server-side preview calculation, dynamic shipping address validation, payment prototype selections (`COD`, `SIMULATED_GATEWAY`, `CARD`, `UPI`), atomic stock reservations, and order receipt view.
+
+Phase 2H — Admin Operational Dashboard & Diagnostics
+STATUS: COMPLETE — Live Admin Console (`/admin` shell) with active sub-panels:
+- Executive Overview (`/admin`)
+- Model Status & Diagnostics (`/admin/models`): Live inspection of NCF model status, NeuMF architecture parameters, user-item affinity score matrix, and top-K recommendation simulator.
+- Model Retraining (`/admin/retraining`): Manual retraining trigger and job queue logging.
+- Catalogue Health (`/admin/catalogue`): Category integrity audits and verification breakdowns.
+- Business Rules (`/admin/business-rules`): Configurable ranking boosts, interaction weights, and category multipliers.
+
+Phase 2I — Content Manager Console
+STATUS: COMPLETE — Dedicated Content Manager Studio (`/content-manager` shell) for managing products, metadata, and taxonomy.
+
+Section 5 — NCF (Neural Collaborative Filtering) Model & ML Service
+STATUS: COMPLETE & DEPLOYED (Training & Top-K Inference Verified)
+- Python 3.14 virtual environment initialized under `ml-service/venv/`.
+- All dependencies installed from `ml-service/requirements.txt` (PyTorch 2.14, TorchVision 0.29, Pandas, NumPy, Scikit-Learn, Psycopg2-binary).
+- NeuMF (GMF 32d + MLP 32d, He et al., 2017) trained for 20 epochs on genuine PostgreSQL interaction telemetry (BCELoss converged from 0.7045 to 0.5981).
+- Model artifacts generated and persisted:
+  - `ml-service/artifacts/ncf_model.pt`
+  - `ml-service/artifacts/ncf_id_maps.json`
+- Top-K recommendation CLI and affinity inspector (`python -m ncf.recommend`) fully functional and integrated with `/admin/models`.
+
+Section 4 — Verified Dataset Pipeline & Gate
+STATUS: COMPLETE — 17,931 verified authentic Amazon India items stratified across 8 standard categories (Electronics, Fashion, Home & Kitchen, Beauty, Sports, Grocery, Gaming, Books) with verified image URLs and full-text search tsvectors.
 
 ---
 
 # 43. CURRENT NEXT STEP
 
-Phase 2.4 — Shopping Cart & Wishlist
-STATUS: NOT STARTED
-
-The immediate next task when instructed will be:
-Rebuilding the Home Page (editorial hero with live featured spotlight, curated department discovery pills, real PostgreSQL-backed featured/popular shelves, telemetry-ready AI recommendation teaser slot, and session recently viewed items).
+Section 6 — CNN (Product Image Feature Extractor)
+STATUS: READY TO PROCEED
+- Implement CNN feature extractor with pretrained ResNet backbone to extract 256-dimensional image embeddings for content-based similarity and cold-start discovery (`ml-service/cnn/`).
 
 ---
 

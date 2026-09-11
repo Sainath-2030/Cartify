@@ -221,7 +221,7 @@ export default function Navbar() {
                         </Link>
                       )}
 
-                      {userRole === 'CONTENT_MANAGER' && (
+                      {(userRole === 'CONTENT_MANAGER' || userRole === 'ADMIN') && (
                         <Link
                           to="/content-manager"
                           onClick={() => setProfileDropdownOpen(false)}
