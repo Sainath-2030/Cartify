@@ -159,3 +159,9 @@ Layered separation of concerns:
 | | **Phase 2.8: Admin Operational Dashboard** | **NOT STARTED** | Live catalogue health, interaction analytics, model status |
 | | **Phase 2.9: Content Manager Console** | **NOT STARTED** | Internal product CRUD, metadata updates, categories |
 | | **Phase 2.10: Responsive Polish & E2E QA** | **NOT STARTED** | Mobile navigation, touch targets, and viewport optimization |
+| **Phase 3: Multi-Model AI Recommendation Engine** | **Section 5: NCF (Neural Collaborative Filtering)** | **COMPLETE** | NeuMF (GMF 32d + MLP 32d) trained on implicit feedback telemetry, artifacts persisted, top-K inference CLI and live admin affinity simulator. |
+| | **Section 6: CNN (Product Visual Feature Extractor)** | **COMPLETE** | Pretrained ResNet-18 backbone with supervised projection head producing 256-dim normalized embeddings across catalogue, visual similarity simulator in `/admin/models`. |
+| | **Section 7: GRU (Sequential Session RNN)** | **COMPLETE** | Recurrent sequence network (`nn.GRU`, 64-dim embedding, 64-dim hidden state) for real-time guest & in-session browsing trajectories, integrated into `/admin/models`. |
+| | **Section 8: Autoencoder (Collaborative Denoising Latent)** | **COMPLETE** | 64-dim bottleneck CDAE trained on sparse user-item interaction matrix with 30% corruption dropout and positive-weighted loss ($w=4.0$), latent heatmap preview & reconstruction simulator in `/admin/models`. |
+| | **Section 9: Attention Fusion Layer** | **READY TO PROCEED** | Multi-modal hybrid aggregation layer dynamically fusing NCF + CNN + GRU + Autoencoder embeddings. |
+

@@ -25,6 +25,10 @@ export const adminService = {
     return api.get(`/admin/models/gru-recommendations?userId=${userId}&topK=${topK}`);
   },
 
+  getAutoencoderRecommendations: async (userId = 1, topK = 5) => {
+    return api.get(`/admin/models/autoencoder-recommendations?userId=${userId}&topK=${topK}`);
+  },
+
   getCnnVisualSimilarities: async (productId = 3129, topK = 6, categoryId = null, allCategories = false) => {
     let url = `/admin/models/visual-similarity?productId=${productId}&topK=${topK}`;
     if (categoryId) url += `&categoryId=${categoryId}`;

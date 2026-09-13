@@ -1275,19 +1275,35 @@ The frontend product image architecture remains independent from the source data
 
 ---
 
-# 27. AUTOENCODER — PLANNED
+# 27. AUTOENCODER — IMPLEMENTED
 
-Autoencoder may use sparse user-item interaction representations.
+Collaborative Denoising Autoencoder (CDAE) for sparse user-item interaction reduction.
 
 Conceptually:
 
-User × Product Matrix
-        ↓
-Autoencoder
-        ↓
-Latent Representation
+User × Product Interaction Matrix (2,768 Items)
+                  ↓
+       Input Denoising Dropout (p = 0.3)
+                  ↓
+  Encoder: Linear(2,768, 256) + LayerNorm + LeakyReLU
+                  ↓
+     Latent Bottleneck: Linear(256, 64) (64-dim)
+                  ↓
+  Decoder: Linear(64, 256) + LeakyReLU -> Linear(256, 2,768)
+                  ↓
+       Sigmoid Probability Reconstruction
 
-Do not create fake interactions merely to increase dataset size.
+Implementation Details:
+- Framework: PyTorch (`nn.Module` in `ml-service/autoencoder/model.py`).
+- Latent Dimension: 64-dim bottleneck embedding.
+- Denoising Mask: Corrupts 30% of observed inputs during training to prevent identity mapping and force manifold learning.
+- Loss Function: Weighted Mean Squared Error emphasizing observed positive feedback ($w_{pos} = 4.0$).
+- Checkpoint: Trained model saved to `ml-service/artifacts/autoencoder_model.pt`.
+- Latent Embeddings: 64-dim user vectors saved to `ml-service/artifacts/autoencoder_latent_embeddings.npy`.
+- ID Mappings: `ml-service/artifacts/autoencoder_id_map.json` (50 users, 2,768 items).
+- Inference CLI: `python -m autoencoder.recommend --user <id> --top_k <k> --json --inspect`.
+- Backend Integration: Express endpoint `GET /api/admin/models/autoencoder-recommendations` integrated in `adminService.js`.
+- Admin UI Integration: Integrated into `/admin/models` with live 64-dim latent bottleneck heatmap preview and reconstructed affinity scoring simulator.
 
 ---
 
@@ -1738,20 +1754,29 @@ STATUS: COMPLETE & DEPLOYED (Training & Top-K Inference Verified)
   - `ml-service/artifacts/ncf_id_maps.json`
 - Top-K recommendation CLI and affinity inspector (`python -m ncf.recommend`) fully functional and integrated with `/admin/models`.
 
-Section 6 — CNN (Product Image Feature Extractor)
-STATUS: COMPLETE — Pretrained ResNet18 backbone with trainable projection head producing 256-dim embeddings, verified on 999 cached images. Artifacts saved:
-- `ml-service/artifacts/cnn_model.pt`
-- `ml-service/artifacts/cnn_embeddings.npy`
-- `ml-service/artifacts/cnn_id_map.json`
-Similarity CLI and inspect endpoints operational, and integrated into `/admin/models` with live visual similarity simulator and latent space vector preview.
+Section 7 / 25 — GRU (Sequential Session-Based Recommender)
+STATUS: COMPLETE & DEPLOYED (Training & Session Top-K Inference Verified)
+- PyTorch RNN (`nn.GRU`, 64-dim embedding, 64-dim hidden state) trained on chronological user sessions.
+- Artifacts saved: `ml-service/artifacts/gru_model.pt`, `ml-service/artifacts/gru_id_map.json`.
+- Integrated into `/admin/models` with live sequential session inference simulator.
+
+Section 8 / 27 — Autoencoder (Latent Interaction Reduction)
+STATUS: COMPLETE & DEPLOYED (Training, Latent Manifold & Reconstructed Top-K Inference Verified)
+- Collaborative Denoising Autoencoder (CDAE) with 64-dim bottleneck embedding, 30% input denoising corruption mask, and weighted positive interaction loss ($w=4.0$).
+- Artifacts saved:
+  - `ml-service/artifacts/autoencoder_model.pt`
+  - `ml-service/artifacts/autoencoder_id_map.json`
+  - `ml-service/artifacts/autoencoder_latent_embeddings.npy`
+- Reconstruction CLI (`python -m autoencoder.recommend --user <id> --top_k <k> --json --inspect`) and Express endpoint `GET /api/admin/models/autoencoder-recommendations`.
+- Integrated into `/admin/models` with live 64-dim latent bottleneck heatmap preview and reconstructed affinity scoring simulator.
 
 ---
 
 # 43. CURRENT NEXT STEP
 
-Section 25 / 7 — GRU (Sequential Session-Based Recommender) or Section 27 / 8 — Autoencoder (Latent Interaction Reduction)
+Section 28 / 9 — Attention Fusion Layer (Multi-Modal Hybrid Aggregator)
 STATUS: READY TO PROCEED
-- Implement GRU session sequence modeling or Autoencoder interaction dimensionality reduction per Section 43 multi-model roadmap.
+- Fuses all 4 recommendation model embedding vectors (NCF + CNN + GRU + Autoencoder) through an Attention mechanism to output unified, personalized recommendation rankings across the Cartify storefront.
 
 ---
 
