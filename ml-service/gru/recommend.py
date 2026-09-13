@@ -19,10 +19,10 @@ from gru.config import (
 from gru.dataset import load_id_maps
 from gru.model import GRURecommender
 
-def fetch_user_recent_sequence(user_id, item_to_idx):
+def fetch_user_recent_sequence_with_context(user_id, item_to_idx):
     conn = get_db_connection()
     try:
-        # 1. Fetch user's latest active session
+        # 1. Fetch user's latest active session with product category
         query = """
         WITH latest_session AS (
             SELECT session_id
@@ -31,20 +31,24 @@ def fetch_user_recent_sequence(user_id, item_to_idx):
             ORDER BY created_at DESC
             LIMIT 1
         )
-        SELECT product_id
-        FROM interactions
-        WHERE user_id = %s AND session_id = (SELECT session_id FROM latest_session)
-        ORDER BY created_at ASC
+        SELECT i.product_id, c.name as category
+        FROM interactions i
+        JOIN products p ON i.product_id = p.id
+        JOIN categories c ON p.category_id = c.id
+        WHERE i.user_id = %s AND i.session_id = (SELECT session_id FROM latest_session)
+        ORDER BY i.created_at ASC
         """
         df = pd.read_sql(query, conn, params=(user_id, user_id))
         
         # 2. Fallback to recent interactions if latest session had < 2 items
         if df.empty or len(df) < 2:
             query_fallback = """
-            SELECT product_id 
-            FROM interactions
-            WHERE user_id = %s AND product_id IS NOT NULL
-            ORDER BY created_at DESC
+            SELECT i.product_id, c.name as category
+            FROM interactions i
+            JOIN products p ON i.product_id = p.id
+            JOIN categories c ON p.category_id = c.id
+            WHERE i.user_id = %s AND i.product_id IS NOT NULL
+            ORDER BY i.created_at DESC
             LIMIT %s
             """
             df_fallback = pd.read_sql(query_fallback, conn, params=(user_id, MAX_SEQUENCE_LENGTH * 2))
@@ -54,11 +58,36 @@ def fetch_user_recent_sequence(user_id, item_to_idx):
         conn.close()
     
     if df.empty:
-        return []
+        return {"sequence": [], "dominant_category": None, "session_categories": set()}
         
     sequence = df["product_id"].tolist()
     idx_sequence = [item_to_idx.get(pid) for pid in sequence if pid in item_to_idx]
-    return [idx for idx in idx_sequence if idx is not None]
+    valid_idx_seq = [idx for idx in idx_sequence if idx is not None]
+    
+    categories = df["category"].dropna().tolist()
+    dominant_category = pd.Series(categories).mode()[0] if categories else None
+    session_categories = set(categories)
+    
+    return {
+        "sequence": valid_idx_seq,
+        "dominant_category": dominant_category,
+        "session_categories": session_categories,
+    }
+
+def load_catalog_metadata():
+    conn = get_db_connection()
+    try:
+        query_cat = "SELECT p.id, c.name as category FROM products p JOIN categories c ON p.category_id = c.id"
+        df_cat = pd.read_sql(query_cat, conn)
+        cat_map = dict(zip(df_cat["id"], df_cat["category"]))
+        
+        query_pop = "SELECT product_id, COUNT(*) as cnt FROM interactions GROUP BY product_id"
+        df_pop = pd.read_sql(query_pop, conn)
+        pop_map = dict(zip(df_pop["product_id"], df_pop["cnt"]))
+    finally:
+        conn.close()
+    return cat_map, pop_map
+
 
 def main():
     parser = argparse.ArgumentParser(description="GRU Session Sequence Inference")
@@ -97,7 +126,11 @@ def main():
             print("Error: Model checkpoint not found.")
         return
 
-    sequence = fetch_user_recent_sequence(args.user, item_to_idx)
+    # Fetch active sequence and session context
+    sequence_data = fetch_user_recent_sequence_with_context(args.user, item_to_idx)
+    sequence = sequence_data["sequence"]
+    dominant_cat = sequence_data.get("dominant_category")
+    session_cats = sequence_data.get("session_categories", set())
     
     if not sequence:
         if args.json:
@@ -121,6 +154,9 @@ def main():
     seq_tensor = torch.tensor([padded_seq], dtype=torch.long).to(device)
     len_tensor = torch.tensor([seq_length], dtype=torch.long)
     
+    # Load catalog categories and popularity for session context continuity
+    cat_map, pop_map = load_catalog_metadata()
+    
     with torch.no_grad():
         logits = model(seq_tensor, len_tensor)
         # Prevent recommending padding token (index 0)
@@ -129,6 +165,21 @@ def main():
         # Mask out items already in the user's active sequence
         for past_idx in sequence:
             logits[0, past_idx] = -float('inf')
+            
+        # Apply session category continuity & de-bias unregularized singleton items
+        for idx, item_id in idx_to_item.items():
+            if idx == 0:
+                continue
+            item_cat = cat_map.get(item_id)
+            if dominant_cat and item_cat == dominant_cat:
+                logits[0, idx] += 4.0
+            elif item_cat in session_cats:
+                logits[0, idx] += 2.0
+                
+            # Penalize single-interaction noise outliers that have aberrant high vector norms
+            pop = pop_map.get(item_id, 0)
+            if pop <= 1:
+                logits[0, idx] -= 3.0
         
         probs = torch.softmax(logits[0], dim=0)
         top_probs, top_indices = torch.topk(probs, args.top_k)
@@ -140,7 +191,7 @@ def main():
             recommendations.append({
                 "rank": rank + 1,
                 "productId": item_id,
-                "score": prob
+                "score": float(prob)
             })
             
     if args.json:
@@ -156,3 +207,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
