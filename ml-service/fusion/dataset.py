@@ -127,14 +127,26 @@ class MultiModalFeatureExtractor:
 
         u_vec = self.ncf_user_embeddings[u_idx] if (u_idx is not None and u_idx < len(self.ncf_user_embeddings)) else np.zeros(NCF_DIM, dtype=np.float32)
         i_vec = self.ncf_item_embeddings[i_idx] if (i_idx is not None and i_idx < len(self.ncf_item_embeddings)) else np.zeros(NCF_DIM, dtype=np.float32)
+        
+        u_norm = np.linalg.norm(u_vec)
+        i_norm = np.linalg.norm(i_vec)
+        if u_norm > 1e-8:
+            u_vec = u_vec / u_norm
+        if i_norm > 1e-8:
+            i_vec = i_vec / i_norm
         return (u_vec * i_vec).astype(np.float32)
 
     def get_cnn_feature(self, product_id: int) -> np.ndarray:
         """Retrieves ResNet18 visual embedding (256-dim)."""
         c_idx = self.cnn_item_to_idx.get(product_id)
         if c_idx is not None and c_idx < len(self.cnn_embeddings):
-            return self.cnn_embeddings[c_idx].astype(np.float32)
-        return self.cnn_mean_embedding.astype(np.float32)
+            feat = self.cnn_embeddings[c_idx].astype(np.float32)
+        else:
+            feat = self.cnn_mean_embedding.astype(np.float32)
+        norm = np.linalg.norm(feat)
+        if norm > 1e-8:
+            feat = feat / norm
+        return feat
 
     def get_gru_feature(self, user_id: int, session_sequence: List[int], product_id: int) -> np.ndarray:
         """Computes session sequence affinity vector (64-dim)."""
@@ -143,6 +155,14 @@ class MultiModalFeatureExtractor:
 
         seq_vecs = [self.gru_item_embeddings[self.gru_item_to_idx[pid]] for pid in session_sequence[-5:] if pid in self.gru_item_to_idx and self.gru_item_to_idx[pid] < len(self.gru_item_embeddings)]
         session_context = np.mean(seq_vecs, axis=0) if seq_vecs else self.gru_mean_item
+
+        tgt_norm = np.linalg.norm(target_vec)
+        ctx_norm = np.linalg.norm(session_context)
+        if tgt_norm > 1e-8:
+            target_vec = target_vec / tgt_norm
+        if ctx_norm > 1e-8:
+            session_context = session_context / ctx_norm
+
         return (session_context * target_vec).astype(np.float32)
 
     def get_autoencoder_feature(self, user_id: int, product_id: int) -> np.ndarray:
@@ -152,6 +172,14 @@ class MultiModalFeatureExtractor:
 
         i_idx = self.ae_item_to_idx.get(product_id)
         i_latent = self.ae_item_proj[i_idx] if (i_idx is not None and i_idx < len(self.ae_item_proj)) else np.zeros(AUTOENCODER_DIM, dtype=np.float32)
+
+        u_norm = np.linalg.norm(u_latent)
+        i_norm = np.linalg.norm(i_latent)
+        if u_norm > 1e-8:
+            u_latent = u_latent / u_norm
+        if i_norm > 1e-8:
+            i_latent = i_latent / i_norm
+
         return (u_latent * i_latent).astype(np.float32)
 
 
