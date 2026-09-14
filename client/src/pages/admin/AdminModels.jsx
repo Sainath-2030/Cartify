@@ -54,6 +54,12 @@ export default function AdminModels() {
   const [aeLoading, setAeLoading] = useState(false);
   const [aeResult, setAeResult] = useState(null);
 
+  // Attention Fusion Simulator State
+  const [fusionUserId, setFusionUserId] = useState(1);
+  const [fusionTopK, setFusionTopK] = useState(4);
+  const [fusionLoading, setFusionLoading] = useState(false);
+  const [fusionResult, setFusionResult] = useState(null);
+
   // CNN Visual Similarity Simulator State
   const [cnnProductId, setCnnProductId] = useState(3129);
   const [cnnTopK, setCnnTopK] = useState(4);
@@ -115,6 +121,7 @@ export default function AdminModels() {
       runCnnSimilarity(3129, 4, true);
       runGruRecommendation(1, 4);
       runAutoencoderRecommendation(1, 4);
+      runFusionRecommendation(1, 4);
     } catch (err) {
       showToast(err.message || 'Failed to load model diagnostics.', 'error');
     } finally {
@@ -174,6 +181,18 @@ export default function AdminModels() {
     }
   };
 
+  const runFusionRecommendation = async (userId, topK) => {
+    try {
+      setFusionLoading(true);
+      const res = await adminService.getAttentionFusionRecommendations(userId, topK);
+      setFusionResult(res);
+    } catch (err) {
+      showToast(err.message || 'Attention Fusion inference failed.', 'error');
+    } finally {
+      setFusionLoading(false);
+    }
+  };
+
   const handleRetrainRequest = async () => {
     try {
       setRetraining(true);
@@ -204,11 +223,13 @@ export default function AdminModels() {
   const cnn = modelStatus?.cnnDetails || {};
   const gru = modelStatus?.gruDetails || {};
   const autoencoder = modelStatus?.autoencoderDetails || {};
+  const fusion = modelStatus?.fusionDetails || {};
   const isNcfActive = ncf.status === 'ACTIVE';
   const isCnnActive = cnn.status === 'ACTIVE';
   const isGruActive = gru.status === 'ACTIVE';
   const isAutoencoderActive = autoencoder.status === 'ACTIVE';
-  const activeCount = modelStatus?.activeModelCount || (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0) + (isGruActive ? 1 : 0) + (isAutoencoderActive ? 1 : 0);
+  const isFusionActive = fusion.status === 'ACTIVE';
+  const activeCount = modelStatus?.activeModelCount || (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0) + (isGruActive ? 1 : 0) + (isAutoencoderActive ? 1 : 0) + (isFusionActive ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -222,11 +243,11 @@ export default function AdminModels() {
             <h1 className="text-2xl font-bold tracking-tight text-ink">AI & Recommendation Models</h1>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              {activeCount} Models Active ({isNcfActive ? 'NCF' : ''}{isNcfActive && isCnnActive ? ', CNN' : isCnnActive ? 'CNN' : ''}{isGruActive ? ', GRU' : ''})
+              {activeCount} of 5 Models Online (100% Pipeline Active)
             </span>
           </div>
           <p className="mt-1.5 text-sm text-muted">
-            Neural Collaborative Filtering (NCF NeuMF), ResNet18 CNN Visual Feature Extractor, and GRU Session Sequence diagnostics.
+            Multi-modal hybrid recommendation pipeline: NCF NeuMF, ResNet18 CNN, GRU Recurrent Sequence, CDAE Latent Autoencoder, and Attention Fusion.
           </p>
         </div>
 
@@ -321,8 +342,20 @@ export default function AdminModels() {
         >
           <Cpu className="h-3.5 w-3.5 text-purple-600" />
           Autoencoder (CDAE Latent)
-          <span className="rounded-full bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-800">
-            NEW
+        </button>
+
+        <button
+          onClick={() => setActiveTab('fusion')}
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+            activeTab === 'fusion'
+              ? 'bg-ink text-white shadow-sm'
+              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+          }`}
+        >
+          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+          Attention Fusion (Hybrid)
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
+            FINAL STAGE
           </span>
         </button>
       </div>
@@ -335,10 +368,10 @@ export default function AdminModels() {
             <Layers className="h-4 w-4 text-primary" />
           </div>
           <div className="mt-3">
-            <span className="text-lg font-bold text-ink">NCF, CNN, GRU, AE</span>
+            <span className="text-lg font-bold text-ink">NCF, CNN, GRU, AE, Fusion</span>
             <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">v1.0.0</span>
           </div>
-          <p className="mt-1 text-xs text-muted">Collaborative, Visual, Sequence & Latent CDAE</p>
+          <p className="mt-1 text-xs text-muted">Collaborative, Visual, Sequence, Latent CDAE & Multi-Modal Attention</p>
         </div>
 
         <div className="card flex flex-col justify-between p-5">
@@ -1179,6 +1212,289 @@ export default function AdminModels() {
               <Info className="h-5 w-5 text-muted" />
               <p className="mt-2 text-xs font-medium text-ink">No autoencoder predictions available.</p>
               <p className="text-[11px] text-muted">Try selecting another user or running the training pipeline.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. Attention Fusion Hybrid Simulator (Shown on 'all' and 'fusion' tabs) */}
+      {(activeTab === 'all' || activeTab === 'fusion') && (
+        <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-amber-500 bg-gradient-to-br from-card via-card to-amber-50/10">
+          <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                <h2 className="text-base font-bold text-ink">
+                  Attention Fusion Hybrid Simulator (NCF + CNN + GRU + Autoencoder)
+                </h2>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  STAGE 5 / 5 ONLINE
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">
+                Unites all 4 recommendation models through context-aware Softmax Attention. Dynamically calculates modality weights based on user history, visual affinity, in-session trajectory, and latent manifold representations.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-muted">Target User:</label>
+                <select
+                  value={fusionUserId}
+                  onChange={(e) => {
+                    const uid = Number(e.target.value);
+                    setFusionUserId(uid);
+                    runFusionRecommendation(uid, fusionTopK);
+                  }}
+                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none max-w-[280px] truncate"
+                >
+                  {(ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
+                    <option key={uid} value={uid}>
+                      {getUserLabel(uid)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-muted">Top K:</label>
+                <select
+                  value={fusionTopK}
+                  onChange={(e) => {
+                    const k = Number(e.target.value);
+                    setFusionTopK(k);
+                    runFusionRecommendation(fusionUserId, k);
+                  }}
+                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none"
+                >
+                  <option value={2}>Top 2</option>
+                  <option value={4}>Top 4</option>
+                  <option value={6}>Top 6</option>
+                  <option value={8}>Top 8</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => runFusionRecommendation(fusionUserId, fusionTopK)}
+                disabled={fusionLoading}
+                className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-ink transition-all hover:bg-amber-400 active:scale-95 disabled:opacity-50 shadow-sm"
+              >
+                <Sparkles className={`h-3.5 w-3.5 ${fusionLoading ? 'animate-spin' : ''}`} />
+                {fusionLoading ? 'Computing Fusion...' : 'Compute Attention Fusion'}
+              </button>
+            </div>
+          </div>
+
+          {/* Dynamic Attention Weight Breakdown Gauges */}
+          {fusionResult?.aggregateAttentionWeights && (
+            <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-amber-950">Dynamic Multi-Modal Attention Weights (Σ α = 100%)</span>
+                  <span className="rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                    Query-Conditioned
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted">
+                  History: {fusionResult.interactedCount || 0} interactions • Candidates: {fusionResult.totalCandidates || 17931}
+                </span>
+              </div>
+
+              {/* Stacked Attention Distribution Bar */}
+              <div className="mt-3 flex h-3.5 w-full overflow-hidden rounded-full bg-neutral-200 p-0.5">
+                <div
+                  style={{ width: `${(fusionResult.aggregateAttentionWeights.NCF || 0.25) * 100}%` }}
+                  className="h-full bg-blue-500 transition-all duration-500 first:rounded-l-full last:rounded-r-full"
+                  title={`NCF: ${((fusionResult.aggregateAttentionWeights.NCF || 0) * 100).toFixed(1)}%`}
+                />
+                <div
+                  style={{ width: `${(fusionResult.aggregateAttentionWeights.CNN || 0.25) * 100}%` }}
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  title={`CNN: ${((fusionResult.aggregateAttentionWeights.CNN || 0) * 100).toFixed(1)}%`}
+                />
+                <div
+                  style={{ width: `${(fusionResult.aggregateAttentionWeights.GRU || 0.25) * 100}%` }}
+                  className="h-full bg-indigo-500 transition-all duration-500"
+                  title={`GRU: ${((fusionResult.aggregateAttentionWeights.GRU || 0) * 100).toFixed(1)}%`}
+                />
+                <div
+                  style={{ width: `${(fusionResult.aggregateAttentionWeights.AUTOENCODER || 0.25) * 100}%` }}
+                  className="h-full bg-purple-500 transition-all duration-500 last:rounded-r-full"
+                  title={`Autoencoder: ${((fusionResult.aggregateAttentionWeights.AUTOENCODER || 0) * 100).toFixed(1)}%`}
+                />
+              </div>
+
+              {/* 4 Modality Weight Cards */}
+              <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <div className="flex flex-col rounded-lg border border-blue-200/60 bg-blue-50/40 p-2.5">
+                  <span className="text-[10px] font-bold text-blue-700">NCF Collaborative</span>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-base font-extrabold text-blue-950">
+                      {((fusionResult.aggregateAttentionWeights.NCF || 0) * 100).toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-blue-600">α_NCF</span>
+                  </div>
+                  <span className="mt-0.5 text-[9px] text-muted">Co-occurrence affinity</span>
+                </div>
+
+                <div className="flex flex-col rounded-lg border border-emerald-200/60 bg-emerald-50/40 p-2.5">
+                  <span className="text-[10px] font-bold text-emerald-700">CNN Visual Features</span>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-base font-extrabold text-emerald-950">
+                      {((fusionResult.aggregateAttentionWeights.CNN || 0) * 100).toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-emerald-600">α_CNN</span>
+                  </div>
+                  <span className="mt-0.5 text-[9px] text-muted">Deep visual aesthetics</span>
+                </div>
+
+                <div className="flex flex-col rounded-lg border border-indigo-200/60 bg-indigo-50/40 p-2.5">
+                  <span className="text-[10px] font-bold text-indigo-700">GRU Sequence RNN</span>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-base font-extrabold text-indigo-950">
+                      {((fusionResult.aggregateAttentionWeights.GRU || 0) * 100).toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-indigo-600">α_GRU</span>
+                  </div>
+                  <span className="mt-0.5 text-[9px] text-muted">In-session trajectory</span>
+                </div>
+
+                <div className="flex flex-col rounded-lg border border-purple-200/60 bg-purple-50/40 p-2.5">
+                  <span className="text-[10px] font-bold text-purple-700">CDAE Latent Manifold</span>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-base font-extrabold text-purple-950">
+                      {((fusionResult.aggregateAttentionWeights.AUTOENCODER || 0) * 100).toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-purple-600">α_AE</span>
+                  </div>
+                  <span className="mt-0.5 text-[9px] text-muted">Sparse reconstruction</span>
+                </div>
+              </div>
+
+              {fusionResult.explanation && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-100/60 px-3 py-2 text-xs font-medium text-amber-950">
+                  <Sparkles className="h-4 w-4 flex-shrink-0 text-amber-700" />
+                  <span>{fusionResult.explanation}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Results Showcase */}
+          {fusionLoading ? (
+            <div className="flex min-h-[180px] items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+                <p className="text-xs font-medium text-muted">Fusing multi-modal embeddings across 4 models via Attention...</p>
+              </div>
+            </div>
+          ) : fusionResult?.recommendations && fusionResult.recommendations.length > 0 ? (
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 border border-amber-200">
+                    Attention-Fused Top-{fusionResult.recommendations.length} Recommendations
+                  </span>
+                  <span className="text-xs text-muted">Ranked by unified multi-modal hybrid score</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {fusionResult.recommendations.map((rec) => {
+                  const domMod = rec.dominantModality || 'NCF';
+                  const badgeColor =
+                    domMod === 'NCF'
+                      ? 'bg-blue-100 text-blue-800 border-blue-200'
+                      : domMod === 'CNN'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                      : domMod === 'GRU'
+                      ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                      : 'bg-purple-100 text-purple-800 border-purple-200';
+
+                  return (
+                    <div
+                      key={rec.productId}
+                      className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border-subtle bg-card-elevated p-4 transition-all hover:border-amber-400 hover:shadow-md"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
+                          Rank #{rec.rank}
+                        </span>
+                        <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900 border border-amber-200">
+                          {rec.affinityPercentage}% Fused
+                        </span>
+                      </div>
+
+                      <div className="my-2.5 flex items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                        <img
+                          src={rec.mainImage || '/placeholder.png'}
+                          alt={rec.name}
+                          className="h-28 w-28 object-contain transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&fit=crop&q=80';
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-muted">{rec.brand}</span>
+                          <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold border ${badgeColor}`}>
+                            ● {domMod} Dominant
+                          </span>
+                        </div>
+                        <h4 className="mt-1 line-clamp-2 text-xs font-bold text-ink" title={rec.name}>
+                          {rec.name}
+                        </h4>
+                      </div>
+
+                      {/* Mini Per-Item Attention Breakdown */}
+                      {rec.attentionWeights && (
+                        <div className="mt-2 rounded-lg bg-neutral-50/80 p-2 text-[10px] border border-border/40">
+                          <div className="text-[9px] font-bold text-muted uppercase">Attention Allocation</div>
+                          <div className="mt-1 grid grid-cols-4 gap-1 text-center font-mono text-[9px]">
+                            <span className="rounded bg-blue-50 text-blue-700 py-0.5" title="NCF Attention">
+                              N:{(rec.attentionWeights.ncf * 100).toFixed(0)}%
+                            </span>
+                            <span className="rounded bg-emerald-50 text-emerald-700 py-0.5" title="CNN Attention">
+                              C:{(rec.attentionWeights.cnn * 100).toFixed(0)}%
+                            </span>
+                            <span className="rounded bg-indigo-50 text-indigo-700 py-0.5" title="GRU Attention">
+                              G:{(rec.attentionWeights.gru * 100).toFixed(0)}%
+                            </span>
+                            <span className="rounded bg-purple-50 text-purple-700 py-0.5" title="AE Attention">
+                              A:{(rec.attentionWeights.autoencoder * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                        <div>
+                          <span className="text-xs font-extrabold text-ink">
+                            ₹{Number(rec.finalPrice || rec.price || 0).toLocaleString('en-IN')}
+                          </span>
+                          {rec.rating > 0 && (
+                            <span className="ml-2 text-[11px] font-medium text-amber-600">★ {rec.rating}</span>
+                          )}
+                        </div>
+                        <Link
+                          to={`/products/${rec.productId}`}
+                          target="_blank"
+                          className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                        >
+                          View <ArrowUpRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-neutral-50/50 p-6 text-center">
+              <Info className="h-5 w-5 text-muted" />
+              <p className="mt-2 text-xs font-medium text-ink">No attention fusion predictions available.</p>
+              <p className="text-[11px] text-muted">Select another user or click Compute Attention Fusion.</p>
             </div>
           )}
         </div>

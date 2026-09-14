@@ -29,6 +29,13 @@ export const adminService = {
     return api.get(`/admin/models/autoencoder-recommendations?userId=${userId}&topK=${topK}`);
   },
 
+  getAttentionFusionRecommendations: async (userId = 1, topK = 5, sessionId = null) => {
+    let url = `/admin/models/fusion-recommendations?userId=${userId}&topK=${topK}`;
+    if (sessionId) url += `&sessionId=${encodeURIComponent(sessionId)}`;
+    return api.get(url);
+  },
+
+
   getCnnVisualSimilarities: async (productId = 3129, topK = 6, categoryId = null, allCategories = false) => {
     let url = `/admin/models/visual-similarity?productId=${productId}&topK=${topK}`;
     if (categoryId) url += `&categoryId=${categoryId}`;

@@ -10,6 +10,7 @@ import {
   getCnnEmbeddingMatrixSample,
   getGruRecommendations,
   getAutoencoderRecommendations,
+  getAttentionFusionRecommendations,
   requestRetraining,
   getBusinessRules,
   updateBusinessRules,
@@ -32,6 +33,7 @@ router.get('/models/visual-similarity', getCnnVisualSimilarities);
 router.get('/models/cnn-matrix', getCnnEmbeddingMatrixSample);
 router.get('/models/gru-recommendations', getGruRecommendations);
 router.get('/models/autoencoder-recommendations', getAutoencoderRecommendations);
+router.get('/models/fusion-recommendations', getAttentionFusionRecommendations);
 router.post('/models/retrain', requestRetraining);
 router.get('/business-rules', getBusinessRules);
 router.patch('/business-rules', updateBusinessRules);

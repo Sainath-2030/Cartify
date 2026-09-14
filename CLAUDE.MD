@@ -1307,25 +1307,32 @@ Implementation Details:
 
 ---
 
-# 28. ATTENTION FUSION — PLANNED
+# 28. ATTENTION FUSION — IMPLEMENTED
 
 Final hybrid architecture:
 
-NCF Embedding
+NCF Embedding (64-dim)
        +
-GRU Embedding
+CNN Embedding (256-dim -> 64-dim projection)
        +
-CNN Embedding
+GRU Embedding (64-dim session sequence)
        +
-Autoencoder Embedding
+Autoencoder Embedding (64-dim latent manifold)
        ↓
-Attention Fusion
+Attention Fusion Layer (Softmax Dynamic Salience & Query-Key Scoring)
        ↓
-Final User/Product Representation
+Fused Representation & Scoring Head (MLP 64 -> 64 -> 32 -> 1)
        ↓
-Recommendation Ranking
+Personalized Recommendation Ranking & Modality Attribution
 
-Do not implement recommendation scores before the actual models exist.
+STATUS: COMPLETE & DEPLOYED
+- PyTorch network `AttentionFusion` trained with BCELoss across positive and negative interaction pairs.
+- Checkpoints & metadata saved:
+  - `ml-service/artifacts/fusion_model.pt`
+  - `ml-service/artifacts/fusion_metadata.json`
+- Real-time CLI inference (`python -m fusion.recommend --user <id> --top_k <k> --json --inspect`).
+- Backend integration: Express endpoint `GET /api/admin/models/fusion-recommendations` integrated in `adminService.js`, `adminController.js`, and `adminRoutes.js`.
+- Admin UI integration: Integrated into `/admin/models` with live dynamic multi-modal attention weight distribution gauges (`α_NCF`, `α_CNN`, `α_GRU`, `α_AE`), stacked attention partition visualization, and top-K product cards with per-item modality attribution.
 
 ---
 
@@ -1772,11 +1779,23 @@ STATUS: COMPLETE & DEPLOYED (Training, Latent Manifold & Reconstructed Top-K Inf
 
 ---
 
+Section 28 / 9 — Attention Fusion Layer (Multi-Modal Hybrid Aggregator)
+STATUS: COMPLETE & DEPLOYED (All 5 Multi-Model Stages Online)
+- Unites all 4 recommendation model embedding representations (NCF + CNN + GRU + Autoencoder) through a query-conditioned Softmax Attention network.
+- Artifacts saved:
+  - `ml-service/artifacts/fusion_model.pt`
+  - `ml-service/artifacts/fusion_metadata.json`
+- Hybrid inference CLI (`python -m fusion.recommend --user <id> --top_k <k> --json --inspect`) and Express endpoint `GET /api/admin/models/fusion-recommendations`.
+- Admin UI integration: Live multi-modal attention distribution breakdown, dominant modality badges, and dynamic top-K hybrid ranking simulator in `/admin/models`.
+- 100% of the 5-stage multi-model recommendation engine is now active and online.
+
+---
+
 # 43. CURRENT NEXT STEP
 
-Section 28 / 9 — Attention Fusion Layer (Multi-Modal Hybrid Aggregator)
+Phase 2.4 — Shopping Cart & Wishlist UI/UX Polish or Storefront Fusion Recommendation Placement
 STATUS: READY TO PROCEED
-- Fuses all 4 recommendation model embedding vectors (NCF + CNN + GRU + Autoencoder) through an Attention mechanism to output unified, personalized recommendation rankings across the Cartify storefront.
+- Storefront can now optionally consume the Attention Fusion endpoint for personalized shelves on `/` and `/products/:slug`.
 
 ---
 

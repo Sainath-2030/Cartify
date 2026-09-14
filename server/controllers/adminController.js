@@ -120,10 +120,20 @@ export const getAutoencoderRecommendations = asyncHandler(async (req, res) => {
   res.status(200).json(result);
 });
 
+// GET /api/admin/models/fusion-recommendations
+export const getAttentionFusionRecommendations = asyncHandler(async (req, res) => {
+  const userId = parseInt(req.query.userId, 10) || 1;
+  const sessionId = req.query.sessionId || null;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 5));
+  const result = await AdminService.getAttentionFusionRecommendations({ userId, sessionId, topK });
+  res.status(200).json(result);
+});
+
 // GET /api/admin/audit-logs
 export const getAuditLogs = asyncHandler(async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
   const logs = await AdminService.getAuditLogs(limit);
   res.status(200).json({ success: true, data: logs });
 });
+
 
