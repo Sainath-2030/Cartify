@@ -37,3 +37,26 @@ export const getBrands = asyncHandler(async (req, res) => {
   const brands = await ProductService.listBrands(req.query.category);
   res.status(200).json({ success: true, data: brands });
 });
+
+export const getSimilarProducts = asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) {
+    throw new AppError('Invalid product id.', 400);
+  }
+  const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 6));
+  const similar = await ProductService.getVisuallySimilarProducts(id, limit);
+  res.status(200).json({ success: true, data: similar });
+});
+
+export const getForYouRecommendations = asyncHandler(async (req, res) => {
+  const userId = req.user?.id || (req.query.userId ? parseInt(req.query.userId, 10) : null);
+  const sessionId = req.query.sessionId || req.headers['x-session-id'] || null;
+  const topK = Math.min(20, Math.max(1, parseInt(req.query.topK, 10) || 8));
+
+  const result = await ProductService.getForYouRecommendations({ userId, sessionId, topK });
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+

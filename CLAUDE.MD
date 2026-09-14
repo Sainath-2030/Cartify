@@ -1791,11 +1791,28 @@ STATUS: COMPLETE & DEPLOYED (All 5 Multi-Model Stages Online)
 
 ---
 
+Section 10 — AI + Customer Storefront Integration
+STATUS: COMPLETE & DEPLOYED (Live Customer Storefront & Product Details Integration Verified)
+- Live Storefront (`/` Home):
+  - Authenticated recommendations driven by Attention Fusion with real-time multi-modal attention aggregation and fallback to NCF.
+  - Anonymous Guest recommendations driven by real-time GRU recurrent session trajectory sequence inference via `cartify_session_id`, with graceful trending fallback.
+  - Dynamic AI Attribution Badges displayed on shelves ("AI Attention Fusion", "GRU Session AI", "Curated AI Picks") with dominant modality attribution badges on cards.
+- Product Details (`/products/:slug`):
+  - Added "Visually Similar Selections" shelf powered by CNN ResNet-18 normalized 256-dim embeddings via `GET /api/products/:id/similar`.
+  - Visual similarity percentage badges rendered on cards.
+- Backend & Router Upgrades:
+  - Enhanced GRU CLI `recommend.py` to support `--session <id>` and `--sequence <pids>` for direct guest clickstream inference.
+  - Registered `GET /api/products/recommendations/for-you` (with optionalAuth) and `GET /api/products/:id/similar` with strict precedence before dynamic product slug routes.
+  - Added user profile recommendations alias `GET /api/users/me/recommendations`.
+  - Comprehensive 6/6 test verification suite `server/scripts/test_section10_ai_integration.js` passing 100%.
+
+---
+
 # 43. CURRENT NEXT STEP
 
-Phase 2.4 — Shopping Cart & Wishlist UI/UX Polish or Storefront Fusion Recommendation Placement
+Phase 2.4 — Shopping Cart & Wishlist UI/UX Polish
 STATUS: READY TO PROCEED
-- Storefront can now optionally consume the Attention Fusion endpoint for personalized shelves on `/` and `/products/:slug`.
+- Complete Cart Drawer & Cart Page refinements, item mutations, move-to-cart workflows, and stock checks.
 
 ---
 

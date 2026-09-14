@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Sparkles } from 'lucide-react';
 import ProductGallery from '../components/ProductGallery.jsx';
 import ProductInfo from '../components/ProductInfo.jsx';
 import ReviewSection from '../components/ReviewSection.jsx';
@@ -16,6 +16,7 @@ export default function ProductDetail() {
   const { track } = useInteractionTracking();
 
   const [product, setProduct] = useState(null);
+  const [similarProducts, setSimilarProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +36,14 @@ export default function ProductDetail() {
       setProduct(res.data);
       addRecentlyViewedProduct(res.data);
       track('VIEW', { productId: res.data.id, metadata: { slug, categoryId: res.data.category_id } });
+
+      // Fetch visually similar items using CNN ResNet-18 embeddings
+      try {
+        const simRes = await productService.getSimilar(res.data.id, 4);
+        setSimilarProducts(simRes.data?.similarProducts || (Array.isArray(simRes.data) ? simRes.data : []));
+      } catch (simErr) {
+        console.warn('Could not load visually similar products:', simErr);
+      }
     } catch (err) {
       if (err.status === 404) setNotFound(true);
       else setError(err.message || 'Unable to load this product right now.');
@@ -139,6 +148,58 @@ export default function ProductDetail() {
           )}
         </div>
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* AI VISUALLY SIMILAR SELECTIONS (CNN RESNET-18)                */}
+      {/* ------------------------------------------------------------- */}
+      {similarProducts.length > 0 && (
+        <div className="mt-12 border-t border-border-subtle pt-10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-accent-ink">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-ink">
+                  Visually Similar Selections
+                </h2>
+                <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
+                  CNN ResNet-18 Visual AI
+                </span>
+              </div>
+              <p className="text-xs text-muted mt-1">
+                Products sharing visual silhouettes, color harmonics, and textures with this item.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {similarProducts.map((p) => (
+              <div key={p.productId || p.id} className="relative group">
+                {(p.similarityPercentage || p.score) && (
+                  <div className="absolute top-3 right-3 z-20 rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold text-accent-ink shadow-sm">
+                    {Math.round(p.similarityPercentage || (p.score * 100))}% Match
+                  </div>
+                )}
+                <ProductCard
+                  product={{
+                    id: p.productId || p.id,
+                    name: p.name,
+                    slug: p.slug,
+                    brand: p.brand,
+                    main_image: p.mainImage || p.main_image,
+                    price: p.price,
+                    final_price: p.finalPrice || p.final_price || p.price,
+                    rating: p.rating || 4.5,
+                    category_id: p.categoryId || p.category_id,
+                    stock_quantity: p.stock_quantity ?? 10,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {product.relatedProducts?.length > 0 && (
         <div className="mt-8 border-t border-border-subtle pt-10">

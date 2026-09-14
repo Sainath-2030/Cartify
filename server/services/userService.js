@@ -39,6 +39,33 @@ export const UserService = {
   async getRecommendations(userId, topK = 6) {
     const { pool } = await import('../config/db.js');
 
+    // 1. Prioritize Attention Fusion (Section 9/10: NCF + CNN + GRU + Autoencoder)
+    try {
+      const { AdminService } = await import('./adminService.js');
+      const fusionRes = await AdminService.getAttentionFusionRecommendations({ userId, topK });
+      if (fusionRes && fusionRes.recommendations && fusionRes.recommendations.length > 0) {
+        return fusionRes.recommendations.map((r) => ({
+          rank: r.rank,
+          productId: r.productId,
+          score: r.score,
+          affinityPercentage: r.affinityPercentage,
+          dominantModality: r.dominantModality,
+          attentionWeights: r.attentionWeights,
+          name: r.name,
+          category: r.category || 'General',
+          price: r.price,
+          finalPrice: r.finalPrice,
+          mainImage: r.mainImage,
+          brand: r.brand,
+          rating: r.rating,
+          categoryId: r.categoryId,
+          origin: 'attention_fusion',
+        }));
+      }
+    } catch (fusionErr) {
+      console.warn('Attention Fusion inference fallback:', fusionErr.message);
+    }
+
     let ncfRecs = [];
     try {
       const { AdminService } = await import('./adminService.js');

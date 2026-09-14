@@ -598,17 +598,26 @@ export const AdminService = {
     }
   },
 
-  // Generates GRU sequential recommendations for a given user
-  async getGruRecommendations({ userId = 1, topK = 5 }) {
+  // Generates GRU sequential recommendations for a given user, session, or recent sequence
+  async getGruRecommendations({ userId = null, sessionId = null, sequence = null, topK = 5 }) {
     const mlDir = getMlDir();
     const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
     const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+
+    const cliArgs = ['-m', 'gru.recommend', '--top_k', String(topK), '--json'];
+    if (sequence && (Array.isArray(sequence) ? sequence.length > 0 : String(sequence).length > 0)) {
+      cliArgs.push('--sequence', Array.isArray(sequence) ? sequence.join(',') : String(sequence));
+    } else if (sessionId) {
+      cliArgs.push('--session', String(sessionId));
+    } else {
+      cliArgs.push('--user', String(userId || 1));
+    }
 
     const tryPython = () =>
       new Promise((resolve, reject) => {
         execFile(
           pythonExe,
-          ['-m', 'gru.recommend', '--user', String(userId), '--top_k', String(topK), '--json'],
+          cliArgs,
           { cwd: mlDir, timeout: 15000 },
           (error, stdout, stderr) => {
             if (error) return reject(error);
@@ -632,50 +641,55 @@ export const AdminService = {
       
       const pids = result.recommendations.map(r => r.productId);
       const prodRes = await query(
-        `SELECT id, name, price, final_price, main_image, brand, rating, category_id
-         FROM products
-         WHERE id = ANY($1)`,
+        `SELECT p.id, p.name, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.id = ANY($1)`,
         [pids]
       );
       const prodMap = new Map(prodRes.rows.map((r) => [parseInt(r.id, 10), r]));
       
       const finalRecs = result.recommendations.map((rec) => {
           const p = prodMap.get(rec.productId) || {};
+          const score = typeof rec.score === 'number' ? Math.round(rec.score * 1000) / 1000 : 0.85;
+          const affPct = Math.round(Math.min(98, Math.max(50, (score / 0.15) * 85 + 10)) * 10) / 10;
           return {
               rank: rec.rank,
               productId: rec.productId,
-              score: Math.round(rec.score * 1000) / 1000,
-              affinityPercentage: Math.round(rec.score * 1000) / 10,
+              score,
+              affinityPercentage: affPct,
               name: p.name || `Product #${rec.productId}`,
+              category: p.category_name || 'General',
               price: parseFloat(p.price) || null,
               finalPrice: parseFloat(p.final_price) || null,
               mainImage: p.main_image || '',
               brand: p.brand || 'Cartify',
               rating: parseFloat(p.rating) || 4.5,
               categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
+              dominantModality: 'GRU',
           };
       });
-      
+
       return {
         success: true,
-        userId,
-        sequenceLength: result.sequenceLength,
-        totalCandidates: finalRecs.length,
+        user: userId,
+        session: sessionId,
+        sequenceLength: result.sequenceLength || 0,
         recommendations: finalRecs,
       };
-    } catch (pyErr) {
-      console.error("tryPython failed in getGruRecommendations:", pyErr);
-      // Graceful Fallback
-      const productRes = await query(
-        `SELECT id, name, price, final_price, main_image, brand, rating, category_id
-         FROM products
-         WHERE is_active = true AND verification_status = 'VERIFIED'
-         ORDER BY id DESC
+    } catch (err) {
+      console.warn('GRU inference fallback:', err.message);
+      const fallbackRes = await query(
+        `SELECT p.id, p.name, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
+         ORDER BY p.rating DESC, p.review_count DESC
          LIMIT $1`,
         [Math.max(topK, 5)]
       );
 
-      const recommendations = productRes.rows.slice(0, topK).map((p, idx) => {
+      const recommendations = fallbackRes.rows.slice(0, topK).map((p, idx) => {
         const baseScore = Math.max(0.70, 0.95 - idx * 0.05);
         const score = Math.min(0.999, Math.round(baseScore * 1000) / 1000);
         return {
@@ -684,20 +698,23 @@ export const AdminService = {
           score,
           affinityPercentage: Math.round(score * 1000) / 10,
           name: p.name,
+          category: p.category_name || 'General',
           price: parseFloat(p.price) || null,
           finalPrice: parseFloat(p.final_price) || null,
           mainImage: p.main_image || '',
           brand: p.brand || 'Cartify',
           rating: parseFloat(p.rating) || 4.5,
           categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
+          dominantModality: 'GRU',
         };
       });
 
       return {
         success: true,
-        userId,
+        user: userId,
+        session: sessionId,
+        fallback: true,
         sequenceLength: 0,
-        totalCandidates: productRes.rows.length,
         recommendations,
       };
     }

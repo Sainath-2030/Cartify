@@ -43,6 +43,7 @@ import { productService } from '../services/productService.js';
 import { categoryService } from '../services/categoryService.js';
 import { userService } from '../services/userService.js';
 import { getRecentlyViewedProducts } from '../utils/recentViews.js';
+import { getSessionId } from '../utils/session.js';
 import { useToast } from '../hooks/useToast.js';
 import { useAuth } from '../hooks/useAuth.js';
 
@@ -213,6 +214,7 @@ export default function Home() {
 
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [recSource, setRecSource] = useState('attention_fusion');
 
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
@@ -302,14 +304,13 @@ export default function Home() {
   };
 
   const loadRecommendations = async () => {
-    if (!user) {
-      setRecommendedProducts([]);
-      return;
-    }
     try {
       setRecLoading(true);
-      const res = await userService.getRecommendations(8);
-      setRecommendedProducts(res.data?.recommendations || []);
+      const sessionId = getSessionId();
+      const res = await productService.getForYou({ sessionId, topK: 8 });
+      const recs = res.data?.recommendations || res.recommendations || [];
+      setRecommendedProducts(recs);
+      setRecSource(res.data?.source || res.source || (user ? 'attention_fusion' : 'gru_session'));
     } catch (err) {
       console.warn('Could not load homepage recommendations:', err);
     } finally {
@@ -551,9 +552,9 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* 4.5 AI-POWERED PERSONALIZED RECOMMENDATIONS (NCF)             */}
+      {/* 4.5 AI-POWERED PERSONALIZED RECOMMENDATIONS                   */}
       {/* ------------------------------------------------------------- */}
-      {user && recommendedProducts.length > 0 && (
+      {recommendedProducts.length > 0 && (
         <section>
           <Container size="storefront">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6 border-b border-border-subtle pb-4">
@@ -563,14 +564,22 @@ export default function Home() {
                     <Sparkles className="h-3.5 w-3.5" />
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-ink">
-                    Recommended for You
+                    {user ? 'Recommended for You' : 'Picked for Your Session'}
                   </h2>
                   <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
-                    AI NeuMF Powered
+                    {recSource === 'attention_fusion'
+                      ? 'AI Attention Fusion'
+                      : recSource === 'gru_session'
+                      ? 'GRU Session AI'
+                      : 'Curated AI Picks'}
                   </span>
                 </div>
                 <p className="text-xs text-muted mt-1">
-                  Personalized product affinity predictions calculated for {user.full_name || 'your profile'}.
+                  {recSource === 'attention_fusion'
+                    ? `Deep multi-modal affinity predictions calculated for ${user?.full_name || 'your profile'}.`
+                    : recSource === 'gru_session'
+                    ? 'In-session recurrent sequence trajectory predictions adapted to your browsing.'
+                    : 'Popular AI-curated discovery picks tailored for your session.'}
                 </p>
               </div>
               <Link to="/products" className="text-xs font-semibold text-accent hover:underline flex items-center gap-1">
@@ -585,12 +594,13 @@ export default function Home() {
                 {recommendedProducts.map((p) => (
                   <div key={p.productId || p.id} className="relative group">
                     <div className="absolute top-3 right-3 z-20 rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold text-accent-ink shadow-sm">
-                      {p.affinityPercentage ? `${p.affinityPercentage}% Match` : 'Top Pick'}
+                      {p.dominantModality ? `${p.dominantModality} • ${p.affinityPercentage || Math.round((p.score || 0.8) * 100)}%` : p.affinityPercentage ? `${p.affinityPercentage}% Match` : 'Top Pick'}
                     </div>
                     <ProductCard
                       product={{
                         id: p.productId || p.id,
                         name: p.name,
+                        slug: p.slug,
                         brand: p.brand,
                         main_image: p.mainImage || p.main_image,
                         price: p.price,

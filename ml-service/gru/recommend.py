@@ -19,41 +19,67 @@ from gru.config import (
 from gru.dataset import load_id_maps
 from gru.model import GRURecommender
 
-def fetch_user_recent_sequence_with_context(user_id, item_to_idx):
+def fetch_user_recent_sequence_with_context(user_id=None, session_id=None, raw_sequence=None, item_to_idx={}):
     conn = get_db_connection()
     try:
-        # 1. Fetch user's latest active session with product category
-        query = """
-        WITH latest_session AS (
-            SELECT session_id
-            FROM interactions
-            WHERE user_id = %s AND session_id IS NOT NULL
-            ORDER BY created_at DESC
-            LIMIT 1
-        )
-        SELECT i.product_id, c.name as category
-        FROM interactions i
-        JOIN products p ON i.product_id = p.id
-        JOIN categories c ON p.category_id = c.id
-        WHERE i.user_id = %s AND i.session_id = (SELECT session_id FROM latest_session)
-        ORDER BY i.created_at ASC
-        """
-        df = pd.read_sql(query, conn, params=(user_id, user_id))
-        
-        # 2. Fallback to recent interactions if latest session had < 2 items
-        if df.empty or len(df) < 2:
-            query_fallback = """
+        df = pd.DataFrame()
+        if raw_sequence:
+            pids = [int(p) for p in raw_sequence if str(p).isdigit()]
+            if pids:
+                query_raw = f"""
+                SELECT p.id as product_id, c.name as category
+                FROM products p
+                JOIN categories c ON p.category_id = c.id
+                WHERE p.id IN ({','.join(map(str, pids))})
+                """
+                df = pd.read_sql(query_raw, conn)
+                # preserve order of pids
+                order_map = {pid: idx for idx, pid in enumerate(pids)}
+                df["order"] = df["product_id"].map(order_map)
+                df = df.sort_values("order").drop(columns=["order"])
+        elif session_id:
+            query_session = """
             SELECT i.product_id, c.name as category
             FROM interactions i
             JOIN products p ON i.product_id = p.id
             JOIN categories c ON p.category_id = c.id
-            WHERE i.user_id = %s AND i.product_id IS NOT NULL
-            ORDER BY i.created_at DESC
-            LIMIT %s
+            WHERE i.session_id = %s AND i.product_id IS NOT NULL
+            ORDER BY i.created_at ASC
             """
-            df_fallback = pd.read_sql(query_fallback, conn, params=(user_id, MAX_SEQUENCE_LENGTH * 2))
-            if not df_fallback.empty:
-                df = df_fallback.iloc[::-1] # Reverse to chronological order
+            df = pd.read_sql(query_session, conn, params=(session_id,))
+        elif user_id is not None:
+            # 1. Fetch user's latest active session with product category
+            query = """
+            WITH latest_session AS (
+                SELECT session_id
+                FROM interactions
+                WHERE user_id = %s AND session_id IS NOT NULL
+                ORDER BY created_at DESC
+                LIMIT 1
+            )
+            SELECT i.product_id, c.name as category
+            FROM interactions i
+            JOIN products p ON i.product_id = p.id
+            JOIN categories c ON p.category_id = c.id
+            WHERE i.user_id = %s AND i.session_id = (SELECT session_id FROM latest_session)
+            ORDER BY i.created_at ASC
+            """
+            df = pd.read_sql(query, conn, params=(user_id, user_id))
+            
+            # 2. Fallback to recent interactions if latest session had < 2 items
+            if df.empty or len(df) < 2:
+                query_fallback = """
+                SELECT i.product_id, c.name as category
+                FROM interactions i
+                JOIN products p ON i.product_id = p.id
+                JOIN categories c ON p.category_id = c.id
+                WHERE i.user_id = %s AND i.product_id IS NOT NULL
+                ORDER BY i.created_at DESC
+                LIMIT %s
+                """
+                df_fallback = pd.read_sql(query_fallback, conn, params=(user_id, MAX_SEQUENCE_LENGTH * 2))
+                if not df_fallback.empty:
+                    df = df_fallback.iloc[::-1] # Reverse to chronological order
     finally:
         conn.close()
     
@@ -91,7 +117,9 @@ def load_catalog_metadata():
 
 def main():
     parser = argparse.ArgumentParser(description="GRU Session Sequence Inference")
-    parser.add_argument("--user", type=int, required=True, help="User ID to recommend for")
+    parser.add_argument("--user", type=int, default=None, help="User ID to recommend for")
+    parser.add_argument("--session", type=str, default=None, help="Session ID to recommend for")
+    parser.add_argument("--sequence", type=str, default=None, help="Comma-separated product IDs in recent sequence")
     parser.add_argument("--top_k", type=int, default=10, help="Number of recommendations")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
@@ -127,7 +155,13 @@ def main():
         return
 
     # Fetch active sequence and session context
-    sequence_data = fetch_user_recent_sequence_with_context(args.user, item_to_idx)
+    raw_seq = [int(p) for p in args.sequence.split(",") if p.strip().isdigit()] if args.sequence else None
+    sequence_data = fetch_user_recent_sequence_with_context(
+        user_id=args.user,
+        session_id=args.session,
+        raw_sequence=raw_seq,
+        item_to_idx=item_to_idx
+    )
     sequence = sequence_data["sequence"]
     dominant_cat = sequence_data.get("dominant_category")
     session_cats = sequence_data.get("session_categories", set())
@@ -136,8 +170,9 @@ def main():
         if args.json:
             print(json.dumps({
                 "user": args.user,
+                "session": args.session,
                 "recommendations": [],
-                "error": "No recent session interactions found for this user."
+                "error": "No recent session interactions found."
             }))
         else:
             print("No interactions found.")
