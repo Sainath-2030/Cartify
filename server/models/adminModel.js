@@ -92,7 +92,7 @@ export const AdminModel = {
       whereClause = "WHERE created_at >= NOW() - INTERVAL '30 days'";
     }
 
-    const [breakdownRes, summaryRes] = await Promise.all([
+    const [breakdownRes, summaryRes, timelineRes] = await Promise.all([
       query(`
         SELECT
           interaction_type,
@@ -113,6 +113,19 @@ export const AdminModel = {
         FROM interactions
         ${whereClause}
       `),
+      query(`
+        SELECT
+          TO_CHAR(created_at, 'YYYY-MM-DD') AS day,
+          COUNT(*) AS count,
+          COUNT(*) FILTER (WHERE interaction_type = 'VIEW') AS views,
+          COUNT(*) FILTER (WHERE interaction_type IN ('CART_ADD', 'WISHLIST_ADD')) AS intent,
+          COUNT(*) FILTER (WHERE interaction_type = 'PURCHASE') AS purchases
+        FROM interactions
+        ${whereClause}
+        GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
+        ORDER BY day ASC
+        LIMIT 30
+      `),
     ]);
 
     const summary = summaryRes.rows[0];
@@ -129,6 +142,95 @@ export const AdminModel = {
         uniqueSessions: parseInt(r.unique_sessions, 10),
         uniqueProducts: parseInt(r.unique_products, 10),
       })),
+      timeline: timelineRes.rows.map((r) => ({
+        date: r.day,
+        total: parseInt(r.count, 10),
+        views: parseInt(r.views, 10),
+        intent: parseInt(r.intent, 10),
+        purchases: parseInt(r.purchases, 10),
+      })),
+    };
+  },
+
+  // Computes e-commerce conversion funnel stages
+  async getTelemetryFunnel(timeframe = 'all') {
+    let whereClause = '';
+    if (timeframe === '24h') {
+      whereClause = "WHERE created_at >= NOW() - INTERVAL '24 hours'";
+    } else if (timeframe === '7d') {
+      whereClause = "WHERE created_at >= NOW() - INTERVAL '7 days'";
+    } else if (timeframe === '30d') {
+      whereClause = "WHERE created_at >= NOW() - INTERVAL '30 days'";
+    }
+
+    const res = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE interaction_type = 'VIEW') AS views_count,
+        COUNT(DISTINCT session_id) FILTER (WHERE interaction_type = 'VIEW') AS views_sessions,
+        COUNT(DISTINCT user_id) FILTER (WHERE interaction_type = 'VIEW' AND user_id IS NOT NULL) AS views_users,
+        
+        COUNT(*) FILTER (WHERE interaction_type IN ('CART_ADD', 'WISHLIST_ADD')) AS intent_count,
+        COUNT(DISTINCT session_id) FILTER (WHERE interaction_type IN ('CART_ADD', 'WISHLIST_ADD')) AS intent_sessions,
+        COUNT(DISTINCT user_id) FILTER (WHERE interaction_type IN ('CART_ADD', 'WISHLIST_ADD') AND user_id IS NOT NULL) AS intent_users,
+
+        COUNT(*) FILTER (WHERE interaction_type = 'CART_ADD') AS cart_count,
+        COUNT(*) FILTER (WHERE interaction_type = 'WISHLIST_ADD') AS wishlist_count,
+        
+        COUNT(*) FILTER (WHERE interaction_type = 'PURCHASE') AS purchase_count,
+        COUNT(DISTINCT session_id) FILTER (WHERE interaction_type = 'PURCHASE') AS purchase_sessions,
+        COUNT(DISTINCT user_id) FILTER (WHERE interaction_type = 'PURCHASE' AND user_id IS NOT NULL) AS purchase_users
+      FROM interactions
+      ${whereClause}
+    `);
+
+    const r = res.rows[0];
+    const views = parseInt(r.views_count || 0, 10);
+    const intent = parseInt(r.intent_count || 0, 10);
+    const purchases = parseInt(r.purchase_count || 0, 10);
+
+    const viewToIntentRate = views > 0 ? Math.round((intent / views) * 1000) / 10 : 0;
+    const intentToPurchaseRate = intent > 0 ? Math.round((purchases / intent) * 1000) / 10 : 0;
+    const overallConversionRate = views > 0 ? Math.round((purchases / views) * 1000) / 10 : 0;
+
+    return {
+      timeframe,
+      stages: [
+        {
+          stage: 'Discovery & Product Views',
+          interactionType: 'VIEW',
+          events: views,
+          uniqueUsers: parseInt(r.views_users || 0, 10),
+          uniqueSessions: parseInt(r.views_sessions || 0, 10),
+          dropoffRate: views > 0 ? Math.max(0, Math.round((100 - viewToIntentRate) * 10) / 10) : 0,
+        },
+        {
+          stage: 'High Intent (Cart & Wishlist)',
+          interactionType: 'INTENT',
+          events: intent,
+          breakdown: {
+            cartAdds: parseInt(r.cart_count || 0, 10),
+            wishlistAdds: parseInt(r.wishlist_count || 0, 10),
+          },
+          uniqueUsers: parseInt(r.intent_users || 0, 10),
+          uniqueSessions: parseInt(r.intent_sessions || 0, 10),
+          conversionFromPrevious: viewToIntentRate,
+          dropoffRate: intent > 0 ? Math.max(0, Math.round((100 - intentToPurchaseRate) * 10) / 10) : 0,
+        },
+        {
+          stage: 'Order Conversion (Purchases)',
+          interactionType: 'PURCHASE',
+          events: purchases,
+          uniqueUsers: parseInt(r.purchase_users || 0, 10),
+          uniqueSessions: parseInt(r.purchase_sessions || 0, 10),
+          conversionFromPrevious: intentToPurchaseRate,
+          overallConversionRate,
+        },
+      ],
+      rates: {
+        viewToIntentRate,
+        intentToPurchaseRate,
+        overallConversionRate,
+      },
     };
   },
 };

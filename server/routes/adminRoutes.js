@@ -2,8 +2,10 @@ import { Router } from 'express';
 import {
   getCatalogueHealth,
   getInteractionAnalytics,
+  getTelemetryFunnel,
   getModelMetrics,
   getModelStatus,
+  triggerModelEvaluation,
   getNcfRecommendations,
   getNcfAffinityMatrix,
   getCnnVisualSimilarities,
@@ -25,8 +27,10 @@ router.use(requireAuth, requireRole('ADMIN'));
 
 router.get('/catalogue/health', getCatalogueHealth);
 router.get('/analytics/interactions', getInteractionAnalytics);
+router.get('/analytics/funnel', getTelemetryFunnel);
 router.get('/models/metrics', getModelMetrics);
 router.get('/models/status', getModelStatus);
+router.post('/models/evaluate', triggerModelEvaluation);
 router.get('/models/recommendations', getNcfRecommendations);
 router.get('/models/affinity-matrix', getNcfAffinityMatrix);
 router.get('/models/visual-similarity', getCnnVisualSimilarities);

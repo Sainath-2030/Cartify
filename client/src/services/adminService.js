@@ -64,6 +64,16 @@ export const adminService = {
     return res.data;
   },
 
+  getTelemetryFunnel: async (timeframe = 'all') => {
+    const res = await api.get(`/admin/analytics/funnel?timeframe=${timeframe}`);
+    return res.data;
+  },
+
+  triggerModelEvaluation: async () => {
+    const res = await api.post('/admin/models/evaluate');
+    return res.data;
+  },
+
   getBusinessRules: async () => {
     const res = await api.get('/admin/business-rules');
     return res.data;

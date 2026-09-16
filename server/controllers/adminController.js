@@ -16,10 +16,27 @@ export const getInteractionAnalytics = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: analytics });
 });
 
+// GET /api/admin/analytics/funnel
+export const getTelemetryFunnel = asyncHandler(async (req, res) => {
+  const timeframe = req.query.timeframe || 'all';
+  const funnel = await AdminService.getTelemetryFunnel({ timeframe });
+  res.status(200).json({ success: true, data: funnel });
+});
+
 // GET /api/admin/models/metrics
 export const getModelMetrics = asyncHandler(async (req, res) => {
   const metrics = await AdminService.getModelMetrics();
   res.status(200).json({ success: true, data: metrics });
+});
+
+// POST /api/admin/models/evaluate
+export const triggerModelEvaluation = asyncHandler(async (req, res) => {
+  const benchmark = await AdminService.triggerModelEvaluation();
+  res.status(200).json({
+    success: true,
+    message: 'Recommendation models offline evaluation benchmark completed successfully.',
+    data: benchmark,
+  });
 });
 
 // GET /api/admin/models/status

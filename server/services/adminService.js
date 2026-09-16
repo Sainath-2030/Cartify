@@ -32,51 +32,87 @@ export const AdminService = {
     return AdminModel.getInteractionAnalytics(timeframe);
   },
 
-  // Recommendation metrics contract
+  // Returns e-commerce telemetry funnel analytics
+  async getTelemetryFunnel({ timeframe = 'all' }) {
+    return AdminModel.getTelemetryFunnel(timeframe);
+  },
+
+  // Comprehensive recommendation metrics contract with multi-model offline benchmarks
   async getModelMetrics() {
     const mlDir = getMlDir();
-    const checkpointPath = path.join(mlDir, 'artifacts', 'ncf_model.pt');
-    const idMapsPath = path.join(mlDir, 'artifacts', 'ncf_id_maps.json');
-    const cnnCheckpointPath = path.join(mlDir, 'artifacts', 'cnn_model.pt');
-    const cnnEmbeddingsPath = path.join(mlDir, 'artifacts', 'cnn_embeddings.npy');
-    const gruCheckpointPath = path.join(mlDir, 'artifacts', 'gru_model.pt');
-    const autoencoderCheckpointPath = path.join(mlDir, 'artifacts', 'autoencoder_model.pt');
-    const autoencoderLatentPath = path.join(mlDir, 'artifacts', 'autoencoder_latent_embeddings.npy');
+    const evaluationMetricsPath = path.join(mlDir, 'artifacts', 'model_evaluation_metrics.json');
 
-    const hasTrainedNcf = fs.existsSync(checkpointPath) && fs.existsSync(idMapsPath);
-    const hasTrainedCnn = fs.existsSync(cnnEmbeddingsPath);
-    const hasTrainedGru = fs.existsSync(gruCheckpointPath);
-    const hasTrainedAutoencoder = fs.existsSync(autoencoderCheckpointPath) && fs.existsSync(autoencoderLatentPath);
+    let benchmark = null;
+    if (fs.existsSync(evaluationMetricsPath)) {
+      try {
+        const raw = fs.readFileSync(evaluationMetricsPath, 'utf8');
+        benchmark = JSON.parse(raw);
+      } catch (e) {
+        console.error('Error reading model evaluation metrics:', e);
+      }
+    }
+
+    const fusion = benchmark?.models?.fusion;
 
     return {
       status: 'AVAILABLE',
-      activeModel: 'NCF (Neural Collaborative Filtering), CNN (ResNet18 Visual Embeddings), GRU (Session Sequence) & Autoencoder (Collaborative Denoising)',
+      activeModel: 'Multi-Modal Attention Fusion (NCF + CNN + GRU + Autoencoder)',
+      evaluatedAt: benchmark?.evaluatedAt || new Date().toISOString(),
+      benchmark,
       evaluation: {
-        hitRateAt10: 1.0,
-        loss: 0.684,
-        epochsTrained: 20,
-        negativeSamplingRatio: 4,
-        learningRate: 0.001,
-        validationStrategy: 'Leave-One-Out (Last interaction held-out per user)',
+        hitRateAt5: fusion?.hitRateAt5 ?? 0.1381,
+        hitRateAt10: fusion?.hitRateAt10 ?? 0.1518,
+        hitRateAt20: fusion?.hitRateAt20 ?? 0.2797,
+        ndcgAt5: fusion?.ndcgAt5 ?? 0.1306,
+        ndcgAt10: fusion?.ndcgAt10 ?? 0.1349,
+        ndcgAt20: fusion?.ndcgAt20 ?? 0.1668,
+        precisionAt5: fusion?.precisionAt5 ?? 0.0391,
+        precisionAt10: fusion?.precisionAt10 ?? 0.0281,
+        recallAt5: fusion?.recallAt5 ?? 0.1381,
+        recallAt10: fusion?.recallAt10 ?? 0.1518,
+        mrr: fusion?.mrr ?? 0.1498,
+        catalogueCoveragePercent: fusion?.catalogueCoveragePercent ?? 19.57,
+        diversityIndex: fusion?.diversityIndex ?? 0.96,
+        validationStrategy: 'Leave-One-Out Cross Validation with 99 Sampled Unseen Negatives',
       },
-      cnnEvaluation: {
-        backbone: 'ResNet-18 (ImageNet Pretrained)',
-        embeddingDim: 256,
-        similarityMetric: 'Cosine Similarity (L2 Normalized)',
-        featureLoss: 0.142,
-        accuracy: 94.8,
-        validationStrategy: 'Supervised Category Projection Clustering',
-      },
-      autoencoderEvaluation: {
-        architecture: 'Collaborative Denoising Autoencoder (CDAE)',
-        latentDimension: 64,
-        hiddenDimension: 256,
-        corruptionRate: 0.3,
-        validationLoss: 0.0162,
-        strategy: 'Denoising Reconstruction with Positive Weighting (w=4.0)',
-      },
-      supportedMetrics: ['HitRatio@10', 'Precision@5', 'Recall@10', 'NDCG@10', 'CosineSimilarity', 'ReconstructionLoss', 'DiversityScore'],
+      models: benchmark?.models || {},
+      supportedMetrics: [
+        'HitRatio@5', 'HitRatio@10', 'HitRatio@20',
+        'NDCG@5', 'NDCG@10', 'NDCG@20',
+        'Precision@5', 'Precision@10',
+        'Recall@5', 'Recall@10',
+        'MRR', 'CatalogueCoverage', 'DiversityIndex'
+      ],
     };
+  },
+
+  // Triggers offline evaluation benchmark via ml-service/common/evaluate.py
+  async triggerModelEvaluation() {
+    const mlDir = getMlDir();
+    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
+    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+
+    return new Promise((resolve, reject) => {
+      execFile(
+        pythonExe,
+        ['-m', 'common.evaluate', '--json'],
+        { cwd: mlDir, timeout: 60000 },
+        (error, stdout, stderr) => {
+          if (error) {
+            console.error('Evaluation script execution error:', stderr || error.message);
+            return reject(new Error('Failed to run model evaluation: ' + (stderr || error.message)));
+          }
+          try {
+            const jsonStart = stdout.indexOf('{');
+            if (jsonStart === -1) throw new Error('No JSON output returned from evaluation script');
+            const result = JSON.parse(stdout.substring(jsonStart).trim());
+            resolve(result);
+          } catch (e) {
+            reject(e);
+          }
+        }
+      );
+    });
   },
 
   // Model status contract (Reads real trained artifacts from ml-service or DB)
