@@ -156,7 +156,7 @@ Layered separation of concerns:
 | | **Phase 2.5: Checkout & Order Confirmation** | **NOT STARTED** | 2-step frictionless checkout simulation, snapshot reviews |
 | | **Phase 2.6: User Profile & Orders** | **NOT STARTED** | Tabbed account center, order history, shipping addresses |
 | | **Phase 2.7: Auth Experience (Login/Signup)** | **NOT STARTED** | Minimalist auth cards, validation, role routing |
-| | **Phase 2.8: Admin Operational Dashboard** | **NOT STARTED** | Live catalogue health, interaction analytics, model status |
+| | **Phase 2.8: Admin Operational Dashboard** | **COMPLETE** | Live catalogue health diagnostics (`/admin/catalogue`), interaction analytics & conversion funnel (`/admin/analytics`), multi-modal recommendation models inspection (`/admin/models`), pipeline retraining dispatcher & audit history (`/admin/retraining`), and ranking business rules tuning (`/admin/business-rules`). |
 | | **Phase 2.9: Content Manager Console** | **NOT STARTED** | Internal product CRUD, metadata updates, categories |
 | | **Phase 2.10: Responsive Polish & E2E QA** | **NOT STARTED** | Mobile navigation, touch targets, and viewport optimization |
 | **Phase 3: Multi-Model AI Recommendation Engine** | **Section 5: NCF (Neural Collaborative Filtering)** | **COMPLETE** | NeuMF (GMF 32d + MLP 32d) trained on implicit feedback telemetry, artifacts persisted, top-K inference CLI and live admin affinity simulator. |
