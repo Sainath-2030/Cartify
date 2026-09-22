@@ -1,5 +1,5 @@
 import DashboardShell from '../components/dashboard/DashboardShell.jsx';
-import { LayoutDashboard, LineChart, BrainCircuit, RefreshCw, PackageSearch, Settings2 } from 'lucide-react';
+import { LayoutDashboard, LineChart, BrainCircuit, RefreshCw, PackageSearch, Settings2, BarChart3 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard, end: true },
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: 'Retraining', to: '/admin/retraining', icon: RefreshCw },
   { label: 'Catalogue', to: '/admin/catalogue', icon: PackageSearch },
   { label: 'Business Rules', to: '/admin/business-rules', icon: Settings2 },
+  { label: 'BI Dashboard', to: '/admin/bi-dashboard', icon: BarChart3 },
 ];
 
 export default function AdminLayout() {
