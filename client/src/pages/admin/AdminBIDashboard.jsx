@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -32,46 +32,77 @@ export default function AdminBIDashboard() {
   const [overviewData, setOverviewData] = useState(null);
   const [salesTrend, setSalesTrend] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
+  const requestIdRef = useRef(0);
 
   const fetchDashboardData = useCallback(async () => {
+    const currentRequestId = ++requestIdRef.current;
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const [overviewRes, trendRes, topRes] = await Promise.all([
-        adminService.getWarehouseOverview().catch(err => {
-          console.error('Failed to load overview:', err);
-          return null;
-        }),
-        adminService.getWarehouseSalesTrend(timeGrain).catch(err => {
-          console.error('Failed to load trend:', err);
-          return null;
-        }),
-        adminService.getWarehouseTopProducts(5).catch(err => {
-          console.error('Failed to load top products:', err);
-          return null;
-        })
+      const results = await Promise.allSettled([
+        adminService.getWarehouseOverview(),
+        adminService.getWarehouseSalesTrend(timeGrain),
+        adminService.getWarehouseTopProducts(5)
       ]);
 
-      const overview = overviewRes?.data || overviewRes;
-      const trend = trendRes?.data || trendRes;
-      const top = topRes?.data || topRes;
+      // Ignore responses from superseded requests
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
 
-      if (overview?.kpis) {
-        setOverviewData(overview);
+      const [overviewResult, trendResult, topResult] = results;
+
+      // Handle Executive Overview
+      if (overviewResult.status === 'fulfilled') {
+        const overview = overviewResult.value?.data || overviewResult.value;
+        if (overview?.kpis) {
+          setOverviewData(overview);
+        } else {
+          setOverviewData(null);
+          showToast('Executive overview data format was unexpected.', 'error');
+        }
+      } else {
+        setOverviewData(null);
+        showToast(overviewResult.reason?.message || 'Failed to load executive overview.', 'error');
       }
-      if (Array.isArray(trend)) {
-        setSalesTrend(trend);
-      } else if (Array.isArray(trend?.data)) {
-        setSalesTrend(trend.data);
+
+      // Handle Sales Trend (clear stale data on failure)
+      if (trendResult.status === 'fulfilled') {
+        const trend = trendResult.value?.data || trendResult.value;
+        if (Array.isArray(trend)) {
+          setSalesTrend(trend);
+        } else if (Array.isArray(trend?.data)) {
+          setSalesTrend(trend.data);
+        } else {
+          setSalesTrend([]);
+        }
+      } else {
+        setSalesTrend([]);
+        showToast(trendResult.reason?.message || 'Failed to load sales trend data.', 'error');
       }
-      if (Array.isArray(top)) {
-        setTopProducts(top);
-      } else if (Array.isArray(top?.data)) {
-        setTopProducts(top.data);
+
+      // Handle Top Products (clear stale data on failure)
+      if (topResult.status === 'fulfilled') {
+        const top = topResult.value?.data || topResult.value;
+        if (Array.isArray(top)) {
+          setTopProducts(top);
+        } else if (Array.isArray(top?.data)) {
+          setTopProducts(top.data);
+        } else {
+          setTopProducts([]);
+        }
+      } else {
+        setTopProducts([]);
+        showToast(topResult.reason?.message || 'Failed to load top products data.', 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Error loading BI Dashboard data.', 'error');
+      if (currentRequestId === requestIdRef.current) {
+        showToast(err.message || 'Error loading BI Dashboard data.', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [timeGrain, showToast]);
 
@@ -92,11 +123,19 @@ export default function AdminBIDashboard() {
     }
   };
 
-  const kpis = overviewData?.kpis || {};
+  const kpis = overviewData?.kpis || null;
   const categoryShare = overviewData?.categoryShare || [];
   const customerTiers = overviewData?.customerTiers || [];
   const priceTiers = overviewData?.priceTiers || [];
   const etlHealth = overviewData?.etlHealth || {};
+
+  const grainLabels = {
+    day: 'Daily',
+    week: 'Weekly',
+    month: 'Monthly',
+    quarter: 'Quarterly',
+    year: 'Yearly'
+  };
 
   // Formatter helpers
   const formatCurrency = (val) =>
@@ -132,13 +171,13 @@ export default function AdminBIDashboard() {
               <button
                 key={grain}
                 onClick={() => setTimeGrain(grain)}
-                className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                   timeGrain === grain
                     ? 'bg-amber-500 text-stone-900 font-semibold shadow-xs'
                     : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
                 }`}
               >
-                {grain}ly
+                {grainLabels[grain] || grain}
               </button>
             ))}
           </div>
@@ -183,32 +222,32 @@ export default function AdminBIDashboard() {
         {[
           {
             label: 'Net Fact Revenue',
-            value: formatCurrency(kpis.netRevenue),
-            subtext: `Gross: ${formatCurrency(kpis.grossRevenue)}`,
+            value: kpis ? formatCurrency(kpis.netRevenue) : '—',
+            subtext: kpis ? `Gross: ${formatCurrency(kpis.grossRevenue)}` : 'Data unavailable',
             icon: DollarSign,
             color: 'text-emerald-700',
             bg: 'bg-emerald-50 border-emerald-200/60'
           },
           {
             label: 'Total Orders',
-            value: formatNumber(kpis.totalOrders),
-            subtext: `AOV: ${formatCurrency(kpis.averageOrderValue)}`,
+            value: kpis ? formatNumber(kpis.totalOrders) : '—',
+            subtext: kpis ? `AOV: ${formatCurrency(kpis.averageOrderValue)}` : 'Data unavailable',
             icon: ShoppingBag,
             color: 'text-indigo-700',
             bg: 'bg-indigo-50 border-indigo-200/60'
           },
           {
             label: 'Active Customers',
-            value: formatNumber(kpis.activeCustomers),
-            subtext: `${formatNumber(kpis.totalUnitsSold)} items purchased`,
+            value: kpis ? formatNumber(kpis.activeCustomers) : '—',
+            subtext: kpis ? `${formatNumber(kpis.totalUnitsSold)} items purchased` : 'Data unavailable',
             icon: Users,
             color: 'text-sky-700',
             bg: 'bg-sky-50 border-sky-200/60'
           },
           {
             label: 'Products in Fact',
-            value: formatNumber(kpis.productsTransacted),
-            subtext: `Avg item rev: ${formatCurrency(kpis.avgItemRevenue)}`,
+            value: kpis ? formatNumber(kpis.productsTransacted) : '—',
+            subtext: kpis ? `Avg item rev: ${formatCurrency(kpis.avgItemRevenue)}` : 'Data unavailable',
             icon: TrendingUp,
             color: 'text-amber-700',
             bg: 'bg-amber-50 border-amber-200/60'
@@ -244,7 +283,7 @@ export default function AdminBIDashboard() {
               <div>
                 <h3 className="text-sm font-semibold text-stone-900 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-amber-500" />
-                  OLAP Time-Series Sales Aggregation ({timeGrain}ly)
+                  OLAP Time-Series Sales Aggregation ({grainLabels[timeGrain] || timeGrain})
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   Roll-up aggregation from <code>fact_sales</code> joined with <code>dim_time</code>

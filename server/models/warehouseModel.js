@@ -75,13 +75,12 @@ export const warehouseModel = {
 
       case 'week':
         selectClause = `
-          CONCAT(dt.year, '-W', LPAD(dt.week_of_year::text, 2, '0')) AS period_key,
-          CONCAT('Wk ', dt.week_of_year, ' (', dt.year, ')') AS period_label,
-          dt.year,
-          dt.week_of_year
+          TO_CHAR(DATE_TRUNC('week', dt.full_date)::date, 'IYYY-"W"IW') AS period_key,
+          TO_CHAR(DATE_TRUNC('week', dt.full_date)::date, '"Wk "IW (IYYY)') AS period_label,
+          DATE_TRUNC('week', dt.full_date)::date AS week_start
         `;
-        groupByClause = `dt.year, dt.week_of_year`;
-        orderByClause = `dt.year ASC, dt.week_of_year ASC`;
+        groupByClause = `DATE_TRUNC('week', dt.full_date)::date`;
+        orderByClause = `DATE_TRUNC('week', dt.full_date)::date ASC`;
         break;
 
       case 'quarter':
@@ -179,11 +178,11 @@ export const warehouseModel = {
         GROUP BY dp.category_id, dp.category_name
       ),
       grand_total AS (
-        SELECT COALESCE(SUM(net_revenue), 1) as overall_revenue FROM category_totals
+        SELECT NULLIF(SUM(net_revenue), 0) AS overall_revenue FROM category_totals
       )
       SELECT 
         ct.*,
-        ROUND((ct.net_revenue / gt.overall_revenue) * 100, 2) AS revenue_share_pct
+        COALESCE(ROUND((ct.net_revenue / gt.overall_revenue) * 100, 2), 0) AS revenue_share_pct
       FROM category_totals ct
       CROSS JOIN grand_total gt
       ORDER BY ct.net_revenue DESC;

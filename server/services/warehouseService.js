@@ -8,6 +8,8 @@
 import { warehouseModel } from '../models/warehouseModel.js';
 import { runETLPipeline } from '../scripts/etl_populate_warehouse.js';
 
+let activeEtlPromise = null;
+
 export const warehouseService = {
   /**
    * Comprehensive BI Executive Summary combining KPIs, Trends, and Category Distribution
@@ -145,11 +147,22 @@ export const warehouseService = {
   },
 
   /**
-   * Trigger Manual ETL Refresh
+   * Trigger Manual ETL Refresh (prevent concurrent overlapping runs)
    */
   async triggerEtlRefresh() {
-    const result = await runETLPipeline();
-    return result;
+    if (activeEtlPromise) {
+      return activeEtlPromise;
+    }
+
+    activeEtlPromise = (async () => {
+      try {
+        return await runETLPipeline();
+      } finally {
+        activeEtlPromise = null;
+      }
+    })();
+
+    return activeEtlPromise;
   },
 
   /**
