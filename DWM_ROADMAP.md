@@ -155,7 +155,7 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 *Goal: Establish formal dimensional modeling in PostgreSQL to separate analytical queries from transactional tables.*
 
-- [ ] **Step 1.1: Star Schema SQL Definition**
+- [x] **Step 1.1: Star Schema SQL Definition**
   - Create `database/schema_warehouse_star.sql`.
   - Define Dimension Tables:
     - `dim_time`: `time_id`, `full_date`, `year`, `quarter`, `month`, `month_name`, `day`, `day_of_week`, `is_weekend`.
@@ -166,13 +166,13 @@ To maintain clean code quality and ensure manageable progress, future work is or
   - Define Event Fact Table:
     - `fact_interaction_daily`: Pre-aggregated daily interaction counts per product/category.
 
-- [ ] **Step 1.2: ETL Batch Loading Script**
+- [x] **Step 1.2: ETL Batch Loading Script**
   - Create `server/scripts/etl_populate_warehouse.js`.
   - Implement Extract from operational `orders`, `order_items`, `interactions`, `products`.
   - Implement Transform: generate surrogate keys, handle missing fields, derive dimensions.
   - Implement Load: bulk insert/upsert into `fact_*` and `dim_*` tables.
 
-- [ ] **Step 1.3: Data Warehouse Model & Service Layer**
+- [x] **Step 1.3: Data Warehouse Model & Service Layer**
   - Create `server/models/warehouseModel.js` and `server/services/warehouseService.js`.
   - Provide optimized queries for analytical aggregations using Star Schema joins.
 
@@ -300,7 +300,7 @@ Use this checklist during future pair-programming turns:
   - [x] Added `BI Dashboard` overview card to [AdminDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminDashboard.jsx).
   - [x] Created [AdminBIDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx) shell page.
   - [x] Created `DWM_ROADMAP.md` guide.
-- [ ] **Milestone 1: Star Schema & Warehouse Layer** (Section 1)
+- [x] **Milestone 1: Star Schema & Warehouse Layer** (Section 1)
 - [ ] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
 - [ ] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
 - [ ] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)

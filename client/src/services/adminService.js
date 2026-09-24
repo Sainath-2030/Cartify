@@ -88,4 +88,40 @@ export const adminService = {
     const res = await api.get(`/admin/audit-logs?limit=${limit}`);
     return res.data;
   },
+
+  // Section 1: Data Warehouse & BI Star Schema
+  getWarehouseOverview: async () => {
+    const res = await api.get('/admin/bi/warehouse/overview');
+    return res.data;
+  },
+
+  getWarehouseSalesTrend: async (timeGrain = 'month', params = {}) => {
+    const queryStr = new URLSearchParams({ timeGrain, ...params }).toString();
+    const res = await api.get(`/admin/bi/warehouse/sales-trend?${queryStr}`);
+    return res.data;
+  },
+
+  getWarehouseCategoryShare: async (params = {}) => {
+    const queryStr = new URLSearchParams(params).toString();
+    const res = await api.get(`/admin/bi/warehouse/category-share?${queryStr}`);
+    return res.data;
+  },
+
+  getWarehouseTopProducts: async (limit = 10, categoryId = null) => {
+    let url = `/admin/bi/warehouse/top-products?limit=${limit}`;
+    if (categoryId) url += `&categoryId=${categoryId}`;
+    const res = await api.get(url);
+    return res.data;
+  },
+
+  triggerWarehouseEtl: async () => {
+    const res = await api.post('/admin/bi/warehouse/etl-refresh');
+    return res.data;
+  },
+
+  getWarehouseEtlHistory: async (limit = 10) => {
+    const res = await api.get(`/admin/bi/warehouse/etl-history?limit=${limit}`);
+    return res.data;
+  },
 };
+
