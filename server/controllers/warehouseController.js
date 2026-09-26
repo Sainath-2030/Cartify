@@ -6,6 +6,7 @@
  */
 
 import { warehouseService } from '../services/warehouseService.js';
+import { aprioriService } from '../services/mining/aprioriService.js';
 
 export const warehouseController = {
   /**
@@ -14,6 +15,30 @@ export const warehouseController = {
   async getExecutiveOverview(req, res, next) {
     try {
       const data = await warehouseService.getExecutiveOverview();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/admin/bi/association-rules
+   */
+  async getAssociationRules(req, res, next) {
+    try {
+      const minSupport = parseFloat(req.query.minSupport) || 0.01;
+      const minConfidence = parseFloat(req.query.minConfidence) || 0.2;
+      const minLift = parseFloat(req.query.minLift) || 1.0;
+      
+      const data = await aprioriService.mineAssociationRules({
+        minSupport,
+        minConfidence,
+        minLift
+      });
+
       res.status(200).json({
         success: true,
         data

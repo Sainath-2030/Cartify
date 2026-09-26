@@ -182,12 +182,12 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 *Goal: Mine transactional purchase records to discover itemsets frequently bought together and expose dynamic rule tuning.*
 
-- [ ] **Step 2.1: Transaction Basket Extractor**
+- [x] **Step 2.1: Transaction Basket Extractor**
   - Query `order_items` grouped by `order_id` to form transaction item lists:
     $$\mathcal{T} = \{ \{p_1, p_3\}, \{p_2, p_4, p_5\}, \dots \}$$
   - Also support session-level basket extraction from `interactions` (`interaction_type = 'CART_ADD'` grouped by `session_id`).
 
-- [ ] **Step 2.2: Association Rule Mining Algorithm**
+- [x] **Step 2.2: Association Rule Mining Algorithm**
   - Create `server/services/mining/aprioriService.js` (or Python helper in `ml-service/mining/apriori.py`).
   - Calculate:
     - **Support:** $\text{Supp}(X \cup Y) = \frac{\text{freq}(X \cup Y)}{|\mathcal{T}|}$
@@ -195,10 +195,10 @@ To maintain clean code quality and ensure manageable progress, future work is or
     - **Lift:** $\text{Lift}(X \Rightarrow Y) = \frac{\text{Conf}(X \Rightarrow Y)}{\text{Supp}(Y)}$
   - Filter rules where $\text{Supp} \ge \text{min\_sup}$ and $\text{Conf} \ge \text{min\_conf}$.
 
-- [ ] **Step 2.3: API Endpoints for Association Rules**
+- [x] **Step 2.3: API Endpoints for Association Rules**
   - Add `GET /api/admin/bi/association-rules` with query params `minSupport`, `minConfidence`, `minLift`.
 
-- [ ] **Step 2.4: BI Dashboard Association Rules Explorer**
+- [x] **Step 2.4: BI Dashboard Association Rules Explorer**
   - In [AdminBIDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx), render:
     - Interactive sliders for Minimum Support ($1\% - 20\%$) and Minimum Confidence ($20\% - 90\%$).
     - Association Rules Table with visual Lift badges ($\text{Lift} > 1.0$ indicating positive association).
@@ -301,7 +301,7 @@ Use this checklist during future pair-programming turns:
   - [x] Created [AdminBIDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx) shell page.
   - [x] Created `DWM_ROADMAP.md` guide.
 - [x] **Milestone 1: Star Schema & Warehouse Layer** (Section 1)
-- [ ] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
+- [x] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
 - [ ] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
 - [ ] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)
 - [ ] **Milestone 5: Churn Classification & Predictive Insights** (Section 5)

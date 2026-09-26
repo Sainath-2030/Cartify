@@ -123,5 +123,11 @@ export const adminService = {
     const res = await api.get(`/admin/bi/warehouse/etl-history?limit=${limit}`);
     return res.data;
   },
+
+  // Section 2: Association Rules
+  getAssociationRules: async (minSupport = 0.01, minConfidence = 0.2, minLift = 1.0) => {
+    const res = await api.get(`/admin/bi/association-rules?minSupport=${minSupport}&minConfidence=${minConfidence}&minLift=${minLift}`);
+    return res.data;
+  },
 };
 

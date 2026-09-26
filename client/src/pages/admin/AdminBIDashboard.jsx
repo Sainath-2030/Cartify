@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   Activity,
   ChevronRight,
-  Filter
+  Filter,
+  Network,
+  Settings2
 } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { useToast } from '../../hooks/useToast.js';
@@ -32,6 +34,12 @@ export default function AdminBIDashboard() {
   const [overviewData, setOverviewData] = useState(null);
   const [salesTrend, setSalesTrend] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
+  
+  // Section 2 State: Market Basket Analysis
+  const [associationRules, setAssociationRules] = useState([]);
+  const [minSupport, setMinSupport] = useState(0.01);
+  const [minConfidence, setMinConfidence] = useState(0.20);
+  
   const requestIdRef = useRef(0);
 
   const fetchDashboardData = useCallback(async () => {
@@ -109,6 +117,22 @@ export default function AdminBIDashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  // Section 2 Effect: Association Rules Fetching
+  const fetchAssociationRules = useCallback(async () => {
+    try {
+      const res = await adminService.getAssociationRules(minSupport, minConfidence, 1.0);
+      if (res && res.data) {
+        setAssociationRules(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load association rules:', err);
+    }
+  }, [minSupport, minConfidence]);
+
+  useEffect(() => {
+    fetchAssociationRules();
+  }, [fetchAssociationRules]);
 
   const handleTriggerETL = async () => {
     try {
@@ -441,6 +465,111 @@ export default function AdminBIDashboard() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Market Basket Analysis & Association Rules (Apriori Engine) */}
+      <div className="bg-white border border-stone-200/90 rounded-xl p-6 shadow-xs mt-6">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 mb-6">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-stone-900 flex items-center gap-2 font-display">
+              <Network className="w-5 h-5 text-indigo-600" />
+              Market Basket Analysis (Apriori Association Rules)
+            </h3>
+            <p className="text-sm text-stone-500 mt-1">
+              Mining transactional purchase records to discover itemsets frequently bought together.
+            </p>
+          </div>
+          <div className="flex-shrink-0 bg-stone-50 p-4 rounded-lg border border-stone-200/60 min-w-[300px]">
+            <h4 className="text-xs font-semibold text-stone-700 flex items-center gap-1.5 mb-3 uppercase tracking-wider">
+              <Settings2 className="w-3.5 h-3.5" /> Rule Hyperparameters
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-stone-600 font-medium">Min Support</span>
+                  <span className="font-mono text-stone-900">{(minSupport * 100).toFixed(1)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.005"
+                  max="0.10"
+                  step="0.005"
+                  value={minSupport}
+                  onChange={(e) => setMinSupport(parseFloat(e.target.value))}
+                  className="w-full accent-indigo-600"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-stone-600 font-medium">Min Confidence</span>
+                  <span className="font-mono text-stone-900">{(minConfidence * 100).toFixed(0)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.10"
+                  max="0.90"
+                  step="0.05"
+                  value={minConfidence}
+                  onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
+                  className="w-full accent-indigo-600"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rules Table */}
+        <div className="overflow-x-auto rounded-lg border border-stone-200/60">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-stone-50 text-stone-600 text-xs uppercase tracking-wider font-semibold border-b border-stone-200/60">
+              <tr>
+                <th className="px-4 py-3">Antecedent (If bought...)</th>
+                <th className="px-4 py-3">Consequent (...then buys)</th>
+                <th className="px-4 py-3 text-right">Support</th>
+                <th className="px-4 py-3 text-right">Confidence</th>
+                <th className="px-4 py-3 text-right">Lift</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 text-stone-700 bg-white">
+              {associationRules.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="px-4 py-8 text-center text-stone-400 text-sm">
+                    No rules discovered for these thresholds. Try lowering the minimum support or confidence.
+                  </td>
+                </tr>
+              ) : (
+                associationRules.map((rule, idx) => (
+                  <tr key={idx} className="hover:bg-stone-50/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-stone-900 max-w-[200px] truncate" title={rule.antecedentNames.join(', ')}>
+                      {rule.antecedentNames.join(', ')}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-indigo-700 max-w-[200px] truncate" title={rule.consequentNames.join(', ')}>
+                      {rule.consequentNames.join(', ')}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">
+                      {(rule.support * 100).toFixed(2)}%
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">
+                      {(rule.confidence * 100).toFixed(1)}%
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded font-medium ${
+                        rule.lift >= 2.0 ? 'bg-emerald-100 text-emerald-800' :
+                        rule.lift > 1.0 ? 'bg-sky-100 text-sky-800' :
+                        'bg-stone-100 text-stone-600'
+                      }`}>
+                        {rule.lift.toFixed(2)}x
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 text-xs text-stone-400 text-right">
+          Showing Top {associationRules.length} Association Rules
         </div>
       </div>
     </div>
