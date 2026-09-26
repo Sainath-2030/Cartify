@@ -44,12 +44,12 @@ export const aprioriService = {
    */
   async mineAssociationRules({ minSupport = 0.01, minConfidence = 0.2, minLift = 1.0 } = {}) {
     const transactionsData = await this.extractTransactions();
-    const transactions = transactionsData.map(t => t.item_ids);
+    const transactions = transactionsData.map(t => t.item_ids.map(Number));
     
     // Map product ID to product Name
     const idToNameMap = {};
     transactionsData.forEach(t => {
-      t.item_ids.forEach((id, index) => {
+      t.item_ids.map(Number).forEach((id, index) => {
         idToNameMap[id] = t.item_names[index];
       });
     });

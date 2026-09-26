@@ -35,10 +35,10 @@ export default function AdminBIDashboard() {
   const [salesTrend, setSalesTrend] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   
-  // Section 2 State: Market Basket Analysis
   const [associationRules, setAssociationRules] = useState([]);
   const [minSupport, setMinSupport] = useState(0.01);
   const [minConfidence, setMinConfidence] = useState(0.20);
+  const [rulesLimit, setRulesLimit] = useState(10);
   
   const requestIdRef = useRef(0);
 
@@ -118,12 +118,15 @@ export default function AdminBIDashboard() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Section 2 Effect: Association Rules Fetching
   const fetchAssociationRules = useCallback(async () => {
     try {
       const res = await adminService.getAssociationRules(minSupport, minConfidence, 1.0);
-      if (res && res.data) {
+      if (Array.isArray(res)) {
+        setAssociationRules(res);
+      } else if (res && Array.isArray(res.data)) {
         setAssociationRules(res.data);
+      } else {
+        setAssociationRules([]);
       }
     } catch (err) {
       console.error('Failed to load association rules:', err);
@@ -515,6 +518,22 @@ export default function AdminBIDashboard() {
                   className="w-full accent-indigo-600"
                 />
               </div>
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-stone-600 font-medium">Display Limit</span>
+                </div>
+                <select
+                  value={rulesLimit}
+                  onChange={(e) => setRulesLimit(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  className="w-full bg-white border border-stone-200 text-stone-700 text-xs rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value={5}>Top 5</option>
+                  <option value={10}>Top 10</option>
+                  <option value={20}>Top 20</option>
+                  <option value={50}>Top 50</option>
+                  <option value="all">All Rules</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -539,7 +558,7 @@ export default function AdminBIDashboard() {
                   </td>
                 </tr>
               ) : (
-                associationRules.map((rule, idx) => (
+                (rulesLimit === 'all' ? associationRules : associationRules.slice(0, rulesLimit)).map((rule, idx) => (
                   <tr key={idx} className="hover:bg-stone-50/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-stone-900 max-w-[200px] truncate" title={rule.antecedentNames.join(', ')}>
                       {rule.antecedentNames.join(', ')}
@@ -568,8 +587,9 @@ export default function AdminBIDashboard() {
             </tbody>
           </table>
         </div>
-        <div className="mt-3 text-xs text-stone-400 text-right">
-          Showing Top {associationRules.length} Association Rules
+        <div className="mt-3 text-xs text-stone-400 text-right flex justify-between items-center">
+          <span>{rulesLimit !== 'all' && associationRules.length > rulesLimit ? `Showing top ${rulesLimit} out of ${associationRules.length} rules` : ''}</span>
+          <span>Total rules discovered: {associationRules.length}</span>
         </div>
       </div>
     </div>
