@@ -148,110 +148,122 @@ export async function populateDimTime(startDate = '2025-01-01', endDate = '2027-
 
 // Seed realistic synthetic orders if operational order count is low (< 50)
 export async function seedRealisticTransactionsIfLow() {
-  const orderCountRes = await query('SELECT count(*) FROM orders');
-  const currentCount = parseInt(orderCountRes.rows[0].count, 10);
-
-  if (currentCount >= 50) {
-    console.log(`[ETL] Existing orders count (${currentCount}) is sufficient. Skipping synthetic seed.`);
+  // Use advisory lock to prevent concurrent synthetic seeding across server processes
+  const lockRes = await query('SELECT pg_try_advisory_lock(987654321) AS acquired');
+  if (!lockRes.rows[0]?.acquired) {
+    console.log('[ETL] Another server process holds the transaction seeding lock. Skipping.');
     return;
   }
 
-  console.log(`[ETL] Order count is low (${currentCount}). Seeding realistic multi-item transactions...`);
+  try {
+    const orderCountRes = await query('SELECT count(*) FROM orders');
+    const currentCount = parseInt(orderCountRes.rows[0].count, 10);
 
-  // Fetch users and sample products
-  const usersRes = await query('SELECT id FROM users LIMIT 50');
-  const productsRes = await query(`
-    SELECT p.id, p.name, p.final_price, p.category_id, c.name as category_name
-    FROM products p
-    JOIN categories c ON p.category_id = c.id
-    WHERE p.is_active = TRUE
-    ORDER BY p.rating DESC NULLS LAST, p.review_count DESC
-    LIMIT 200
-  `);
+    if (currentCount >= 50) {
+      console.log(`[ETL] Existing orders count (${currentCount}) is sufficient. Skipping synthetic seed.`);
+      return;
+    }
 
-  if (usersRes.rows.length === 0 || productsRes.rows.length === 0) {
-    console.warn('[ETL] Insufficient users or products to seed transactions.');
-    return;
-  }
+    console.log(`[ETL] Order count is low (${currentCount}). Seeding realistic multi-item transactions...`);
 
-  const users = usersRes.rows;
-  const products = productsRes.rows;
-  const targetOrders = 120;
-  const now = new Date();
+    // Fetch users and sample products
+    const usersRes = await query('SELECT id FROM users LIMIT 50');
+    const productsRes = await query(`
+      SELECT p.id, p.name, p.final_price, p.category_id, c.name as category_name
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      WHERE p.is_active = TRUE
+      ORDER BY p.rating DESC NULLS LAST, p.review_count DESC
+      LIMIT 200
+    `);
 
-  // Create transactions distributed across the last 90 days
-  for (let i = 0; i < targetOrders; i++) {
-    const user = users[Math.floor(Math.random() * users.length)];
-    const daysAgo = Math.floor(Math.random() * 85);
-    const orderDate = new Date(now.getTime() - (daysAgo * 86400000) - (Math.floor(Math.random() * 86400) * 1000));
-    
-    // Choose 1 to 4 distinct products for this basket
-    const itemCount = 1 + Math.floor(Math.random() * 3);
-    const selectedProducts = [];
-    const usedProductIds = new Set();
+    if (usersRes.rows.length === 0 || productsRes.rows.length === 0) {
+      console.warn('[ETL] Insufficient users or products to seed transactions.');
+      return;
+    }
 
-    for (let k = 0; k < itemCount; k++) {
-      const p = products[Math.floor(Math.random() * products.length)];
-      if (!usedProductIds.has(p.id)) {
-        usedProductIds.add(p.id);
-        const qty = 1 + (Math.random() < 0.25 ? 1 : 0);
-        selectedProducts.push({
-          productId: p.id,
-          unitPrice: parseFloat(p.final_price),
-          quantity: qty,
-          totalPrice: parseFloat(p.final_price) * qty
-        });
+    const users = usersRes.rows;
+    const products = productsRes.rows;
+    const targetOrders = 120;
+    const now = new Date();
+
+    // Create transactions distributed across the last 90 days
+    for (let i = 0; i < targetOrders; i++) {
+      const user = users[Math.floor(Math.random() * users.length)];
+      const daysAgo = Math.floor(Math.random() * 85);
+      const orderDate = new Date(now.getTime() - (daysAgo * 86400000) - (Math.floor(Math.random() * 86400) * 1000));
+      
+      // Choose 1 to 4 distinct products for this basket
+      const itemCount = 1 + Math.floor(Math.random() * 3);
+      const selectedProducts = [];
+      const usedProductIds = new Set();
+
+      for (let k = 0; k < itemCount; k++) {
+        const p = products[Math.floor(Math.random() * products.length)];
+        if (!usedProductIds.has(p.id)) {
+          usedProductIds.add(p.id);
+          const qty = 1 + (Math.random() < 0.25 ? 1 : 0);
+          selectedProducts.push({
+            productId: p.id,
+            unitPrice: parseFloat(p.final_price),
+            quantity: qty,
+            totalPrice: parseFloat(p.final_price) * qty
+          });
+        }
+      }
+
+      if (selectedProducts.length === 0) continue;
+
+      const totalAmount = selectedProducts.reduce((sum, item) => sum + item.totalPrice, 0);
+
+      const shippingAddress = {
+        fullName: 'Customer ' + user.id,
+        street: '123 Market Way',
+        city: ['Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Pune', 'Chennai'][i % 6],
+        state: ['Maharashtra', 'Karnataka', 'Delhi', 'Telangana', 'Maharashtra', 'Tamil Nadu'][i % 6],
+        postalCode: '40000' + (i % 9),
+        country: 'India'
+      };
+
+      const orderRes = await query(`
+        INSERT INTO orders (user_id, total_amount, status, shipping_address, payment_method, payment_status, created_at, updated_at)
+        VALUES ($1, $2, 'DELIVERED', $3, 'SIMULATED_GATEWAY', 'PAID', $4, $4)
+        RETURNING id
+      `, [user.id, totalAmount.toFixed(2), JSON.stringify(shippingAddress), orderDate]);
+
+      const orderId = orderRes.rows[0].id;
+
+      for (const item of selectedProducts) {
+        await query(`
+          INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [orderId, item.productId, item.quantity, item.unitPrice, item.totalPrice.toFixed(2)]);
+
+        // Also ensure interaction telemetry exists for this purchase
+        await query(`
+          INSERT INTO interactions (user_id, session_id, product_id, interaction_type, metadata, created_at)
+          VALUES ($1, $2, $3, 'PURCHASE', $4, $5)
+        `, [
+          user.id,
+          `sess_seed_${user.id}_${i}`,
+          item.productId,
+          JSON.stringify({ order_id: orderId, source: 'etl_seed' }),
+          orderDate
+        ]);
       }
     }
 
-    if (selectedProducts.length === 0) continue;
-
-    const totalAmount = selectedProducts.reduce((sum, item) => sum + item.totalPrice, 0);
-
-    const shippingAddress = {
-      fullName: 'Customer ' + user.id,
-      street: '123 Market Way',
-      city: ['Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Pune', 'Chennai'][i % 6],
-      state: ['Maharashtra', 'Karnataka', 'Delhi', 'Telangana', 'Maharashtra', 'Tamil Nadu'][i % 6],
-      postalCode: '40000' + (i % 9),
-      country: 'India'
-    };
-
-    const orderRes = await query(`
-      INSERT INTO orders (user_id, total_amount, status, shipping_address, payment_method, payment_status, created_at, updated_at)
-      VALUES ($1, $2, 'DELIVERED', $3, 'SIMULATED_GATEWAY', 'PAID', $4, $4)
-      RETURNING id
-    `, [user.id, totalAmount.toFixed(2), JSON.stringify(shippingAddress), orderDate]);
-
-    const orderId = orderRes.rows[0].id;
-
-    for (const item of selectedProducts) {
-      await query(`
-        INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [orderId, item.productId, item.quantity, item.unitPrice, item.totalPrice.toFixed(2)]);
-
-      // Also ensure interaction telemetry exists for this purchase
-      await query(`
-        INSERT INTO interactions (user_id, session_id, product_id, interaction_type, metadata, created_at)
-        VALUES ($1, $2, $3, 'PURCHASE', $4, $5)
-      `, [
-        user.id,
-        `sess_seed_${user.id}_${i}`,
-        item.productId,
-        JSON.stringify({ order_id: orderId, source: 'etl_seed' }),
-        orderDate
-      ]);
-    }
+    console.log(`[ETL] Seeded ${targetOrders} realistic historical transactions.`);
+  } finally {
+    await query('SELECT pg_advisory_unlock(987654321)');
   }
-
-  console.log(`[ETL] Seeded ${targetOrders} realistic historical transactions.`);
 }
 
 /**
  * Main ETL Execution Function
  */
-export async function runETLPipeline() {
+export async function runETLPipeline(options = {}) {
+  const { seedTransactions = true } = options;
   const startTime = Date.now();
   console.log('================================================================');
   console.log('[ETL] Starting Cartify Data Warehouse Refresh (Star Schema)...');
@@ -265,12 +277,30 @@ export async function runETLPipeline() {
     // 0. ENSURE DDL SCHEMA EXISTS
     await ensureWarehouseSchema();
 
-    // 1. DIM_TIME
-    const timeCount = await populateDimTime('2025-01-01', '2027-12-31');
+    // 1. DIM_TIME: Dynamically derive date range from orders and interactions
+    const dateRangeRes = await query(`
+      SELECT 
+        LEAST(
+          COALESCE((SELECT MIN(created_at::date) FROM orders), '2025-01-01'::date),
+          COALESCE((SELECT MIN(created_at::date) FROM interactions), '2025-01-01'::date),
+          '2025-01-01'::date
+        ) as min_date,
+        GREATEST(
+          COALESCE((SELECT MAX(created_at::date) FROM orders), '2027-12-31'::date),
+          COALESCE((SELECT MAX(created_at::date) FROM interactions), '2027-12-31'::date),
+          '2027-12-31'::date
+        ) as max_date
+    `);
+    const minDate = dateRangeRes.rows[0]?.min_date || '2025-01-01';
+    const maxDate = dateRangeRes.rows[0]?.max_date || '2027-12-31';
+
+    const timeCount = await populateDimTime(minDate, maxDate);
     loadedCount += timeCount;
 
     // 2. OPTIONAL TRANSACTION SEEDING
-    await seedRealisticTransactionsIfLow();
+    if (seedTransactions) {
+      await seedRealisticTransactionsIfLow();
+    }
 
     // 3. TRANSFORM & LOAD DIM_PRODUCT
     console.log('[ETL] Populating Dim_Product dimension...');

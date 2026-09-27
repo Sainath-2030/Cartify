@@ -26,10 +26,10 @@ export const warehouseService = {
         warehouseModel.getEtlHistory({ limit: 5 })
       ]);
     } catch (err) {
-      // 42P01: undefined_table / relation does not exist
-      if (err.code === '42P01' || err.message?.includes('does not exist')) {
-        console.log('[Warehouse] Star schema tables missing in database, auto-initializing and running ETL...');
-        await runETLPipeline();
+      // Match only SQLSTATE 42P01 (undefined_table)
+      if (err.code === '42P01') {
+        console.log('[Warehouse] Star schema tables missing in database (42P01), restoring via triggerEtlRefresh without synthetic seeding...');
+        await this.triggerEtlRefresh({ seedTransactions: false });
         [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await Promise.all([
           warehouseModel.getWarehouseSummary(),
           warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
@@ -168,14 +168,14 @@ export const warehouseService = {
   /**
    * Trigger Manual ETL Refresh (prevent concurrent overlapping runs)
    */
-  async triggerEtlRefresh() {
+  async triggerEtlRefresh(options = {}) {
     if (activeEtlPromise) {
       return activeEtlPromise;
     }
 
     activeEtlPromise = (async () => {
       try {
-        return await runETLPipeline();
+        return await runETLPipeline(options);
       } finally {
         activeEtlPromise = null;
       }

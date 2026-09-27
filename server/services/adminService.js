@@ -131,9 +131,21 @@ export const AdminService = {
               try {
                 const raw = fs.readFileSync(evaluationMetricsPath, 'utf8');
                 const cached = JSON.parse(raw);
+                const isTimeout = Boolean(error.killed || error.signal === 'SIGTERM' || error.message?.includes('timed out'));
+                const isMissingPackages = Boolean(stderr?.includes('No module named') || error.message?.includes('No module named'));
+                const fallbackReason = isTimeout
+                  ? 'EVALUATION_TIMEOUT'
+                  : isMissingPackages
+                  ? 'MISSING_PYTHON_PACKAGES'
+                  : 'SCRIPT_EXECUTION_ERROR';
+
                 return resolve({
                   ...cached,
-                  notice: 'Loaded pre-computed evaluation benchmark artifacts (Python environment on server lacks ML packages like numpy/torch).'
+                  status: 'FALLBACK',
+                  isFallback: true,
+                  fallbackReason,
+                  errorDetails: (stderr || error.message).trim(),
+                  notice: `Loaded pre-computed evaluation benchmark artifacts (fallback reason: ${fallbackReason}).`
                 });
               } catch (_) {}
             }
@@ -143,12 +155,24 @@ export const AdminService = {
             const jsonStart = stdout.indexOf('{');
             if (jsonStart === -1) throw new Error('No JSON output returned from evaluation script');
             const result = JSON.parse(stdout.substring(jsonStart).trim());
-            resolve(result);
+            resolve({
+              ...result,
+              status: 'COMPLETED',
+              isFallback: false
+            });
           } catch (e) {
             if (fs.existsSync(evaluationMetricsPath)) {
               try {
                 const raw = fs.readFileSync(evaluationMetricsPath, 'utf8');
-                return resolve(JSON.parse(raw));
+                const cached = JSON.parse(raw);
+                return resolve({
+                  ...cached,
+                  status: 'FALLBACK',
+                  isFallback: true,
+                  fallbackReason: 'INVALID_OUTPUT',
+                  errorDetails: e.message,
+                  notice: 'Loaded pre-computed evaluation benchmark artifacts (evaluation script returned invalid JSON output).'
+                });
               } catch (_) {}
             }
             reject(e);
