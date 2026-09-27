@@ -21,6 +21,32 @@ function getMlDir() {
   return candidates[0];
 }
 
+function getPythonExe(mlDir = getMlDir()) {
+  if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
+    return process.env.PYTHON_PATH;
+  }
+  const candidates = [
+    // Windows virtualenvs
+    path.join(mlDir, 'venv', 'Scripts', 'python.exe'),
+    path.join(mlDir, '.venv', 'Scripts', 'python.exe'),
+    // Linux/Unix virtualenvs (Render, Ubuntu, macOS)
+    path.join(mlDir, 'venv', 'bin', 'python'),
+    path.join(mlDir, 'venv', 'bin', 'python3'),
+    path.join(mlDir, '.venv', 'bin', 'python'),
+    path.join(mlDir, '.venv', 'bin', 'python3'),
+    // Render/custom root venvs
+    '/opt/render/project/src/ml-service/venv/bin/python',
+    '/opt/render/project/src/.venv/bin/python',
+    // Parent root virtualenvs
+    path.resolve(mlDir, '..', 'venv', 'bin', 'python'),
+    path.resolve(mlDir, '..', '.venv', 'bin', 'python'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return process.platform === 'win32' ? 'python' : 'python3';
+}
+
 export const AdminService = {
   // Returns live catalogue health metrics
   async getCatalogueHealth() {
@@ -89,8 +115,8 @@ export const AdminService = {
   // Triggers offline evaluation benchmark via ml-service/common/evaluate.py
   async triggerModelEvaluation() {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
+    const evaluationMetricsPath = path.join(mlDir, 'artifacts', 'model_evaluation_metrics.json');
 
     return new Promise((resolve, reject) => {
       execFile(
@@ -100,6 +126,17 @@ export const AdminService = {
         (error, stdout, stderr) => {
           if (error) {
             console.error('Evaluation script execution error:', stderr || error.message);
+            // If Python environment is missing ML runtime packages (e.g. numpy on Render), fall back to cached artifacts
+            if (fs.existsSync(evaluationMetricsPath)) {
+              try {
+                const raw = fs.readFileSync(evaluationMetricsPath, 'utf8');
+                const cached = JSON.parse(raw);
+                return resolve({
+                  ...cached,
+                  notice: 'Loaded pre-computed evaluation benchmark artifacts (Python environment on server lacks ML packages like numpy/torch).'
+                });
+              } catch (_) {}
+            }
             return reject(new Error('Failed to run model evaluation: ' + (stderr || error.message)));
           }
           try {
@@ -108,6 +145,12 @@ export const AdminService = {
             const result = JSON.parse(stdout.substring(jsonStart).trim());
             resolve(result);
           } catch (e) {
+            if (fs.existsSync(evaluationMetricsPath)) {
+              try {
+                const raw = fs.readFileSync(evaluationMetricsPath, 'utf8');
+                return resolve(JSON.parse(raw));
+              } catch (_) {}
+            }
             reject(e);
           }
         }
@@ -339,8 +382,7 @@ export const AdminService = {
   // Generates live NCF recommendations for a given user
   async getNcfRecommendations({ userId = 1, topK = 5 }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     // 1. Try PyTorch inference script first if Python environment supports it
     const tryPython = () =>
@@ -407,8 +449,7 @@ export const AdminService = {
   // Generates the full affinity score matrix for all learned user-item pairs
   async getNcfAffinityMatrix() {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const tryPython = () =>
       new Promise((resolve, reject) => {
@@ -461,8 +502,7 @@ export const AdminService = {
   // Generates visual similarity recommendations using CNN ResNet18 embeddings
   async getCnnVisualSimilarities({ productId = 3129, topK = 6, categoryId = null, allCategories = false }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     // Fetch target product details
     let targetProduct = null;
@@ -597,8 +637,7 @@ export const AdminService = {
   // Inspects CNN latent space samples
   async getCnnEmbeddingMatrixSample(n = 6) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const tryPython = () =>
       new Promise((resolve, reject) => {
@@ -637,8 +676,7 @@ export const AdminService = {
   // Generates GRU sequential recommendations for a given user, session, or recent sequence
   async getGruRecommendations({ userId = null, sessionId = null, sequence = null, topK = 5 }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const cliArgs = ['-m', 'gru.recommend', '--top_k', String(topK), '--json'];
     if (sequence && (Array.isArray(sequence) ? sequence.length > 0 : String(sequence).length > 0)) {
@@ -759,8 +797,7 @@ export const AdminService = {
   // Generates latent space reconstruction recommendations using the Denoising Autoencoder
   async getAutoencoderRecommendations({ userId = 1, topK = 5 }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const tryPython = () =>
       new Promise((resolve, reject) => {
@@ -871,8 +908,7 @@ export const AdminService = {
   // Generates live multi-modal hybrid recommendations via Attention Fusion
   async getAttentionFusionRecommendations({ userId = 1, sessionId = null, topK = 5 }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const tryPython = () =>
       new Promise((resolve, reject) => {

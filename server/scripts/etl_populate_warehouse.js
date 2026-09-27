@@ -14,6 +14,7 @@
  */
 
 import { pool, query } from '../config/db.js';
+import { ensureWarehouseSchema } from '../config/warehouseSchema.js';
 
 // Helper: Format Date to Integer Time Key YYYYMMDD
 export function toTimeId(date) {
@@ -261,6 +262,9 @@ export async function runETLPipeline() {
   let loadedCount = 0;
 
   try {
+    // 0. ENSURE DDL SCHEMA EXISTS
+    await ensureWarehouseSchema();
+
     // 1. DIM_TIME
     const timeCount = await populateDimTime('2025-01-01', '2027-12-31');
     loadedCount += timeCount;

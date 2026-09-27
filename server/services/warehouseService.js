@@ -15,14 +15,33 @@ export const warehouseService = {
    * Comprehensive BI Executive Summary combining KPIs, Trends, and Category Distribution
    */
   async getExecutiveOverview() {
-    const [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await Promise.all([
-      warehouseModel.getWarehouseSummary(),
-      warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
-      warehouseModel.getSalesByCategory(),
-      warehouseModel.getSalesByPriceTier(),
-      warehouseModel.getSalesByCustomerActivityTier(),
-      warehouseModel.getEtlHistory({ limit: 5 })
-    ]);
+    let summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory;
+    try {
+      [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await Promise.all([
+        warehouseModel.getWarehouseSummary(),
+        warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
+        warehouseModel.getSalesByCategory(),
+        warehouseModel.getSalesByPriceTier(),
+        warehouseModel.getSalesByCustomerActivityTier(),
+        warehouseModel.getEtlHistory({ limit: 5 })
+      ]);
+    } catch (err) {
+      // 42P01: undefined_table / relation does not exist
+      if (err.code === '42P01' || err.message?.includes('does not exist')) {
+        console.log('[Warehouse] Star schema tables missing in database, auto-initializing and running ETL...');
+        await runETLPipeline();
+        [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await Promise.all([
+          warehouseModel.getWarehouseSummary(),
+          warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
+          warehouseModel.getSalesByCategory(),
+          warehouseModel.getSalesByPriceTier(),
+          warehouseModel.getSalesByCustomerActivityTier(),
+          warehouseModel.getEtlHistory({ limit: 5 })
+        ]);
+      } else {
+        throw err;
+      }
+    }
 
     const latestEtl = etlHistory[0] || null;
 

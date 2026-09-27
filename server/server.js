@@ -3,6 +3,7 @@ dotenv.config();
 
 import app from './app.js';
 import { pool } from './config/db.js';
+import { ensureWarehouseSchema } from './config/warehouseSchema.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -11,6 +12,14 @@ const start = async () => {
     // Verify the DB connection before accepting traffic.
     await pool.query('SELECT 1');
     console.log('Connected to PostgreSQL.');
+
+    // Ensure OLAP Data Warehouse star schema tables exist (idempotent)
+    try {
+      await ensureWarehouseSchema();
+      console.log('OLAP Data Warehouse schema verified.');
+    } catch (schemaErr) {
+      console.error('Warning: Failed to verify warehouse schema on startup:', schemaErr.message);
+    }
 
     app.listen(PORT, () => {
       console.log(`Cartify API listening on http://localhost:${PORT}`);
