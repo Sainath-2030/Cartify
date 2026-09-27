@@ -61,5 +61,8 @@ router.get('/bi/warehouse/etl-history', warehouseController.getEtlHistory);
 // Section 2: Market Basket Analysis & Association Rules (Apriori Engine)
 router.get('/bi/association-rules', warehouseController.getAssociationRules);
 
+// Section 3: Customer Segmentation & RFM Clustering (K-Means Engine)
+router.get('/bi/customer-segments', warehouseController.getCustomerSegments);
+
 export default router;
 

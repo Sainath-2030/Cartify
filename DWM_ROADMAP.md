@@ -210,13 +210,13 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 *Goal: Apply unsupervised learning to segment users by purchasing behavior and visualize cluster distributions.*
 
-- [ ] **Step 3.1: RFM Metric Generation**
+- [x] **Step 3.1: RFM Metric Generation**
   - Build query calculating the three key dimensions per customer:
     - **Recency ($R$):** Days elapsed since the customer's last order or login.
     - **Frequency ($F$):** Total number of completed transactions.
     - **Monetary ($M$):** Total spend across all completed orders.
 
-- [ ] **Step 3.2: K-Means Clustering Algorithm**
+- [x] **Step 3.2: K-Means Clustering Algorithm**
   - Normalize RFM scores (Z-Score or Min-Max scaling).
   - Implement K-Means clustering ($K = 4$):
     - *Cluster 1: Champions / High-Value* (Low R, High F, High M)
@@ -225,10 +225,10 @@ To maintain clean code quality and ensure manageable progress, future work is or
     - *Cluster 4: New / Inactive Explorers* (High R, Low F, Low M)
   - Return cluster centroids and customer assignment distributions.
 
-- [ ] **Step 3.3: API Endpoints for Customer Segmentation**
+- [x] **Step 3.3: API Endpoints for Customer Segmentation**
   - Add `GET /api/admin/bi/customer-segments`.
 
-- [ ] **Step 3.4: BI Dashboard Segmentation Visualizer**
+- [x] **Step 3.4: BI Dashboard Segmentation Visualizer**
   - In [AdminBIDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx), render:
     - 4 Cluster breakdown cards with customer count, average order value, and suggested marketing strategy.
     - Interactive 2D scatter plot (Recency vs. Monetary) with cluster color-coding.
@@ -302,7 +302,7 @@ Use this checklist during future pair-programming turns:
   - [x] Created `DWM_ROADMAP.md` guide.
 - [x] **Milestone 1: Star Schema & Warehouse Layer** (Section 1)
 - [x] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
-- [ ] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
+- [x] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
 - [ ] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)
 - [ ] **Milestone 5: Churn Classification & Predictive Insights** (Section 5)
 - [ ] **Milestone 6: ETL Lineage & Data Quality Audit** (Section 6)

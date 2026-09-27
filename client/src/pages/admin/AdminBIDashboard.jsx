@@ -40,6 +40,8 @@ export default function AdminBIDashboard() {
   const [minConfidence, setMinConfidence] = useState(0.20);
   const [rulesLimit, setRulesLimit] = useState(10);
   
+  const [customerSegments, setCustomerSegments] = useState(null);
+
   const requestIdRef = useRef(0);
 
   const fetchDashboardData = useCallback(async () => {
@@ -136,6 +138,23 @@ export default function AdminBIDashboard() {
   useEffect(() => {
     fetchAssociationRules();
   }, [fetchAssociationRules]);
+
+  const fetchCustomerSegments = useCallback(async () => {
+    try {
+      const res = await adminService.getCustomerSegments();
+      if (res && res.clusters) {
+        setCustomerSegments(res);
+      } else if (res && res.data && res.data.clusters) {
+        setCustomerSegments(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load customer segments:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCustomerSegments();
+  }, [fetchCustomerSegments]);
 
   const handleTriggerETL = async () => {
     try {
@@ -591,6 +610,52 @@ export default function AdminBIDashboard() {
           <span>{rulesLimit !== 'all' && associationRules.length > rulesLimit ? `Showing top ${rulesLimit} out of ${associationRules.length} rules` : ''}</span>
           <span>Total rules discovered: {associationRules.length}</span>
         </div>
+      </div>
+
+      {/* Customer Segmentation & RFM Clustering (K-Means Engine) */}
+      <div className="bg-white border border-stone-200/90 rounded-xl p-6 shadow-xs mt-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-stone-900 flex items-center gap-2 font-display">
+              <Users className="w-5 h-5 text-purple-600" />
+              Customer Segmentation (RFM K-Means Clustering)
+            </h3>
+            <p className="text-sm text-stone-500 mt-1">
+              Unsupervised machine learning dividing customers into distinct behavioral cohorts.
+            </p>
+          </div>
+        </div>
+
+        {customerSegments ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {customerSegments.clusters.map((cluster, idx) => (
+              <div key={idx} className="border border-stone-200/80 rounded-lg p-4 bg-stone-50">
+                <div className="flex justify-between items-start mb-3">
+                  <h4 className="font-semibold text-stone-900 text-sm">{cluster.label}</h4>
+                  <span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-0.5 rounded font-mono font-medium">
+                    {cluster.customerCount} Users
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Avg Recency:</span>
+                    <span className="font-medium text-stone-800">{cluster.averageRecency} days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Avg Frequency:</span>
+                    <span className="font-medium text-stone-800">{cluster.averageFrequency} orders</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Avg Monetary:</span>
+                    <span className="font-medium text-stone-800">{formatCurrency(cluster.averageMonetary)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-stone-500 py-8 text-center">Loading customer segments or no data available.</p>
+        )}
       </div>
     </div>
   );

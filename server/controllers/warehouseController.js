@@ -7,6 +7,7 @@
 
 import { warehouseService } from '../services/warehouseService.js';
 import { aprioriService } from '../services/mining/aprioriService.js';
+import { kmeansService } from '../services/mining/kmeansService.js';
 
 export const warehouseController = {
   /**
@@ -39,6 +40,21 @@ export const warehouseController = {
         minLift
       });
 
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/admin/bi/customer-segments
+   */
+  async getCustomerSegments(req, res, next) {
+    try {
+      const data = await kmeansService.clusterCustomers();
       res.status(200).json({
         success: true,
         data

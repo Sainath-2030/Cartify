@@ -129,5 +129,11 @@ export const adminService = {
     const res = await api.get(`/admin/bi/association-rules?minSupport=${minSupport}&minConfidence=${minConfidence}&minLift=${minLift}`);
     return res.data;
   },
+
+  // Section 3: Customer Segmentation (K-Means)
+  getCustomerSegments: async () => {
+    const res = await api.get('/admin/bi/customer-segments');
+    return res.data;
+  },
 };
 
