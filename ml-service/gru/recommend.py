@@ -197,9 +197,9 @@ def main():
         # Prevent recommending padding token (index 0)
         logits[0, 0] = -float('inf')
         
-        # Mask out items already in the user's active sequence
-        for past_idx in sequence:
-            logits[0, past_idx] = -float('inf')
+        # Mask out the immediate last item in sequence to avoid immediate repetition while preserving category items
+        if sequence:
+            logits[0, sequence[-1]] = -float('inf')
             
         # Apply session category continuity & de-bias unregularized singleton items
         for idx, item_id in idx_to_item.items():
@@ -207,14 +207,16 @@ def main():
                 continue
             item_cat = cat_map.get(item_id)
             if dominant_cat and item_cat == dominant_cat:
-                logits[0, idx] += 4.0
+                logits[0, idx] += 5.0
             elif item_cat in session_cats:
                 logits[0, idx] += 2.0
+            else:
+                logits[0, idx] -= 4.0
                 
             # Penalize single-interaction noise outliers that have aberrant high vector norms
             pop = pop_map.get(item_id, 0)
             if pop <= 1:
-                logits[0, idx] -= 3.0
+                logits[0, idx] -= 2.0
         
         probs = torch.softmax(logits[0], dim=0)
         top_probs, top_indices = torch.topk(probs, args.top_k)

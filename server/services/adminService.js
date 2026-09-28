@@ -739,7 +739,7 @@ export const AdminService = {
       
       const pids = result.recommendations.map(r => r.productId);
       const prodRes = await query(
-        `SELECT p.id, p.name, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
          FROM products p
          LEFT JOIN categories c ON p.category_id = c.id
          WHERE p.id = ANY($1)`,
@@ -754,6 +754,7 @@ export const AdminService = {
           return {
               rank: rec.rank,
               productId: rec.productId,
+              slug: p.slug || '',
               score,
               affinityPercentage: affPct,
               name: p.name || `Product #${rec.productId}`,
@@ -851,9 +852,10 @@ export const AdminService = {
 
       const pids = result.recommendations.map((r) => r.productId);
       const prodRes = await query(
-        `SELECT id, name, price, final_price, main_image, brand, rating, category_id
-         FROM products
-         WHERE id = ANY($1)`,
+        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.id = ANY($1)`,
         [pids]
       );
       const prodMap = new Map(prodRes.rows.map((r) => [parseInt(r.id, 10), r]));
@@ -863,9 +865,11 @@ export const AdminService = {
         return {
           rank: rec.rank,
           productId: rec.productId,
+          slug: p.slug || '',
           score: Math.round(rec.score * 1000) / 1000,
           affinityPercentage: rec.reconstructionAffinity || Math.round(rec.score * 1000) / 10,
           name: p.name || `Product #${rec.productId}`,
+          category: p.category_name || 'General',
           price: parseFloat(p.price) || null,
           finalPrice: parseFloat(p.final_price) || null,
           mainImage: p.main_image || '',
@@ -967,7 +971,7 @@ export const AdminService = {
 
       const pids = result.recommendations.map((r) => r.productId);
       const prodRes = await query(
-        `SELECT p.id, p.name, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
          FROM products p
          LEFT JOIN categories c ON p.category_id = c.id
          WHERE p.id = ANY($1)`,
@@ -980,6 +984,7 @@ export const AdminService = {
         return {
           rank: rec.rank,
           productId: rec.productId,
+          slug: p.slug || '',
           score: Math.round(rec.score * 1000) / 1000,
           affinityPercentage: rec.affinityPercentage,
           dominantModality: rec.dominantModality,

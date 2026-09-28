@@ -19,7 +19,7 @@ const PERSONA_CONFIGS = [
   { name: 'Sports & Active', primaryCat: ['Sports'], secondaryCat: ['Electronics'] },
   { name: 'Gourmet & Daily Needs', primaryCat: ['Grocery'], secondaryCat: ['Home & Kitchen'] },
   { name: 'Hardcore Gaming', primaryCat: ['Gaming'], secondaryCat: ['Electronics'] },
-  { name: 'Readers & Scholars', primaryCat: ['Books'], secondaryCat: ['Electronics'] },
+  { name: 'Readers & Scholars', primaryCat: ['Books'], secondaryCat: ['Books'] },
 ];
 
 const FIRST_NAMES = [
@@ -89,9 +89,9 @@ async function seedData() {
 
     console.log(`👥 Total users ready for session simulation: ${userIds.length}`);
 
-    // 4. Delete existing synthetic interactions to start fresh
-    console.log('🧹 Clearing previous synthetic interactions...');
-    await client.query("DELETE FROM interactions WHERE metadata->>'source' = 'synthetic_simulation'");
+    // 4. Delete ALL previous interactions to completely eliminate stale / cross-polluted data
+    console.log('🧹 Clearing all previous interaction records to guarantee pure persona training sets...');
+    await client.query("TRUNCATE TABLE interactions;");
 
     // 5. Generate realistic sequential shopping sessions
     const interactionBatch = [];
@@ -100,30 +100,35 @@ async function seedData() {
 
     for (let uIdx = 0; uIdx < userIds.length; uIdx++) {
       const uid = userIds[uIdx];
-      const persona = PERSONA_CONFIGS[uIdx % PERSONA_CONFIGS.length];
+      // Map strictly by (uid - 1) % 8 so User 1 is Tech, User 2 is Fashion, ..., User 8 is Books
+      const persona = PERSONA_CONFIGS[(uid - 1) % PERSONA_CONFIGS.length];
 
       const primaryCatIds = persona.primaryCat.map(c => categoryMap[c]).filter(Boolean);
       const secondaryCatIds = persona.secondaryCat.map(c => categoryMap[c]).filter(Boolean);
 
-      // Generate 8 to 14 coherent shopping sessions across 30 days
-      const sessionCount = Math.floor(Math.random() * 7) + 8;
+      // Generate 10 to 16 coherent shopping sessions across 30 days
+      const sessionCount = Math.floor(Math.random() * 7) + 10;
 
       // Distribute session times chronologically
       const sessionInterval = (now - thirtyDaysAgo) / (sessionCount + 1);
 
       for (let s = 0; s < sessionCount; s++) {
         const sessionId = `session_${uid}_s${s}`;
-        const baseSessionTime = thirtyDaysAgo + s * sessionInterval + Math.random() * (sessionInterval * 0.5);
+        const baseSessionTime = thirtyDaysAgo + s * sessionInterval + Math.random() * (sessionInterval * 0.4);
 
-        // 80% chance session is in primary category, 20% secondary
-        const sessionCatId = (Math.random() < 0.80 && primaryCatIds.length > 0)
+        // Crucial: The latest 2 sessions MUST be in the primary category so sequential inference (GRU) matches persona
+        const isLatestSession = (s >= sessionCount - 2);
+        const sessionCatId = (isLatestSession || Math.random() < 0.90 || secondaryCatIds.length === 0)
           ? primaryCatIds[Math.floor(Math.random() * primaryCatIds.length)]
-          : (secondaryCatIds.length > 0 ? secondaryCatIds[Math.floor(Math.random() * secondaryCatIds.length)] : primaryCatIds[0]);
+          : secondaryCatIds[Math.floor(Math.random() * secondaryCatIds.length)];
 
         const catPool = productsByCat[sessionCatId] || prodRes.rows;
-        // Pick a cluster of 50 products in this category to simulate browsing a specific subdepartment
-        const poolStart = Math.floor(Math.random() * Math.max(1, catPool.length - 60));
-        const sessionCandidatePool = catPool.slice(poolStart, poolStart + 60);
+        // Avoid negative slice for categories with fewer items (e.g. books or gaming)
+        let sessionCandidatePool = catPool;
+        if (catPool.length > 60) {
+          const poolStart = Math.floor(Math.random() * Math.max(1, catPool.length - 60));
+          sessionCandidatePool = catPool.slice(poolStart, poolStart + 60);
+        }
 
         // Number of sequential item clicks in this session: 4 to 8
         const itemsInSession = Math.floor(Math.random() * 5) + 4;
@@ -140,8 +145,8 @@ async function seedData() {
           let iType = 'VIEW';
           if (step === itemsInSession - 1) {
             const roll = Math.random();
-            if (roll < 0.40) iType = 'PURCHASE';
-            else if (roll < 0.75) iType = 'CART_ADD';
+            if (roll < 0.45) iType = 'PURCHASE';
+            else if (roll < 0.80) iType = 'CART_ADD';
             else iType = 'VIEW';
           } else if (step === itemsInSession - 2 && Math.random() < 0.40) {
             iType = 'CART_ADD';

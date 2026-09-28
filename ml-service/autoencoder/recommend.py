@@ -148,20 +148,30 @@ def main():
 
         # Compute popularity-debiased and category-aligned ranking scores
         ranking_scores = np.zeros(num_items, dtype=np.float32)
+        
+        # Check if non-interacted candidates in preferred categories are sufficient
+        preferred_cats = {c for c, w in user_cat_affinity.items() if w >= 0.15}
+        
         for idx in range(num_items):
             pid = idx_to_item[idx]
-            if not args.include_interacted and pid in interacted_pids:
-                ranking_scores[idx] = -1.0
-                continue
-
-            pop = prod_pop_map.get(pid, 0) + 1.0
             cat_id = prod_cat_map.get(pid, None)
             user_cat_weight = user_cat_affinity.get(cat_id, 0.0)
+
+            if not args.include_interacted and pid in interacted_pids:
+                # If product belongs to user's preferred category, do not completely discard it
+                if cat_id not in preferred_cats:
+                    ranking_scores[idx] = -1.0
+                    continue
+
+            pop = prod_pop_map.get(pid, 0) + 1.0
 
             # Standard inverse-popularity dampening to prevent common catalog items from dominating
             pop_discount = 1.0 / (pop ** 0.5)
             # Alignment multiplier reflecting user's historical category preference manifold
-            cat_multiplier = 1.0 + (user_cat_weight * 3.0)
+            if user_cat_affinity:
+                cat_multiplier = (1.0 + user_cat_weight * 12.0) if user_cat_weight > 0 else 0.01
+            else:
+                cat_multiplier = 1.0
 
             ranking_scores[idx] = raw_probs[idx] * pop_discount * cat_multiplier
 
