@@ -189,5 +189,106 @@ export const warehouseService = {
    */
   async getEtlHistory({ limit = 10 }) {
     return warehouseModel.getEtlHistory({ limit });
+  },
+
+  /**
+   * SECTION 4: Interactive Multi-Dimensional OLAP Slice & Dice
+   * Returns CUBE / ROLLUP aggregated cells, filtered time-series trend, pivot matrix,
+   * and available dimensions for dynamic UI exploration.
+   */
+  async getOlapCube({
+    timeGrain = 'month',
+    categoryId,
+    priceTier,
+    activityTier,
+    year,
+    quarter,
+    month,
+    cubeMode = 'cube',
+    metric = 'net_revenue'
+  } = {}) {
+    const [metadata, cubeResult] = await Promise.all([
+      warehouseModel.getOlapMetadata(),
+      warehouseModel.getOlapCubeData({
+        timeGrain,
+        categoryId,
+        priceTier,
+        activityTier,
+        year,
+        quarter,
+        month,
+        cubeMode,
+        metric
+      })
+    ]);
+
+    const summary = cubeResult.summary || {};
+    const totalNetRevenue = parseFloat(summary.total_net_revenue) || 0;
+    const totalOrders = parseInt(summary.total_orders_count, 10) || 0;
+
+    return {
+      metadata,
+      activeFilters: {
+        timeGrain: timeGrain || 'month',
+        categoryId: categoryId ? parseInt(categoryId, 10) : null,
+        priceTier: priceTier || null,
+        activityTier: activityTier || null,
+        year: year ? parseInt(year, 10) : null,
+        quarter: quarter ? parseInt(quarter, 10) : null,
+        month: month ? parseInt(month, 10) : null,
+        cubeMode: cubeMode || 'cube',
+        metric: metric || 'net_revenue'
+      },
+      summary: {
+        grossRevenue: parseFloat(summary.total_gross_revenue) || 0,
+        totalDiscounts: parseFloat(summary.total_discounts) || 0,
+        netRevenue: totalNetRevenue,
+        unitsSold: parseInt(summary.total_units_sold, 10) || 0,
+        orderCount: totalOrders,
+        totalOrders: totalOrders,
+        activeCustomers: parseInt(summary.active_customers_count, 10) || 0,
+        productsTransacted: parseInt(summary.products_transacted_count, 10) || 0,
+        averageOrderValue: parseFloat(summary.average_order_value) || 0
+      },
+      timeSeries: (cubeResult.timeSeries || []).map(row => ({
+        periodKey: row.period_key,
+        label: row.period_label,
+        netRevenue: parseFloat(row.net_revenue) || 0,
+        grossRevenue: parseFloat(row.gross_revenue) || 0,
+        unitsSold: parseInt(row.units_sold, 10) || 0,
+        orderCount: parseInt(row.order_count, 10) || 0
+      })),
+      cubeCells: (cubeResult.cubeCells || []).map(row => {
+        const isDim1Subtotal = parseInt(row.is_dim1_subtotal, 10) === 1;
+        const isDim2Subtotal = parseInt(row.is_dim2_subtotal, 10) === 1;
+        const isDim3Subtotal = parseInt(row.is_dim3_subtotal, 10) === 1;
+        const isGrandTotal = (isDim1Subtotal && isDim2Subtotal && (!row.dim_3 || isDim3Subtotal));
+
+        return {
+          dim1: row.dim_1,
+          dim2: row.dim_2,
+          dim3: row.dim_3,
+          cubeType: row.cube_type,
+          isDim1Subtotal,
+          isDim2Subtotal,
+          isDim3Subtotal,
+          isSubtotal: (isDim1Subtotal || isDim2Subtotal || isDim3Subtotal) && !isGrandTotal,
+          isGrandTotal,
+          aggregationLevel: parseInt(row.aggregation_level, 10) || 0,
+          netRevenue: parseFloat(row.net_revenue) || 0,
+          grossRevenue: parseFloat(row.gross_revenue) || 0,
+          unitsSold: parseInt(row.units_sold, 10) || 0,
+          orderCount: parseInt(row.order_count, 10) || 0,
+          customerCount: parseInt(row.customer_count, 10) || 0
+        };
+      }),
+      pivotData: (cubeResult.pivotData || []).map(row => ({
+        categoryName: row.category_name,
+        priceTier: row.price_tier,
+        netRevenue: parseFloat(row.net_revenue) || 0,
+        unitsSold: parseInt(row.units_sold, 10) || 0,
+        orderCount: parseInt(row.order_count, 10) || 0
+      }))
+    };
   }
 };

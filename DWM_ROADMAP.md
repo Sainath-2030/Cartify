@@ -239,21 +239,22 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 *Goal: Enable executive drill-down, roll-up, slicing, and dicing over sales and product categories.*
 
-- [ ] **Step 4.1: Multi-Dimensional OLAP Aggregation Service**
-  - In `warehouseService.js`, build dynamic queries with SQL `GROUP BY CUBE` or `ROLLUP`:
-    - By Time (Year $\rightarrow$ Quarter $\rightarrow$ Month $\rightarrow$ Day)
-    - By Product Hierarchy (Department $\rightarrow$ Category $\rightarrow$ Product)
-    - By Customer Tier
+- [x] **Step 4.1: Multi-Dimensional OLAP Aggregation Service**
+  - In `warehouseService.js` and `warehouseModel.js`, build dynamic queries with SQL `GROUP BY CUBE` and `ROLLUP`:
+    - By Time (Year $\rightarrow$ Quarter $\rightarrow$ Month $\rightarrow$ Week $\rightarrow$ Day)
+    - By Product Hierarchy (Category $\rightarrow$ Price Tier)
+    - By Customer Tier (Activity Tier $\rightarrow$ Category)
 
-- [ ] **Step 4.2: API Endpoints for OLAP Cube Queries**
-  - Add `GET /api/admin/bi/olap-cube` supporting `dimensions`, `filters`, `timeGrain`, `metric`.
+- [x] **Step 4.2: API Endpoints for OLAP Cube Queries**
+  - Add `GET /api/admin/bi/olap-cube` supporting `dimensions`, `filters`, `timeGrain`, `cubeMode`, `metric`.
 
-- [ ] **Step 4.3: BI Dashboard OLAP Controls & Visual Charts**
+- [x] **Step 4.3: BI Dashboard OLAP Controls & Visual Charts**
   - Add an **OLAP Multi-Dimension Toolbar**:
-    - **Drill-Down / Roll-Up Switcher:** Toggle view between Monthly, Weekly, and Daily revenue.
-    - **Slice Filter:** Select specific Category (e.g. *Electronics*, *Footwear*, *Apparel*).
-    - **Dice Selector:** Combine multiple filters simultaneously (e.g. *Category = Electronics* AND *Quarter = Q3*).
-  - Render dynamic SVG/Canvas charts for sales trends and category share.
+    - **Drill-Down / Roll-Up Switcher:** Toggle view between Yearly, Quarterly, Monthly, Weekly, and Daily revenue.
+    - **Slice Filter:** Select specific Category (e.g. *Electronics*, *Sports*, *Beauty*, *Home & Kitchen*).
+    - **Dice Selector:** Combine multiple filters simultaneously (e.g. *Category = Electronics* AND *Quarter = Q3* AND *PriceTier = LUXURY*).
+  - Render dynamic SVG charts for sales trends and category contribution.
+  - Interactive Cross-Tabulation Pivot Grid with Heatmap shading, subtotal rows, and grand totals.
 
 ---
 
@@ -303,6 +304,6 @@ Use this checklist during future pair-programming turns:
 - [x] **Milestone 1: Star Schema & Warehouse Layer** (Section 1)
 - [x] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
 - [x] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
-- [ ] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)
+- [x] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)
 - [ ] **Milestone 5: Churn Classification & Predictive Insights** (Section 5)
 - [ ] **Milestone 6: ETL Lineage & Data Quality Audit** (Section 6)

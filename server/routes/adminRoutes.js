@@ -64,5 +64,8 @@ router.get('/bi/association-rules', warehouseController.getAssociationRules);
 // Section 3: Customer Segmentation & RFM Clustering (K-Means Engine)
 router.get('/bi/customer-segments', warehouseController.getCustomerSegments);
 
+// Section 4: Interactive Multi-Dimensional OLAP Slice & Dice (CUBE & ROLLUP)
+router.get('/bi/olap-cube', warehouseController.getOlapCube);
+
 export default router;
 

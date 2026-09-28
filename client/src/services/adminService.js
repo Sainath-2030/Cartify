@@ -135,5 +135,15 @@ export const adminService = {
     const res = await api.get('/admin/bi/customer-segments');
     return res.data;
   },
+
+  // Section 4: Interactive Multi-Dimensional OLAP Slice & Dice
+  getOlapCube: async (params = {}) => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+    );
+    const queryStr = new URLSearchParams(cleanParams).toString();
+    const res = await api.get(`/admin/bi/olap-cube${queryStr ? `?${queryStr}` : ''}`);
+    return res.data;
+  },
 };
 

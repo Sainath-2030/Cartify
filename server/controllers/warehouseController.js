@@ -165,5 +165,44 @@ export const warehouseController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  /**
+   * GET /api/admin/bi/olap-cube
+   * Section 4: Multi-dimensional CUBE, ROLLUP, Slicing & Dicing
+   */
+  async getOlapCube(req, res, next) {
+    try {
+      const {
+        timeGrain,
+        categoryId,
+        priceTier,
+        activityTier,
+        year,
+        quarter,
+        month,
+        cubeMode,
+        metric
+      } = req.query;
+
+      const data = await warehouseService.getOlapCube({
+        timeGrain,
+        categoryId,
+        priceTier,
+        activityTier,
+        year,
+        quarter,
+        month,
+        cubeMode,
+        metric
+      });
+
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };
