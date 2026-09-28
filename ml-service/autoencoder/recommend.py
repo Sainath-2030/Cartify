@@ -158,10 +158,8 @@ def main():
             user_cat_weight = user_cat_affinity.get(cat_id, 0.0)
 
             if not args.include_interacted and pid in interacted_pids:
-                # If product belongs to user's preferred category, do not completely discard it
-                if cat_id not in preferred_cats:
-                    ranking_scores[idx] = -1.0
-                    continue
+                ranking_scores[idx] = -1.0
+                continue
 
             pop = prod_pop_map.get(pid, 0) + 1.0
 

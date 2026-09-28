@@ -89,11 +89,7 @@ async function seedData() {
 
     console.log(`👥 Total users ready for session simulation: ${userIds.length}`);
 
-    // 4. Delete ALL previous interactions to completely eliminate stale / cross-polluted data
-    console.log('🧹 Clearing all previous interaction records to guarantee pure persona training sets...');
-    await client.query("TRUNCATE TABLE interactions;");
-
-    // 5. Generate realistic sequential shopping sessions
+    // 4. Generate realistic sequential shopping sessions
     const interactionBatch = [];
     const now = Date.now();
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
@@ -171,34 +167,45 @@ async function seedData() {
       }
     }
 
-    console.log(`⚡ Inserting ${interactionBatch.length} coherent sequential interaction rows into Postgres...`);
+    console.log(`⚡ Inserting ${interactionBatch.length} coherent sequential interaction rows into Postgres in a single transaction...`);
 
-    // Insert in chunks of 500
-    const chunkSize = 500;
-    for (let i = 0; i < interactionBatch.length; i += chunkSize) {
-      const chunk = interactionBatch.slice(i, i + chunkSize);
-      const values = [];
-      const params = [];
-      let paramIdx = 1;
+    await client.query('BEGIN');
+    try {
+      console.log('🧹 Clearing previous synthetic interactions (source = synthetic_simulation)...');
+      await client.query("DELETE FROM interactions WHERE metadata->>'source' = 'synthetic_simulation'");
 
-      for (const row of chunk) {
-        values.push(`($${paramIdx}, $${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, $${paramIdx + 5})`);
-        params.push(
-          row.userId,
-          row.productId,
-          row.interactionType,
-          row.sessionId,
-          JSON.stringify(row.metadata),
-          row.createdAt
+      // Insert in chunks of 500
+      const chunkSize = 500;
+      for (let i = 0; i < interactionBatch.length; i += chunkSize) {
+        const chunk = interactionBatch.slice(i, i + chunkSize);
+        const values = [];
+        const params = [];
+        let paramIdx = 1;
+
+        for (const row of chunk) {
+          values.push(`($${paramIdx}, $${paramIdx + 1}, $${paramIdx + 2}, $${paramIdx + 3}, $${paramIdx + 4}, $${paramIdx + 5})`);
+          params.push(
+            row.userId,
+            row.productId,
+            row.interactionType,
+            row.sessionId,
+            JSON.stringify(row.metadata),
+            row.createdAt
+          );
+          paramIdx += 6;
+        }
+
+        await client.query(
+          `INSERT INTO interactions (user_id, product_id, interaction_type, session_id, metadata, created_at)
+           VALUES ${values.join(', ')}`,
+          params
         );
-        paramIdx += 6;
       }
 
-      await client.query(
-        `INSERT INTO interactions (user_id, product_id, interaction_type, session_id, metadata, created_at)
-         VALUES ${values.join(', ')}`,
-        params
-      );
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
     }
 
     const totalCountRes = await client.query('SELECT count(*) FROM interactions WHERE user_id IS NOT NULL AND product_id IS NOT NULL');

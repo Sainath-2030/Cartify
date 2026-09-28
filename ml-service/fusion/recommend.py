@@ -124,17 +124,9 @@ def recommend(user_id: int, top_k: int = 10, include_interacted: bool = False, i
     else:
         active_candidates = candidate_pids
 
-    # Filter out already interacted products if requested
+    # Filter out already interacted products unless in explicit repeat-product mode (include_interacted=True)
     if not include_interacted and interacted_pids:
         eval_candidates = [pid for pid in active_candidates if pid not in interacted_pids]
-        if user_cat_affinity:
-            # For each category where user has substantial affinity (>= 15%), ensure candidates exist
-            for cat_id, aff in user_cat_affinity.items():
-                if aff >= 0.15:
-                    cat_non_interacted = [pid for pid in eval_candidates if prod_cat_map.get(pid) == cat_id]
-                    if len(cat_non_interacted) < top_k:
-                        cat_interacted = [pid for pid in active_candidates if prod_cat_map.get(pid) == cat_id and pid in interacted_pids]
-                        eval_candidates = list(dict.fromkeys(eval_candidates + cat_interacted))
         if len(eval_candidates) < top_k:
             eval_candidates = active_candidates
     else:

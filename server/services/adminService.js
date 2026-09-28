@@ -779,7 +779,7 @@ export const AdminService = {
     } catch (err) {
       console.warn('GRU inference fallback:', err.message);
       const fallbackRes = await query(
-        `SELECT p.id, p.name, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
          FROM products p
          LEFT JOIN categories c ON p.category_id = c.id
          WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
@@ -794,6 +794,7 @@ export const AdminService = {
         return {
           rank: idx + 1,
           productId: parseInt(p.id, 10),
+          slug: p.slug || '',
           score,
           affinityPercentage: Math.round(score * 1000) / 10,
           name: p.name,
@@ -891,10 +892,11 @@ export const AdminService = {
       console.error('tryPython failed in getAutoencoderRecommendations:', pyErr);
       // Graceful Fallback from verified catalogue
       const productRes = await query(
-        `SELECT id, name, price, final_price, main_image, brand, rating, category_id
-         FROM products
-         WHERE is_active = true AND verification_status = 'VERIFIED'
-         ORDER BY rating DESC, review_count DESC
+        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
+         ORDER BY p.rating DESC, p.review_count DESC
          LIMIT $1`,
         [Math.max(topK, 5)]
       );
@@ -905,9 +907,11 @@ export const AdminService = {
         return {
           rank: idx + 1,
           productId: parseInt(p.id, 10),
+          slug: p.slug || '',
           score,
           affinityPercentage: Math.round(score * 1000) / 10,
           name: p.name,
+          category: p.category_name || 'General',
           price: parseFloat(p.price) || null,
           finalPrice: parseFloat(p.final_price) || null,
           mainImage: p.main_image || '',
@@ -1015,9 +1019,10 @@ export const AdminService = {
       console.error('tryPython failed in getAttentionFusionRecommendations:', pyErr);
       // Graceful verified fallback
       const productRes = await query(
-        `SELECT id, name, price, final_price, main_image, brand, rating, category_id
-         FROM products
-         WHERE is_active = true AND verification_status = 'VERIFIED'
+        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
          ORDER BY rating DESC, review_count DESC
          LIMIT $1`,
         [Math.max(topK, 5)]
@@ -1031,6 +1036,7 @@ export const AdminService = {
         return {
           rank: idx + 1,
           productId: parseInt(p.id, 10),
+          slug: p.slug || '',
           score,
           affinityPercentage: Math.round(score * 1000) / 10,
           dominantModality: domModality,
@@ -1041,6 +1047,7 @@ export const AdminService = {
             autoencoder: domModality === 'AUTOENCODER' ? 0.65 : 0.12,
           },
           name: p.name,
+          category: p.category_name || 'General',
           price: parseFloat(p.price) || null,
           finalPrice: parseFloat(p.final_price) || null,
           mainImage: p.main_image || '',
