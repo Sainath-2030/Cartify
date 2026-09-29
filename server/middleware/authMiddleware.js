@@ -13,7 +13,7 @@ export const requireAuth = (req, res, next) => {
 
   try {
     const decoded = verifyToken(token);
-    req.user = { id: decoded.userId, email: decoded.email, role: decoded.role || 'USER' };
+    req.user = { id: decoded.userId || decoded.id, email: decoded.email, role: decoded.role || 'USER' };
     next();
   } catch (err) {
     next(new AppError('Invalid or expired session. Please log in again.', 401));
@@ -36,3 +36,17 @@ export const requireRole = (...roles) => (req, res, next) => {
   }
   next();
 };
+
+export const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme === 'Bearer' && token) {
+    try {
+      const decoded = verifyToken(token);
+      req.user = { id: decoded.userId || decoded.id, email: decoded.email, role: decoded.role || 'USER' };
+    } catch {
+      // Gracefully continue as guest
+    }
+  }
+  next();
+};

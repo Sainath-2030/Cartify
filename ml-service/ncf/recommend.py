@@ -143,8 +143,38 @@ def recommend_for_user(user_id: int, top_k: int = 5, as_json: bool = False):
     products_df = load_products()
     product_lookup = products_df.set_index("id").to_dict("index") if not products_df.empty else {}
 
-    # Rank products
-    ranked_indices = scores.argsort()[::-1][:top_k]
+    # Load user category preferences from interactions to ensure category alignment
+    from common.db import get_db_connection
+    conn = get_db_connection()
+    try:
+        user_cat_df = pd.read_sql("""
+            SELECT p.category_id, count(*) as count
+            FROM interactions i
+            JOIN products p ON p.id = i.product_id
+            WHERE i.user_id = %s AND p.category_id IS NOT NULL
+            GROUP BY p.category_id
+        """, conn, params=(user_id,))
+    finally:
+        conn.close()
+
+    cat_weights = {}
+    if not user_cat_df.empty:
+        total = user_cat_df["count"].sum()
+        cat_weights = {int(r["category_id"]): float(r["count"]) / float(total) for _, r in user_cat_df.iterrows()}
+
+    # Rank products with category coherence
+    ranking_scores = scores.copy()
+    if cat_weights:
+        for idx in range(len(item_indices)):
+            raw_pid = idx_to_item[idx]
+            p_cat = product_lookup.get(raw_pid, {}).get("category_id")
+            w = cat_weights.get(int(p_cat), 0.0) if (p_cat is not None and pd.notna(p_cat)) else 0.0
+            if w > 0:
+                ranking_scores[idx] = scores[idx] * (1.0 + w * 8.0)
+            else:
+                ranking_scores[idx] = scores[idx] * 0.01
+
+    ranked_indices = ranking_scores.argsort()[::-1][:top_k]
     
     recommendations = []
     for rank, idx in enumerate(ranked_indices, start=1):

@@ -8,6 +8,7 @@ const router = Router();
 
 router.get('/me', requireAuth, getMe);
 router.put('/me', requireAuth, validateBody(validateProfileUpdate), updateMe);
+router.get('/me/recommendations', requireAuth, getRecommendations);
 router.get('/recommendations', requireAuth, getRecommendations);
 
 export default router;

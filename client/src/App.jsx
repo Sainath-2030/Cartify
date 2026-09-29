@@ -24,6 +24,7 @@ import AdminModels from './pages/admin/AdminModels.jsx';
 import AdminRetraining from './pages/admin/AdminRetraining.jsx';
 import AdminCatalogue from './pages/admin/AdminCatalogue.jsx';
 import AdminBusinessRules from './pages/admin/AdminBusinessRules.jsx';
+import AdminBIDashboard from './pages/admin/AdminBIDashboard.jsx';
 
 import ContentManagerLayout from './layouts/ContentManagerLayout.jsx';
 import CMDashboard from './pages/content-manager/CMDashboard.jsx';
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="retraining" element={<AdminRetraining />} />
         <Route path="catalogue" element={<AdminCatalogue />} />
         <Route path="business-rules" element={<AdminBusinessRules />} />
+        <Route path="bi-dashboard" element={<AdminBIDashboard />} />
       </Route>
 
       {/* Content Manager dashboard — dedicated shell */}

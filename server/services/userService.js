@@ -39,6 +39,33 @@ export const UserService = {
   async getRecommendations(userId, topK = 6) {
     const { pool } = await import('../config/db.js');
 
+    // 1. Prioritize Attention Fusion (Section 9/10: NCF + CNN + GRU + Autoencoder)
+    try {
+      const { AdminService } = await import('./adminService.js');
+      const fusionRes = await AdminService.getAttentionFusionRecommendations({ userId, topK });
+      if (fusionRes && fusionRes.recommendations && fusionRes.recommendations.length > 0) {
+        return fusionRes.recommendations.map((r) => ({
+          rank: r.rank,
+          productId: r.productId,
+          score: r.score,
+          affinityPercentage: r.affinityPercentage,
+          dominantModality: r.dominantModality,
+          attentionWeights: r.attentionWeights,
+          name: r.name,
+          category: r.category || 'General',
+          price: r.price,
+          finalPrice: r.finalPrice,
+          mainImage: r.mainImage,
+          brand: r.brand,
+          rating: r.rating,
+          categoryId: r.categoryId,
+          origin: 'attention_fusion',
+        }));
+      }
+    } catch (fusionErr) {
+      console.warn('Attention Fusion inference fallback:', fusionErr.message);
+    }
+
     let ncfRecs = [];
     try {
       const { AdminService } = await import('./adminService.js');
@@ -126,8 +153,9 @@ export const UserService = {
       try {
         // Query high quality candidates for the active session category
         const catRes = await pool.query(
-          `SELECT p.id, p.name, p.slug, p.brand, p.price, p.final_price, p.rating, p.main_image, p.category_id
+          `SELECT p.id, p.name, p.slug, p.brand, p.price, p.final_price, p.rating, p.main_image, p.category_id, c.name as category_name
            FROM products p
+           LEFT JOIN categories c ON p.category_id = c.id
            WHERE p.category_id = $1 AND p.is_active = true
            ORDER BY p.rating DESC, p.review_count DESC
            LIMIT 8`,
@@ -152,6 +180,7 @@ export const UserService = {
               score: parseFloat(score.toFixed(4)),
               affinityPercentage: Math.round(score * 1000) / 10,
               name: p.name,
+              category: p.category_name || 'General',
               price: parseFloat(p.price) || 0,
               finalPrice: parseFloat(p.final_price || p.price) || 0,
               mainImage: p.main_image,

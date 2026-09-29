@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { LineChart, BrainCircuit, RefreshCw, PackageSearch, Settings2, ArrowRight } from 'lucide-react';
+import { LineChart, BrainCircuit, RefreshCw, PackageSearch, Settings2, BarChart3, ArrowRight } from 'lucide-react';
 
 const CARDS = [
   { title: 'Analytics', description: 'Recommendation quality metrics (Precision@K, Recall@K, NDCG@K, Hit Ratio).', to: '/admin/analytics', icon: LineChart },
@@ -7,6 +7,7 @@ const CARDS = [
   { title: 'Retraining', description: 'Trigger and monitor model retraining jobs.', to: '/admin/retraining', icon: RefreshCw },
   { title: 'Catalogue Health', description: 'Data-quality checks across the product catalogue.', to: '/admin/catalogue', icon: PackageSearch },
   { title: 'Business Rules', description: 'Configure promotion boosts and ranking constraints.', to: '/admin/business-rules', icon: Settings2 },
+  { title: 'BI Dashboard', description: 'Business intelligence overview, sales velocity, and executive KPI analytics.', to: '/admin/bi-dashboard', icon: BarChart3 },
 ];
 
 export default function AdminDashboard() {

@@ -16,10 +16,27 @@ export const getInteractionAnalytics = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: analytics });
 });
 
+// GET /api/admin/analytics/funnel
+export const getTelemetryFunnel = asyncHandler(async (req, res) => {
+  const timeframe = req.query.timeframe || 'all';
+  const funnel = await AdminService.getTelemetryFunnel({ timeframe });
+  res.status(200).json({ success: true, data: funnel });
+});
+
 // GET /api/admin/models/metrics
 export const getModelMetrics = asyncHandler(async (req, res) => {
   const metrics = await AdminService.getModelMetrics();
   res.status(200).json({ success: true, data: metrics });
+});
+
+// POST /api/admin/models/evaluate
+export const triggerModelEvaluation = asyncHandler(async (req, res) => {
+  const benchmark = await AdminService.triggerModelEvaluation();
+  res.status(200).json({
+    success: true,
+    message: 'Recommendation models offline evaluation benchmark completed successfully.',
+    data: benchmark,
+  });
 });
 
 // GET /api/admin/models/status
@@ -104,10 +121,36 @@ export const getCnnEmbeddingMatrixSample = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: result });
 });
 
+// GET /api/admin/models/gru-recommendations
+export const getGruRecommendations = asyncHandler(async (req, res) => {
+  const userId = parseInt(req.query.userId, 10) || 1;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 5));
+  const result = await AdminService.getGruRecommendations({ userId, topK });
+  res.status(200).json(result);
+});
+
+// GET /api/admin/models/autoencoder-recommendations
+export const getAutoencoderRecommendations = asyncHandler(async (req, res) => {
+  const userId = parseInt(req.query.userId, 10) || 1;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 5));
+  const result = await AdminService.getAutoencoderRecommendations({ userId, topK });
+  res.status(200).json(result);
+});
+
+// GET /api/admin/models/fusion-recommendations
+export const getAttentionFusionRecommendations = asyncHandler(async (req, res) => {
+  const userId = parseInt(req.query.userId, 10) || 1;
+  const sessionId = req.query.sessionId || null;
+  const topK = Math.min(50, Math.max(1, parseInt(req.query.topK, 10) || 5));
+  const result = await AdminService.getAttentionFusionRecommendations({ userId, sessionId, topK });
+  res.status(200).json(result);
+});
+
 // GET /api/admin/audit-logs
 export const getAuditLogs = asyncHandler(async (req, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
   const logs = await AdminService.getAuditLogs(limit);
   res.status(200).json({ success: true, data: logs });
 });
+
 

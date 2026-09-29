@@ -18,5 +18,10 @@ export const productService = {
   search: (params) => api.get(`/products/search${buildQueryString(params)}`),
   getBySlug: (slug) => api.get(`/products/slug/${encodeURIComponent(slug)}`),
   getBrands: (category) => api.get(`/products/brands${buildQueryString({ category })}`),
+  getSimilar: (productId, limit = 6) =>
+    api.get(`/products/${productId}/similar${buildQueryString({ limit })}`),
+  getForYou: ({ sessionId = null, topK = 8 } = {}) =>
+    api.get(`/products/recommendations/for-you${buildQueryString({ sessionId, topK })}`),
   buildQueryString,
 };
+
