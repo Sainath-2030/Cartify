@@ -1127,16 +1127,19 @@ export default function AdminBIDashboard() {
                     </svg>
 
                     {/* Interactive Tooltip Card */}
-                    {hoveredCustomerPoint && (
-                      <div
-                        className="absolute pointer-events-none z-10 bg-card-elevated text-ink rounded-lg shadow-xl p-3 text-xs border border-border-strong max-w-xs transition-transform"
-                        style={{
-                          left: `${(getPlotX(hoveredCustomerPoint.recency) / chartWidth) * 100}%`,
-                          top: `${(getPlotY(hoveredCustomerPoint.monetary) / chartHeight) * 100}%`,
-                          transform: 'translate(-50%, -125%)'
-                        }}
-                      >
-                        <div className="font-semibold text-ink flex items-center justify-between gap-3 border-b border-border-subtle pb-1.5 mb-1.5">
+                    {hoveredCustomerPoint && (() => {
+                      const plotY = getPlotY(hoveredCustomerPoint.monetary);
+                      const isNearTop = plotY < 85;
+                      return (
+                        <div
+                          className="absolute pointer-events-none z-10 bg-card-elevated text-ink rounded-lg shadow-xl p-3 text-xs border border-border-strong max-w-xs transition-transform"
+                          style={{
+                            left: `${(getPlotX(hoveredCustomerPoint.recency) / chartWidth) * 100}%`,
+                            top: `${(plotY / chartHeight) * 100}%`,
+                            transform: isNearTop ? 'translate(-50%, 15px)' : 'translate(-50%, -125%)'
+                          }}
+                        >
+                          <div className="font-semibold text-ink flex items-center justify-between gap-3 border-b border-border-subtle pb-1.5 mb-1.5">
                           <span className="truncate">{hoveredCustomerPoint.name}</span>
                           <span className="text-[10px] text-muted font-mono shrink-0">ID: #{hoveredCustomerPoint.id}</span>
                         </div>
@@ -1161,7 +1164,8 @@ export default function AdminBIDashboard() {
                           </div>
                         </div>
                       </div>
-                    )}
+                    );
+                  })()}
                   </div>
 
                   {/* Scatter Legend */}
@@ -1292,12 +1296,12 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
         )}
 
         {/* OLAP Multi-Dimension Toolbar */}
-        <div className="bg-stone-50/80 border border-stone-200/80 rounded-xl p-4 space-y-4 shadow-xs">
+        <div className="bg-card-elevated border border-border-subtle rounded-xl p-4 space-y-4 shadow-xs">
           {/* Row 1: Temporal Roll-Up / Drill-Down Switcher */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-amber-600" />
-              <span className="text-xs font-bold text-stone-900 uppercase tracking-wider">
+              <SlidersHorizontal className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-bold text-ink uppercase tracking-wider">
                 1. Temporal Drill-Down & Roll-Up Level:
               </span>
             </div>
@@ -1315,8 +1319,8 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                   onClick={() => setOlapTimeGrain(grain.key)}
                   className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
                     olapTimeGrain === grain.key
-                      ? 'bg-stone-900 text-white shadow-xs font-semibold'
-                      : 'bg-white border border-stone-200/80 text-stone-700 hover:bg-stone-100 hover:text-stone-900'
+                      ? 'bg-accent text-stone-900 shadow-xs font-bold'
+                      : 'bg-card border border-border-subtle text-muted hover:bg-card-elevated hover:text-ink'
                   }`}
                   title={grain.desc}
                 >
@@ -1327,11 +1331,11 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
           </div>
 
           {/* Row 2: Cube Mode & Metric Switcher */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 border-t border-stone-200/60">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 border-t border-border-subtle">
             {/* Cube Aggregation Mode */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-stone-700">2. Aggregation Operator:</span>
-              <div className="inline-flex items-center rounded-lg border border-stone-200 bg-white p-0.5 shadow-xs text-xs">
+              <span className="text-xs font-semibold text-ink">2. Aggregation Operator:</span>
+              <div className="inline-flex items-center rounded-lg border border-border-subtle bg-card p-0.5 shadow-xs text-xs">
                 {[
                   { key: 'cube', label: 'Product CUBE', desc: 'CUBE(Category, PriceTier)' },
                   { key: 'rollup', label: 'Temporal ROLLUP', desc: 'ROLLUP(Year, Quarter, Month)' },
@@ -1343,8 +1347,8 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                     onClick={() => setOlapCubeMode(mode.key)}
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                       olapCubeMode === mode.key
-                        ? 'bg-amber-500 text-stone-900 font-semibold shadow-xs'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                        ? 'bg-amber-500 text-stone-900 font-bold shadow-xs'
+                        : 'text-muted hover:text-ink hover:bg-card-elevated'
                     }`}
                     title={mode.desc}
                   >
@@ -1356,8 +1360,8 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
             {/* Metric Selector */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-stone-700">3. Target Fact Metric:</span>
-              <div className="inline-flex items-center rounded-lg border border-stone-200 bg-white p-0.5 shadow-xs text-xs">
+              <span className="text-xs font-semibold text-ink">3. Target Fact Metric:</span>
+              <div className="inline-flex items-center rounded-lg border border-border-subtle bg-card p-0.5 shadow-xs text-xs">
                 {[
                   { key: 'net_revenue', label: 'Net Revenue ($)' },
                   { key: 'gross_revenue', label: 'Gross Revenue ($)' },
@@ -1370,7 +1374,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                     className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                       olapMetric === m.key
                         ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                        : 'text-muted hover:text-ink hover:bg-card-elevated'
                     }`}
                   >
                     {m.label}
@@ -1381,10 +1385,10 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
           </div>
 
           {/* Row 3: Slicing & Dicing Coordinate Selectors */}
-          <div className="pt-3 border-t border-stone-200/60">
+          <div className="pt-3 border-t border-border-subtle">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-indigo-500" />
                 4. Dice Filters (Constrain Multi-Dimensional Sub-Cube):
               </span>
               {(olapCategoryId !== 'all' || olapQuarter !== 'all' || olapPriceTier !== 'all' || olapActivityTier !== 'all') && (
@@ -1395,7 +1399,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                     setOlapPriceTier('all');
                     setOlapActivityTier('all');
                   }}
-                  className="text-[11px] text-red-600 hover:text-red-700 font-medium flex items-center gap-1 transition cursor-pointer"
+                  className="text-[11px] text-red-500 hover:text-red-400 font-medium flex items-center gap-1 transition cursor-pointer"
                 >
                   <X className="w-3 h-3" /> Reset All Dice Filters
                 </button>
@@ -1405,13 +1409,13 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Category Slice */}
               <div>
-                <label className="block text-[11px] font-medium text-stone-600 mb-1">
+                <label className="block text-[11px] font-medium text-muted mb-1">
                   Category Slice (<code>dim_product</code>)
                 </label>
                 <select
                   value={olapCategoryId}
                   onChange={(e) => setOlapCategoryId(e.target.value)}
-                  className="w-full bg-white border border-stone-200 text-stone-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full bg-card border border-border-subtle text-ink text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
                   <option value="all">All Categories ({olapData?.metadata?.categories?.length || 0})</option>
                   {(olapData?.metadata?.categories || []).map(cat => (
@@ -1424,13 +1428,13 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
               {/* Quarter Slice */}
               <div>
-                <label className="block text-[11px] font-medium text-stone-600 mb-1">
+                <label className="block text-[11px] font-medium text-muted mb-1">
                   Quarter Slice (<code>dim_time</code>)
                 </label>
                 <select
                   value={olapQuarter}
                   onChange={(e) => setOlapQuarter(e.target.value)}
-                  className="w-full bg-white border border-stone-200 text-stone-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full bg-card border border-border-subtle text-ink text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
                   <option value="all">All Quarters (Q1 - Q4)</option>
                   {(olapData?.metadata?.quarters || []).map(q => (
@@ -1443,13 +1447,13 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
               {/* Price Tier Slice */}
               <div>
-                <label className="block text-[11px] font-medium text-stone-600 mb-1">
+                <label className="block text-[11px] font-medium text-muted mb-1">
                   Price Hierarchy (<code>dim_product</code>)
                 </label>
                 <select
                   value={olapPriceTier}
                   onChange={(e) => setOlapPriceTier(e.target.value)}
-                  className="w-full bg-white border border-stone-200 text-stone-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full bg-card border border-border-subtle text-ink text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
                   <option value="all">All Price Tiers</option>
                   {(olapData?.metadata?.priceTiers || []).map(tier => (
@@ -1462,13 +1466,13 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
               {/* Customer Activity Tier */}
               <div>
-                <label className="block text-[11px] font-medium text-stone-600 mb-1">
+                <label className="block text-[11px] font-medium text-muted mb-1">
                   Customer Cohort (<code>dim_customer</code>)
                 </label>
                 <select
                   value={olapActivityTier}
                   onChange={(e) => setOlapActivityTier(e.target.value)}
-                  className="w-full bg-white border border-stone-200 text-stone-800 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full bg-card border border-border-subtle text-ink text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
                   <option value="all">All Customer Tiers</option>
                   {(olapData?.metadata?.activityTiers || []).map(tier => (
@@ -1482,36 +1486,36 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
             {/* Active Dice Filter Chips */}
             {(olapCategoryId !== 'all' || olapQuarter !== 'all' || olapPriceTier !== 'all' || olapActivityTier !== 'all') && (
-              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-stone-200/50">
-                <span className="text-[11px] text-stone-500 font-medium">Active Sub-Cube Coordinates:</span>
+              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-border-subtle">
+                <span className="text-[11px] text-muted font-medium">Active Sub-Cube Coordinates:</span>
                 {olapCategoryId !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/30">
                     Category: {olapData?.metadata?.categories?.find(c => String(c.categoryId) === String(olapCategoryId))?.categoryName || olapCategoryId}
-                    <button onClick={() => setOlapCategoryId('all')} className="hover:text-red-700 ml-0.5 cursor-pointer">
+                    <button onClick={() => setOlapCategoryId('all')} className="hover:text-red-500 ml-0.5 cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {olapQuarter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-900 border border-indigo-300">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
                     Quarter: Q{olapQuarter}
-                    <button onClick={() => setOlapQuarter('all')} className="hover:text-red-700 ml-0.5 cursor-pointer">
+                    <button onClick={() => setOlapQuarter('all')} className="hover:text-red-500 ml-0.5 cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {olapPriceTier !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                     Tier: {olapPriceTier}
-                    <button onClick={() => setOlapPriceTier('all')} className="hover:text-red-700 ml-0.5 cursor-pointer">
+                    <button onClick={() => setOlapPriceTier('all')} className="hover:text-red-500 ml-0.5 cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {olapActivityTier !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-900 border border-purple-300">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/30">
                     Customer: {olapActivityTier}
-                    <button onClick={() => setOlapActivityTier('all')} className="hover:text-red-700 ml-0.5 cursor-pointer">
+                    <button onClick={() => setOlapActivityTier('all')} className="hover:text-red-500 ml-0.5 cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -1524,48 +1528,48 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
         {/* OLAP Sliced Sub-Cube KPI Strip */}
         {olapData?.summary && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="bg-stone-50 border border-stone-200/70 rounded-lg p-3">
-              <span className="text-[11px] text-stone-500 font-medium block">Diced Net Revenue</span>
-              <span className="text-base font-bold text-stone-900 font-mono">
+            <div className="bg-card border border-border-subtle rounded-lg p-3">
+              <span className="text-[11px] text-muted font-medium block">Diced Net Revenue</span>
+              <span className="text-base font-bold text-ink font-mono">
                 {formatCurrency(olapData.summary.netRevenue)}
               </span>
-              <span className="text-[10px] text-stone-400 block mt-0.5">
+              <span className="text-[10px] text-muted block mt-0.5">
                 Gross: {formatCurrency(olapData.summary.grossRevenue)}
               </span>
             </div>
-            <div className="bg-stone-50 border border-stone-200/70 rounded-lg p-3">
-              <span className="text-[11px] text-stone-500 font-medium block">Units Sold in Cube</span>
-              <span className="text-base font-bold text-indigo-700 font-mono">
+            <div className="bg-card border border-border-subtle rounded-lg p-3">
+              <span className="text-[11px] text-muted font-medium block">Units Sold in Cube</span>
+              <span className="text-base font-bold text-indigo-400 font-mono">
                 {formatNumber(olapData.summary.unitsSold)}
               </span>
-              <span className="text-[10px] text-stone-400 block mt-0.5">
+              <span className="text-[10px] text-muted block mt-0.5">
                 Across {olapData.summary.productsTransacted} products
               </span>
             </div>
-            <div className="bg-stone-50 border border-stone-200/70 rounded-lg p-3">
-              <span className="text-[11px] text-stone-500 font-medium block">Orders in Sub-Cube</span>
-              <span className="text-base font-bold text-emerald-700 font-mono">
+            <div className="bg-card border border-border-subtle rounded-lg p-3">
+              <span className="text-[11px] text-muted font-medium block">Orders in Sub-Cube</span>
+              <span className="text-base font-bold text-emerald-400 font-mono">
                 {formatNumber(olapData.summary.orderCount)}
               </span>
-              <span className="text-[10px] text-stone-400 block mt-0.5">
+              <span className="text-[10px] text-muted block mt-0.5">
                 By {olapData.summary.activeCustomers} customers
               </span>
             </div>
-            <div className="bg-stone-50 border border-stone-200/70 rounded-lg p-3">
-              <span className="text-[11px] text-stone-500 font-medium block">Sub-Cube AOV</span>
-              <span className="text-base font-bold text-amber-700 font-mono">
+            <div className="bg-card border border-border-subtle rounded-lg p-3">
+              <span className="text-[11px] text-muted font-medium block">Sub-Cube AOV</span>
+              <span className="text-base font-bold text-amber-500 font-mono">
                 {formatCurrency(olapData.summary.averageOrderValue)}
               </span>
-              <span className="text-[10px] text-stone-400 block mt-0.5">
+              <span className="text-[10px] text-muted block mt-0.5">
                 Revenue per order
               </span>
             </div>
-            <div className="bg-stone-50 border border-stone-200/70 rounded-lg p-3 col-span-2 sm:col-span-1">
-              <span className="text-[11px] text-stone-500 font-medium block">Aggregated Cells</span>
-              <span className="text-base font-bold text-purple-700 font-mono">
+            <div className="bg-card border border-border-subtle rounded-lg p-3 col-span-2 sm:col-span-1">
+              <span className="text-[11px] text-muted font-medium block">Aggregated Cells</span>
+              <span className="text-base font-bold text-purple-400 font-mono">
                 {olapData.cubeCells?.length || 0} Cells
               </span>
-              <span className="text-[10px] text-stone-400 block mt-0.5">
+              <span className="text-[10px] text-muted block mt-0.5">
                 {olapData.cubeCells?.filter(c => c.isSubtotal)?.length || 0} subtotals + 1 grand
               </span>
             </div>
@@ -1670,15 +1674,15 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             </div>
 
             {/* Sliced Product & Category Contribution */}
-            <div className="bg-stone-50/60 border border-stone-200/80 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+            <div className="bg-card-elevated border border-border-subtle rounded-xl p-5 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h4 className="text-sm font-semibold text-stone-900 flex items-center gap-2">
-                      <PieChart className="w-4 h-4 text-emerald-600" />
+                    <h4 className="text-sm font-semibold text-ink flex items-center gap-2">
+                      <PieChart className="w-4 h-4 text-emerald-500" />
                       Category Contribution
                     </h4>
-                    <p className="text-xs text-stone-500 mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       Sub-cube distribution across categories
                     </p>
                   </div>
@@ -1689,7 +1693,8 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                     // Aggregate pivotData by category
                     const catTotals = {};
                     (olapData.pivotData || []).forEach(p => {
-                      catTotals[p.categoryName] = (catTotals[p.categoryName] || 0) + (
+                      const cat = p.categoryName || p.colDim || 'Unknown';
+                      catTotals[cat] = (catTotals[cat] || 0) + (
                         olapMetric === 'gross_revenue' ? p.netRevenue : // fallback if gross not in pivot
                         olapMetric === 'units_sold' ? p.unitsSold :
                         olapMetric === 'order_count' ? p.orderCount :
@@ -1701,7 +1706,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                     const subTotalSum = sortedCats.reduce((sum, [, val]) => sum + val, 0) || 1;
 
                     if (sortedCats.length === 0) {
-                      return <p className="text-xs text-stone-400 text-center py-8">No category slice data.</p>;
+                      return <p className="text-xs text-muted text-center py-8">No category slice data.</p>;
                     }
 
                     return sortedCats.slice(0, 5).map(([catName, val], idx) => {
@@ -1709,12 +1714,12 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                       return (
                         <div key={idx} className="space-y-1">
                           <div className="flex justify-between text-xs">
-                            <span className="font-medium text-stone-800 truncate max-w-[140px]">{catName}</span>
-                            <span className="font-mono text-stone-700 font-semibold">
+                            <span className="font-medium text-ink truncate max-w-[140px]">{catName}</span>
+                            <span className="font-mono text-ink font-semibold">
                               {olapMetric.includes('revenue') ? formatCurrency(val) : formatNumber(val)} ({sharePct}%)
                             </span>
                           </div>
-                          <div className="w-full bg-stone-200/80 h-2 rounded-full overflow-hidden">
+                          <div className="w-full bg-card h-2 rounded-full overflow-hidden border border-border-subtle">
                             <div
                               className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                               style={{ width: `${Math.max(4, sharePct)}%` }}
@@ -1727,9 +1732,9 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 </div>
               </div>
 
-              <div className="border-t border-stone-200/60 pt-2 text-[11px] text-stone-400 flex items-center justify-between">
+              <div className="border-t border-border-subtle pt-2 text-[11px] text-muted flex items-center justify-between">
                 <span>Metric: <code>{olapMetric}</code></span>
-                <span className="text-stone-600 font-medium">Auto-Normalized</span>
+                <span className="text-ink font-medium">Auto-Normalized</span>
               </div>
             </div>
           </div>
@@ -1850,11 +1855,13 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 const cellLookup = {};
 
                 (olapData?.pivotData || []).forEach(item => {
-                  const r = item.categoryName;
-                  const c = item.priceTier;
-                  rowKeySet.add(r);
-                  colKeySet.add(c);
-                  cellLookup[`${r}__${c}`] = item;
+                  const r = item.rowDim || item.categoryName;
+                  const c = item.colDim || item.priceTier;
+                  if (r && c) {
+                    rowKeySet.add(r);
+                    colKeySet.add(c);
+                    cellLookup[`${r}__${c}`] = item;
+                  }
                 });
 
                 // Also check cubeCells for subtotals
@@ -1891,113 +1898,131 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
                 return (
                   <table className="w-full text-left text-xs whitespace-nowrap">
-                    <thead className="bg-stone-100 text-stone-700 uppercase tracking-wider font-semibold border-b border-stone-200 font-mono text-[11px]">
+                    <thead className="bg-card-elevated text-muted uppercase tracking-wider font-semibold border-b border-border-subtle font-mono text-[11px]">
                       <tr>
-                        <th className="px-4 py-3 min-w-[160px]">
+                        <th className="px-4 py-3 min-w-[160px] text-ink">
                           {isCustomerMode ? 'Customer Tier' : 'Product Category'}
                         </th>
                         {colKeys.map(col => (
-                          <th key={col} className="px-4 py-3 text-right">
+                          <th key={col} className="px-4 py-3 text-right text-muted">
                             {col}
                           </th>
                         ))}
-                        <th className="px-4 py-3 text-right bg-stone-200/60 text-stone-900 font-bold">
-                          Category Subtotal
+                        <th className="px-4 py-3 text-right bg-card-elevated text-ink font-bold">
+                          {isCustomerMode ? 'Customer Subtotal' : 'Category Subtotal'}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-100 bg-white">
-                      {rowKeys.map(rowKey => {
-                        const rowSub = rowSubtotals[rowKey];
-                        return (
-                          <tr key={rowKey} className="hover:bg-stone-50/50 transition-colors">
-                            <td className="px-4 py-2.5 font-semibold text-stone-900">
-                              {rowKey}
-                            </td>
-                            {colKeys.map(colKey => {
-                              const cellItem = cellLookup[`${rowKey}__${colKey}`];
-                              const val = getCellValue(cellItem);
-                              const intensity = val > 0 ? Math.min(100, Math.round((val / maxVal) * 100)) : 0;
+                    <tbody className="divide-y divide-border-subtle bg-card">
+                      {rowKeys.length === 0 ? (
+                        <tr>
+                          <td colSpan={Math.max(colKeys.length + 2, 3)} className="px-4 py-8 text-center text-muted text-xs">
+                            No cross-tabulation records available for the current filter criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        rowKeys.map(rowKey => {
+                          const rowSub = rowSubtotals[rowKey];
+                          return (
+                            <tr key={rowKey} className="hover:bg-card-elevated/70 transition-colors">
+                              <td className="px-4 py-2.5 font-semibold text-ink">
+                                {rowKey}
+                              </td>
+                              {colKeys.map(colKey => {
+                                const cellItem = cellLookup[`${rowKey}__${colKey}`];
+                                const val = getCellValue(cellItem);
+                                const intensity = val > 0 ? Math.min(100, Math.round((val / maxVal) * 100)) : 0;
 
-                              // Heatmap background color styling
-                              let cellBg = '';
-                              let cellText = 'text-stone-700';
-                              if (val > 0) {
-                                if (intensity >= 75) {
-                                  cellBg = 'bg-amber-500 text-white font-bold';
-                                  cellText = 'text-stone-900';
-                                } else if (intensity >= 40) {
-                                  cellBg = 'bg-amber-300/80 font-semibold';
-                                } else if (intensity >= 15) {
-                                  cellBg = 'bg-amber-100';
-                                } else {
-                                  cellBg = 'bg-amber-50/60';
+                                // Heatmap background color styling
+                                let cellBg = '';
+                                let cellText = 'text-muted';
+                                if (val > 0) {
+                                  if (intensity >= 75) {
+                                    cellBg = 'bg-amber-500 text-stone-950 font-bold';
+                                    cellText = 'text-stone-950';
+                                  } else if (intensity >= 40) {
+                                    cellBg = 'bg-amber-400/80 text-stone-950 font-semibold';
+                                    cellText = 'text-stone-950';
+                                  } else if (intensity >= 15) {
+                                    cellBg = 'bg-amber-500/25 text-ink';
+                                    cellText = 'text-ink';
+                                  } else {
+                                    cellBg = 'bg-amber-500/10 text-muted';
+                                    cellText = 'text-muted';
+                                  }
                                 }
-                              }
 
-                              return (
-                                <td
-                                  key={colKey}
-                                  onClick={() => {
-                                    if (cellItem) {
-                                      // Click coordinates to dice!
-                                      const cat = olapData?.metadata?.categories?.find(c => c.categoryName === rowKey);
-                                      if (cat) setOlapCategoryId(cat.categoryId);
-                                      setOlapPriceTier(colKey);
-                                    }
-                                  }}
-                                  className={`px-4 py-2.5 text-right font-mono transition-colors cursor-pointer ${cellBg} ${cellText}`}
-                                  title={`Click to Dice by Category: ${rowKey} AND Tier: ${colKey}`}
-                                >
-                                  {cellItem ? (
-                                    <span>
-                                      {olapMetric.includes('revenue') ? formatCurrency(val) : formatNumber(val)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-stone-300 font-normal">—</span>
-                                  )}
-                                </td>
-                              );
-                            })}
-                            {/* Row Subtotal */}
-                            <td className="px-4 py-2.5 text-right font-mono font-bold text-stone-900 bg-stone-100/60">
-                              {rowSub ? (
-                                olapMetric.includes('revenue') ? formatCurrency(getCellValue(rowSub)) : formatNumber(getCellValue(rowSub))
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                                return (
+                                  <td
+                                    key={colKey}
+                                    onClick={() => {
+                                      if (cellItem) {
+                                        if (isCustomerMode) {
+                                          setOlapActivityTier(rowKey);
+                                          const cat = olapData?.metadata?.categories?.find(c => c.categoryName === colKey);
+                                          if (cat) setOlapCategoryId(cat.categoryId);
+                                        } else {
+                                          const cat = olapData?.metadata?.categories?.find(c => c.categoryName === rowKey);
+                                          if (cat) setOlapCategoryId(cat.categoryId);
+                                          setOlapPriceTier(colKey);
+                                        }
+                                      }
+                                    }}
+                                    className={`px-4 py-2.5 text-right font-mono transition-colors cursor-pointer ${cellBg} ${cellText}`}
+                                    title={isCustomerMode ? `Click to Dice by Tier: ${rowKey} AND Category: ${colKey}` : `Click to Dice by Category: ${rowKey} AND Tier: ${colKey}`}
+                                  >
+                                    {cellItem ? (
+                                      <span>
+                                        {olapMetric.includes('revenue') ? formatCurrency(val) : formatNumber(val)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted/40 font-normal">—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                              {/* Row Subtotal */}
+                              <td className="px-4 py-2.5 text-right font-mono font-bold text-ink bg-card-elevated/40">
+                                {rowSub ? (
+                                  olapMetric.includes('revenue') ? formatCurrency(getCellValue(rowSub)) : formatNumber(getCellValue(rowSub))
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
 
                       {/* Tier Subtotals Bottom Row */}
-                      <tr className="bg-stone-100/90 font-semibold border-t-2 border-stone-300 text-stone-800">
-                        <td className="px-4 py-3 uppercase tracking-wider text-[11px] font-bold text-stone-700">
-                          Tier Subtotal
-                        </td>
-                        {colKeys.map(colKey => {
-                          const colSub = colSubtotals[colKey];
-                          const val = getCellValue(colSub);
-                          return (
-                            <td key={colKey} className="px-4 py-3 text-right font-mono font-bold text-stone-900">
-                              {colSub ? (
-                                olapMetric.includes('revenue') ? formatCurrency(val) : formatNumber(val)
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                          );
-                        })}
-                        {/* Grand Total Corner Cell */}
-                        <td className="px-4 py-3 text-right font-mono font-extrabold text-amber-950 bg-amber-200 border-l border-amber-300">
-                          {matrixGrandTotal ? (
-                            olapMetric.includes('revenue') ? formatCurrency(getCellValue(matrixGrandTotal)) : formatNumber(getCellValue(matrixGrandTotal))
-                          ) : (
-                            formatCurrency(olapData?.summary?.netRevenue || 0)
-                          )}
-                        </td>
-                      </tr>
+                      {rowKeys.length > 0 && (
+                        <tr className="bg-card-elevated font-semibold border-t-2 border-border-strong text-ink">
+                          <td className="px-4 py-3 uppercase tracking-wider text-[11px] font-bold text-muted">
+                            {isCustomerMode ? 'Category Subtotal' : 'Tier Subtotal'}
+                          </td>
+                          {colKeys.map(colKey => {
+                            const colSub = colSubtotals[colKey];
+                            const val = getCellValue(colSub);
+                            return (
+                              <td key={colKey} className="px-4 py-3 text-right font-mono font-bold text-ink">
+                                {colSub ? (
+                                  olapMetric.includes('revenue') ? formatCurrency(val) : formatNumber(val)
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                            );
+                          })}
+                          {/* Grand Total Corner Cell */}
+                          <td className="px-4 py-3 text-right font-mono font-extrabold text-amber-950 bg-amber-400 border-l border-amber-500">
+                            {matrixGrandTotal ? (
+                              olapMetric.includes('revenue') ? formatCurrency(getCellValue(matrixGrandTotal)) : formatNumber(getCellValue(matrixGrandTotal))
+                            ) : (
+                              formatCurrency(olapData?.summary?.netRevenue || 0)
+                            )}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 );
@@ -2005,11 +2030,11 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             )}
           </div>
 
-          <div className="bg-stone-50 px-4 py-2.5 border-t border-stone-200 text-[11px] text-stone-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="bg-card-elevated px-4 py-2.5 border-t border-border-subtle text-[11px] text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span>
-              OLAP Operator: <strong className="text-stone-700 font-mono">{olapCubeMode.toUpperCase()}</strong> | Granularity: <strong className="text-stone-700 font-mono">{olapTimeGrain}</strong>
+              OLAP Operator: <strong className="text-ink font-mono">{olapCubeMode.toUpperCase()}</strong> | Granularity: <strong className="text-ink font-mono">{olapTimeGrain}</strong>
             </span>
-            <span className="font-mono text-stone-600">
+            <span className="font-mono text-muted">
               Interactive Slicing & Dicing Enabled
             </span>
           </div>
@@ -2019,40 +2044,40 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
       {/* ========================================================================= */}
       {/* SECTION 5: CUSTOMER CHURN CLASSIFICATION & PREDICTIVE FORECASTING          */}
       {/* ========================================================================= */}
-      <div className="space-y-6 pt-4 border-t-2 border-stone-200">
+      <div className="space-y-6 pt-4 border-t-2 border-border-subtle">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border-subtle shadow-sm">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase bg-rose-50 text-rose-700 border border-rose-200 rounded-full flex items-center gap-1.5">
+              <span className="px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded-full flex items-center gap-1.5">
                 <HeartPulse className="w-3 h-3 text-rose-500" />
                 DWM Section 5 • Predictive Mining
               </span>
-              <span className="px-2 py-0.5 text-[11px] font-mono text-stone-500 bg-stone-100 rounded-md">
+              <span className="px-2 py-0.5 text-[11px] font-mono text-muted bg-card-elevated rounded-md border border-border-subtle">
                 Supervised & Rule Induction
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-ink tracking-tight flex items-center gap-2">
               Customer Churn Classification & Predictive Retention
             </h2>
-            <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-3xl">
+            <p className="text-xs sm:text-sm text-muted mt-1 max-w-3xl">
               Combines a <strong>White-Box Decision Tree Rule Engine</strong> (transparent IF-THEN branching) with a 
-              <strong> Calibrated Multi-Variate Logistic Propensity Model</strong> to predict churn hazard probabilities (<code className="text-stone-700 font-mono">P ∈ [0.0, 1.0]</code>) and trigger automated re-engagement workflows.
+              <strong> Calibrated Multi-Variate Logistic Propensity Model</strong> to predict churn hazard probabilities (<code className="text-ink font-mono">P ∈ [0.0, 1.0]</code>) and trigger automated re-engagement workflows.
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => setShowDecisionTreeModal(true)}
-              className="px-3.5 py-2 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl transition-colors flex items-center gap-2 shadow-xs"
+              className="px-3.5 py-2 text-xs font-semibold text-ink bg-card-elevated hover:bg-card border border-border-subtle rounded-xl transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
             >
-              <GitBranch className="w-3.5 h-3.5 text-stone-600" />
+              <GitBranch className="w-3.5 h-3.5 text-muted" />
               Decision Tree Rules
             </button>
             <button
               onClick={() => fetchChurnPredictions()}
               disabled={churnLoading}
-              className="px-3.5 py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 disabled:opacity-50 rounded-xl transition-colors flex items-center gap-2 shadow-xs"
+              className="px-3.5 py-2 text-xs font-semibold text-stone-900 bg-accent hover:opacity-90 disabled:opacity-50 rounded-xl transition-all flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${churnLoading ? 'animate-spin' : ''}`} />
               Refresh Predictions
@@ -2063,85 +2088,85 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
         {/* Executive Churn KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: High Risk Hazard */}
-          <div className="bg-white p-5 rounded-2xl border border-rose-200 shadow-sm relative overflow-hidden">
+          <div className="bg-card p-5 rounded-2xl border border-rose-500/30 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">High Risk Churn</span>
-              <span className="p-2 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">
+              <span className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">High Risk Churn</span>
+              <span className="p-2 bg-rose-500/10 text-rose-500 rounded-xl border border-rose-500/20">
                 <UserX className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-rose-950 font-mono">
+              <span className="text-2xl font-black text-ink font-mono">
                 {churnLoading ? '—' : churnData?.summary?.highRiskCount ?? 0}
               </span>
-              <span className="text-xs font-semibold text-rose-600">
+              <span className="text-xs font-semibold text-rose-500">
                 ({churnData?.summary?.highRiskPercentage ?? 0}% of portfolio)
               </span>
             </div>
-            <p className="text-[11px] text-stone-500 mt-1">
-              Active accounts exceeding danger threshold (<code className="text-stone-700 font-mono">P ≥ 0.65</code>)
+            <p className="text-[11px] text-muted mt-1">
+              Active accounts exceeding danger threshold (<code className="text-ink font-mono">P ≥ 0.65</code>)
             </p>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500" />
           </div>
 
           {/* Card 2: At-Risk Lifetime Revenue */}
-          <div className="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm relative overflow-hidden">
+          <div className="bg-card p-5 rounded-2xl border border-amber-500/30 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">At-Risk Revenue</span>
-              <span className="p-2 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
+              <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">At-Risk Revenue</span>
+              <span className="p-2 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
                 <ShieldAlert className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-amber-950 font-mono">
+              <span className="text-2xl font-black text-ink font-mono">
                 {churnLoading ? '—' : formatCurrency(churnData?.summary?.atRiskRevenue || 0)}
               </span>
             </div>
-            <p className="text-[11px] text-stone-500 mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Historical spend across high & medium risk cohorts
             </p>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
           </div>
 
           {/* Card 3: Portfolio Mean Propensity */}
-          <div className="bg-white p-5 rounded-2xl border border-indigo-200 shadow-sm relative overflow-hidden">
+          <div className="bg-card p-5 rounded-2xl border border-indigo-500/30 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Mean Churn Probability</span>
-              <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Mean Churn Probability</span>
+              <span className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
                 <TrendingUp className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-indigo-950 font-mono">
+              <span className="text-2xl font-black text-ink font-mono">
                 {churnLoading ? '—' : `${((churnData?.summary?.averageChurnProbability || 0) * 100).toFixed(1)}%`}
               </span>
-              <span className="text-xs font-semibold text-indigo-600">
+              <span className="text-xs font-semibold text-indigo-400">
                 (E[P] expectation)
               </span>
             </div>
-            <p className="text-[11px] text-stone-500 mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Calibrated multi-variate logistic propensity average
             </p>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500" />
           </div>
 
           {/* Card 4: Customer Retention Index */}
-          <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm relative overflow-hidden">
+          <div className="bg-card p-5 rounded-2xl border border-emerald-500/30 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Retention Health Index</span>
-              <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Retention Health Index</span>
+              <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
                 <HeartPulse className="w-4 h-4" />
               </span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-emerald-950 font-mono">
+              <span className="text-2xl font-black text-ink font-mono">
                 {churnLoading ? '—' : `${churnData?.summary?.portfolioHealthIndex ?? 100}/100`}
               </span>
-              <span className="text-xs font-semibold text-emerald-700">
+              <span className="text-xs font-semibold text-emerald-400">
                 ({churnData?.summary?.safeCount ?? 0} Safe)
               </span>
             </div>
-            <p className="text-[11px] text-stone-500 mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Normalized score based on repeat transactions & cadence
             </p>
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />
@@ -2151,20 +2176,20 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
         {/* Visual Insights: Risk Distribution & Feature Importance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Portfolio Risk Distribution */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+          <div className="bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-stone-600" />
+              <h3 className="text-sm font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-muted" />
                 Customer Portfolio Churn Distribution
               </h3>
-              <span className="text-xs font-mono text-stone-500">
+              <span className="text-xs font-mono text-muted">
                 Total Analyzed: {churnData?.summary?.totalAnalyzed ?? 0}
               </span>
             </div>
 
             {/* Stacked Proportional Bar */}
             <div className="space-y-1.5">
-              <div className="h-6 w-full bg-stone-100 rounded-xl overflow-hidden flex shadow-inner">
+              <div className="h-6 w-full bg-card-elevated rounded-xl overflow-hidden flex shadow-inner border border-border-subtle">
                 {(() => {
                   const total = churnData?.summary?.totalAnalyzed || 1;
                   const high = churnData?.summary?.highRiskCount || 0;
@@ -2202,7 +2227,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 })()}
               </div>
 
-              <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1">
+              <div className="flex items-center justify-between text-[11px] text-muted pt-1">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                   High Risk ({churnData?.summary?.highRiskCount ?? 0})
@@ -2224,18 +2249,18 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 onClick={() => setChurnRiskFilter('high_risk')}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
                   churnRiskFilter === 'high_risk'
-                    ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-400/30'
-                    : 'bg-stone-50/70 hover:bg-rose-50/40 border-stone-200'
+                    ? 'bg-rose-500/15 border-rose-500/40 ring-2 ring-rose-400/30'
+                    : 'bg-card-elevated hover:bg-rose-500/10 border-border-subtle'
                 }`}
               >
-                <div className="text-xs font-bold text-rose-700 flex items-center gap-1">
+                <div className="text-xs font-bold text-rose-500 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
                   High Risk (P ≥ 65%)
                 </div>
-                <div className="text-xl font-extrabold text-stone-900 mt-1 font-mono">
+                <div className="text-xl font-extrabold text-ink mt-1 font-mono">
                   {churnData?.summary?.highRiskCount ?? 0}
                 </div>
-                <p className="text-[10px] text-stone-500 mt-0.5">
+                <p className="text-[10px] text-muted mt-0.5">
                   Prolonged dormancy or dissatisfaction. Urgent win-back required.
                 </p>
               </div>
@@ -2244,18 +2269,18 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 onClick={() => setChurnRiskFilter('medium_risk')}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
                   churnRiskFilter === 'medium_risk'
-                    ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-400/30'
-                    : 'bg-stone-50/70 hover:bg-amber-50/40 border-stone-200'
+                    ? 'bg-amber-500/15 border-amber-500/40 ring-2 ring-amber-400/30'
+                    : 'bg-card-elevated hover:bg-amber-500/10 border-border-subtle'
                 }`}
               >
-                <div className="text-xs font-bold text-amber-700 flex items-center gap-1">
+                <div className="text-xs font-bold text-amber-500 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
                   Medium Risk (35-65%)
                 </div>
-                <div className="text-xl font-extrabold text-stone-900 mt-1 font-mono">
+                <div className="text-xl font-extrabold text-ink mt-1 font-mono">
                   {churnData?.summary?.mediumRiskCount ?? 0}
                 </div>
-                <p className="text-[10px] text-stone-500 mt-0.5">
+                <p className="text-[10px] text-muted mt-0.5">
                   Cart friction or single purchase. Recover with discount incentives.
                 </p>
               </div>
@@ -2264,18 +2289,18 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 onClick={() => setChurnRiskFilter('safe')}
                 className={`p-3 rounded-xl border transition-all cursor-pointer ${
                   churnRiskFilter === 'safe'
-                    ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400/30'
-                    : 'bg-stone-50/70 hover:bg-emerald-50/40 border-stone-200'
+                    ? 'bg-emerald-500/15 border-emerald-500/40 ring-2 ring-emerald-400/30'
+                    : 'bg-card-elevated hover:bg-emerald-500/10 border-border-subtle'
                 }`}
               >
-                <div className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                <div className="text-xs font-bold text-emerald-500 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   Safe Cohort (P &lt; 35%)
                 </div>
-                <div className="text-xl font-extrabold text-stone-900 mt-1 font-mono">
+                <div className="text-xl font-extrabold text-ink mt-1 font-mono">
                   {churnData?.summary?.safeCount ?? 0}
                 </div>
-                <p className="text-[10px] text-stone-500 mt-0.5">
+                <p className="text-[10px] text-muted mt-0.5">
                   Active repeat buyers with low inactivity latency.
                 </p>
               </div>
@@ -2283,19 +2308,19 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
           </div>
 
           {/* Right: Feature Importance Weights */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+          <div className="bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-stone-600" />
+              <h3 className="text-sm font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-muted" />
                 Data Mining Feature Importance (Logistic Weights)
               </h3>
-              <span className="text-[11px] font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
+              <span className="text-[11px] font-mono text-muted bg-card-elevated px-2 py-0.5 rounded border border-border-subtle">
                 Supervised Model
               </span>
             </div>
 
-            <p className="text-xs text-stone-500">
-              Normalized impact weights indicating relative contribution to the churn logit (<code className="font-mono text-stone-700">logit z</code>). Positive weights increase attrition risk; negative weights provide protective retention shielding.
+            <p className="text-xs text-muted">
+              Normalized impact weights indicating relative contribution to the churn logit (<code className="font-mono text-ink">logit z</code>). Positive weights increase attrition risk; negative weights provide protective retention shielding.
             </p>
 
             <div className="space-y-3 pt-1">
@@ -2314,15 +2339,15 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 return (
                   <div key={fi.feature} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-stone-800">{fi.label}</span>
-                      <span className="font-mono font-bold text-stone-900">
+                      <span className="font-medium text-ink">{fi.label}</span>
+                      <span className="font-mono font-bold text-ink">
                         {isPositive ? `+${(absWeight * 100).toFixed(0)}%` : `-${(absWeight * 100).toFixed(0)}%`}
-                        <span className={`ml-1.5 text-[10px] font-normal ${isPositive ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        <span className={`ml-1.5 text-[10px] font-normal ${isPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
                           {isPositive ? '▲ Hazard' : '▼ Protective'}
                         </span>
                       </span>
                     </div>
-                    <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden flex">
+                    <div className="h-2 w-full bg-card-elevated rounded-full overflow-hidden flex border border-border-subtle">
                       <div
                         style={{ width: `${barWidth}%` }}
                         className={`h-full rounded-full transition-all ${
@@ -2338,29 +2363,29 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
         </div>
 
         {/* Customer Risk Register Table & Explorer */}
-        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-2xl border border-border-subtle shadow-sm overflow-hidden">
           {/* Table Toolbar */}
-          <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-stone-50/50">
+          <div className="p-4 sm:p-5 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card-elevated">
             {/* Filter Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
               {[
                 { id: 'all', label: 'All Users', count: churnData?.summary?.totalAnalyzed },
-                { id: 'high_risk', label: 'High Risk', count: churnData?.summary?.highRiskCount, color: 'text-rose-600 bg-rose-50 border-rose-200' },
-                { id: 'medium_risk', label: 'Medium Risk', count: churnData?.summary?.mediumRiskCount, color: 'text-amber-700 bg-amber-50 border-amber-200' },
-                { id: 'safe', label: 'Safe Cohort', count: churnData?.summary?.safeCount, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' }
+                { id: 'high_risk', label: 'High Risk', count: churnData?.summary?.highRiskCount },
+                { id: 'medium_risk', label: 'Medium Risk', count: churnData?.summary?.mediumRiskCount },
+                { id: 'safe', label: 'Safe Cohort', count: churnData?.summary?.safeCount }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setChurnRiskFilter(tab.id)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 shrink-0 ${
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                     churnRiskFilter === tab.id
-                      ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
-                      : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100'
+                      ? 'bg-accent text-stone-900 border-accent shadow-xs font-bold'
+                      : 'bg-card text-muted border-border-subtle hover:bg-card-elevated hover:text-ink'
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    churnRiskFilter === tab.id ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600'
+                    churnRiskFilter === tab.id ? 'bg-stone-900/20 text-stone-950 font-bold' : 'bg-card-elevated text-muted'
                   }`}>
                     {tab.count ?? 0}
                   </span>
@@ -2371,20 +2396,20 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             {/* Search and Sort */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   type="text"
                   placeholder="Search customer by name..."
                   value={churnSearchQuery}
                   onChange={(e) => setChurnSearchQuery(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-stone-400/40 w-48 sm:w-56"
+                  className="pl-8 pr-3 py-1.5 text-xs border border-border-subtle rounded-lg bg-card text-ink focus:outline-none focus:ring-1 focus:ring-accent w-48 sm:w-56"
                 />
               </div>
 
               <select
                 value={churnSortBy}
                 onChange={(e) => setChurnSortBy(e.target.value)}
-                className="text-xs py-1.5 px-2.5 border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-400/40 font-medium"
+                className="text-xs py-1.5 px-2.5 border border-border-subtle rounded-lg bg-card text-ink focus:outline-none focus:ring-1 focus:ring-accent font-medium cursor-pointer"
               >
                 <option value="churnProbability">Sort: Highest Churn Probability</option>
                 <option value="daysInactive">Sort: Longest Inactivity</option>
@@ -2398,8 +2423,8 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
           <div className="overflow-x-auto">
             {churnLoading ? (
               <div className="py-16 text-center">
-                <RefreshCw className="w-7 h-7 text-stone-400 animate-spin mx-auto mb-2" />
-                <p className="text-xs text-stone-500 font-medium">Extracting behavioral telemetry & computing logistic churn probabilities...</p>
+                <RefreshCw className="w-7 h-7 text-muted animate-spin mx-auto mb-2" />
+                <p className="text-xs text-muted font-medium">Extracting behavioral telemetry & computing logistic churn probabilities...</p>
               </div>
             ) : churnError ? (
               <div className="py-12 text-center text-rose-500 text-xs">
@@ -2417,7 +2442,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
                 if (displayed.length === 0) {
                   return (
-                    <div className="py-12 text-center text-stone-500 text-xs">
+                    <div className="py-12 text-center text-muted text-xs">
                       No customer records match the selected risk filter or search query.
                     </div>
                   );
@@ -2426,7 +2451,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                 return (
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-stone-100/75 border-b border-stone-200 text-stone-600 font-semibold uppercase tracking-wider text-[11px]">
+                      <tr className="bg-card-elevated border-b border-border-subtle text-muted font-semibold uppercase tracking-wider text-[11px]">
                         <th className="px-4 py-3">Customer Profile</th>
                         <th className="px-4 py-3">Churn Probability</th>
                         <th className="px-4 py-3">Risk Tier</th>
@@ -2438,36 +2463,36 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                         <th className="px-4 py-3 text-center">Intervention</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-100">
+                    <tbody className="divide-y divide-border-subtle">
                       {displayed.map((customer) => {
                         const probPct = Math.round(customer.churnProbability * 100);
                         const isHigh = customer.riskLevel === 'HIGH_RISK';
                         const isMed = customer.riskLevel === 'MEDIUM_RISK';
                         const isOutreachSent = outreachSentMap[customer.customerId];
 
-                        let tierBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                        if (isHigh) tierBadge = 'bg-rose-50 text-rose-700 border-rose-200';
-                        else if (isMed) tierBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                        let tierBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+                        if (isHigh) tierBadge = 'bg-rose-500/10 text-rose-500 border-rose-500/30';
+                        else if (isMed) tierBadge = 'bg-amber-500/10 text-amber-500 border-amber-500/30';
 
                         return (
                           <tr
                             key={customer.customerId}
-                            className="hover:bg-stone-50/80 transition-colors cursor-pointer group"
+                            className="hover:bg-card-elevated/70 transition-colors cursor-pointer group"
                             onClick={() => setSelectedChurnCustomer(customer)}
                           >
                             {/* Profile */}
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2.5">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                                  isHigh ? 'bg-rose-100 text-rose-800' : isMed ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                                  isHigh ? 'bg-rose-500/15 text-rose-500' : isMed ? 'bg-amber-500/15 text-amber-500' : 'bg-emerald-500/15 text-emerald-400'
                                 }`}>
                                   {customer.fullName ? customer.fullName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-stone-900 group-hover:text-stone-700">
+                                  <div className="font-semibold text-ink group-hover:text-accent transition-colors">
                                     {customer.fullName}
                                   </div>
-                                  <div className="text-[11px] text-stone-400 font-mono">
+                                  <div className="text-[11px] text-muted font-mono">
                                     {customer.email}
                                   </div>
                                 </div>
@@ -2478,14 +2503,14 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                             <td className="px-4 py-3">
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between text-xs font-mono font-bold">
-                                  <span className={isHigh ? 'text-rose-600' : isMed ? 'text-amber-600' : 'text-emerald-600'}>
+                                  <span className={isHigh ? 'text-rose-500' : isMed ? 'text-amber-500' : 'text-emerald-400'}>
                                     {probPct}%
                                   </span>
-                                  <span className="text-[10px] text-stone-400 font-normal">
+                                  <span className="text-[10px] text-muted font-normal">
                                     P={customer.churnProbability}
                                   </span>
                                 </div>
-                                <div className="h-1.5 w-24 bg-stone-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-24 bg-card-elevated rounded-full overflow-hidden border border-border-subtle">
                                   <div
                                     style={{ width: `${probPct}%` }}
                                     className={`h-full rounded-full ${
@@ -2506,36 +2531,36 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
                             {/* Decision Tree Rule Path */}
                             <td className="px-4 py-3 font-mono">
-                              <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 font-bold text-[11px] border border-stone-200" title={customer.matchedRule?.condition}>
+                              <span className="px-2 py-0.5 rounded bg-card-elevated text-ink font-bold text-[11px] border border-border-subtle" title={customer.matchedRule?.condition}>
                                 {customer.matchedRule?.ruleId || 'DT_R8'}
                               </span>
                             </td>
 
                             {/* Primary Risk Driver */}
-                            <td className="px-4 py-3 text-stone-700 font-medium text-[11px] max-w-[200px] truncate" title={customer.primaryRiskDriver}>
+                            <td className="px-4 py-3 text-ink font-medium text-[11px] max-w-[200px] truncate" title={customer.primaryRiskDriver}>
                               {customer.primaryRiskDriver}
                             </td>
 
                             {/* Days Inactive */}
                             <td className="px-4 py-3 text-right font-mono">
-                              <span className={`font-semibold ${customer.daysInactive >= 30 ? 'text-rose-600' : 'text-stone-700'}`}>
+                              <span className={`font-semibold ${customer.daysInactive >= 30 ? 'text-rose-500' : 'text-ink'}`}>
                                 {customer.daysInactive}d
                               </span>
-                              <div className="text-[10px] text-stone-400">lag</div>
+                              <div className="text-[10px] text-muted">lag</div>
                             </td>
 
                             {/* Abandonment */}
                             <td className="px-4 py-3 text-right font-mono">
-                              <span className={`font-semibold ${customer.cartAbandonmentRatio >= 0.5 ? 'text-amber-600' : 'text-stone-700'}`}>
+                              <span className={`font-semibold ${customer.cartAbandonmentRatio >= 0.5 ? 'text-amber-500' : 'text-ink'}`}>
                                 {Math.round(customer.cartAbandonmentRatio * 100)}%
                               </span>
-                              <div className="text-[10px] text-stone-400">{customer.cartAddCount} adds</div>
+                              <div className="text-[10px] text-muted">{customer.cartAddCount} adds</div>
                             </td>
 
                             {/* Orders / Spend */}
                             <td className="px-4 py-3 text-right font-mono">
-                              <div className="font-semibold text-stone-900">{formatCurrency(customer.totalSpend)}</div>
-                              <div className="text-[10px] text-stone-400">{customer.totalOrders} orders</div>
+                              <div className="font-semibold text-ink">{formatCurrency(customer.totalSpend)}</div>
+                              <div className="text-[10px] text-muted">{customer.totalOrders} orders</div>
                             </td>
 
                             {/* Action Button */}
@@ -2543,24 +2568,24 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                               <button
                                 onClick={() => handleTriggerOutreach(customer)}
                                 disabled={isOutreachSent}
-                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all inline-flex items-center gap-1.5 ${
+                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all inline-flex items-center gap-1.5 cursor-pointer ${
                                   isOutreachSent
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 cursor-default'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 cursor-default'
                                     : isHigh
-                                    ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 shadow-xs'
-                                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+                                    ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/30 shadow-xs'
+                                    : 'bg-card-elevated hover:bg-surface-secondary text-ink border-border-subtle'
                                 }`}
                                 title={customer.prescriptiveAction}
                               >
                                 {isOutreachSent ? (
                                   <>
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    Dispatched
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    Action Marked
                                   </>
                                 ) : (
                                   <>
                                     <Send className="w-3 h-3" />
-                                    Trigger Outreach
+                                    Mark Outreach
                                   </>
                                 )}
                               </button>
@@ -2575,11 +2600,11 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             )}
           </div>
 
-          <div className="bg-stone-50 px-4 py-2.5 border-t border-stone-200 text-[11px] text-stone-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="bg-card-elevated px-4 py-2.5 border-t border-border-subtle text-[11px] text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span>
-              Predictive Model: <strong className="text-stone-700 font-mono">Multi-Variate Logistic Regression + C4.5 Decision Induction</strong>
+              Predictive Model: <strong className="text-ink font-mono">Multi-Variate Logistic Regression + C4.5 Decision Induction</strong>
             </span>
-            <span className="font-mono text-stone-600">
+            <span className="font-mono text-muted">
               Click any customer row for full mathematical logit decomposition
             </span>
           </div>
@@ -2591,68 +2616,68 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
       {/* ========================================================================= */}
       {showDecisionTreeModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-border-subtle overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+            <div className="p-5 border-b border-border-subtle flex items-center justify-between bg-card-elevated">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-stone-900 text-white rounded-xl">
+                <div className="p-2 bg-accent text-stone-900 rounded-xl">
                   <GitBranch className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">
+                  <h3 className="text-base font-bold text-ink">
                     White-Box Decision Tree Classification Rules (CART / C4.5)
                   </h3>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-muted">
                     Transparent mathematical rule induction for explainable customer retention mining
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowDecisionTreeModal(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-lg transition-colors"
+                className="p-1.5 text-muted hover:text-ink hover:bg-card-elevated rounded-lg transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Rule List */}
-            <div className="p-5 overflow-y-auto space-y-3 divide-y divide-stone-100">
-              <div className="text-xs text-stone-600 bg-amber-50 p-3.5 rounded-xl border border-amber-200 flex items-start gap-2.5 mb-2">
-                <Lightbulb className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="p-5 overflow-y-auto space-y-3 divide-y divide-border-subtle">
+              <div className="text-xs text-amber-500 bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/30 flex items-start gap-2.5 mb-2">
+                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-amber-900 font-semibold">Academic Evaluation Concept:</strong> College professors and reviewers value explainable models over black boxes. Each rule below corresponds to an explicit path through our decision tree, showing Support, Confidence, and actionable business rationale.
+                  <strong className="text-ink font-semibold">Academic Evaluation Concept:</strong> College professors and reviewers value explainable models over black boxes. Each rule below corresponds to an explicit path through our decision tree, showing Support, Confidence, and actionable business rationale.
                 </div>
               </div>
 
               {(churnData?.decisionTreeRules || []).map((rule) => {
-                let badge = 'bg-rose-50 text-rose-700 border-rose-200';
-                if (rule.outcome === 'MEDIUM_RISK') badge = 'bg-amber-50 text-amber-700 border-amber-200';
-                else if (rule.outcome === 'SAFE') badge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                let badge = 'bg-rose-500/10 text-rose-500 border-rose-500/30';
+                if (rule.outcome === 'MEDIUM_RISK') badge = 'bg-amber-500/10 text-amber-500 border-amber-500/30';
+                else if (rule.outcome === 'SAFE') badge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
 
                 return (
                   <div key={rule.id} className="pt-3 first:pt-0 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 bg-stone-900 text-white font-mono font-bold text-xs rounded">
+                        <span className="px-2 py-0.5 bg-card-elevated text-ink font-mono font-bold text-xs rounded border border-border-subtle">
                           {rule.id}
                         </span>
-                        <span className="font-bold text-stone-900 text-sm">{rule.title}</span>
+                        <span className="font-bold text-ink text-sm">{rule.title}</span>
                       </div>
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badge}`}>
                         {rule.outcome.replace('_', ' ')}
                       </span>
                     </div>
 
-                    <div className="bg-stone-50 p-2.5 rounded-lg border border-stone-200 font-mono text-xs text-stone-800">
+                    <div className="bg-card-elevated p-2.5 rounded-lg border border-border-subtle font-mono text-xs text-ink">
                       <strong>IF:</strong> {rule.condition} <strong className="ml-2">THEN:</strong> {rule.outcome}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between text-xs text-stone-500 gap-2">
+                    <div className="flex flex-wrap items-center justify-between text-xs text-muted gap-2">
                       <div className="flex items-center gap-4 font-mono text-[11px]">
-                        <span>Confidence: <strong className="text-stone-800">{rule.confidence}</strong></span>
-                        <span>Sample Support: <strong className="text-stone-800">{rule.support}</strong></span>
+                        <span>Confidence: <strong className="text-ink">{rule.confidence}</strong></span>
+                        <span>Sample Support: <strong className="text-ink">{rule.support}</strong></span>
                       </div>
-                      <p className="text-[11px] text-stone-600 italic">
+                      <p className="text-[11px] text-muted italic">
                         {rule.rationale}
                       </p>
                     </div>
@@ -2662,10 +2687,10 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-stone-200 bg-stone-50 flex justify-end">
+            <div className="p-4 border-t border-border-subtle bg-card-elevated flex justify-end">
               <button
                 onClick={() => setShowDecisionTreeModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 rounded-xl transition-colors"
+                className="px-4 py-2 text-xs font-bold text-stone-900 bg-accent hover:opacity-90 rounded-xl transition-all cursor-pointer"
               >
                 Close Rule Explorer
               </button>
@@ -2679,31 +2704,31 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
       {/* ========================================================================= */}
       {selectedChurnCustomer && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-2xl max-w-2xl w-full flex flex-col shadow-2xl border border-border-subtle overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+            <div className="p-5 border-b border-border-subtle flex items-center justify-between bg-card-elevated">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
                   selectedChurnCustomer.riskLevel === 'HIGH_RISK'
-                    ? 'bg-rose-100 text-rose-800'
+                    ? 'bg-rose-500/15 text-rose-500'
                     : selectedChurnCustomer.riskLevel === 'MEDIUM_RISK'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-emerald-100 text-emerald-800'
+                    ? 'bg-amber-500/15 text-amber-500'
+                    : 'bg-emerald-500/15 text-emerald-400'
                 }`}>
                   {selectedChurnCustomer.fullName?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">
+                  <h3 className="text-base font-bold text-ink">
                     {selectedChurnCustomer.fullName}
                   </h3>
-                  <p className="text-xs text-stone-500 font-mono">
+                  <p className="text-xs text-muted font-mono">
                     {selectedChurnCustomer.email} • ID #{selectedChurnCustomer.customerId}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedChurnCustomer(null)}
-                className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-lg transition-colors"
+                className="p-1.5 text-muted hover:text-ink hover:bg-card-elevated rounded-lg transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2714,15 +2739,15 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
               {/* Risk Summary Banner */}
               <div className={`p-4 rounded-xl border flex items-center justify-between ${
                 selectedChurnCustomer.riskLevel === 'HIGH_RISK'
-                  ? 'bg-rose-50 border-rose-200 text-rose-900'
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-500'
                   : selectedChurnCustomer.riskLevel === 'MEDIUM_RISK'
-                  ? 'bg-amber-50 border-amber-200 text-amber-900'
-                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
               }`}>
                 <div>
                   <div className="text-xs uppercase font-bold tracking-wider opacity-75">Assigned Classification</div>
                   <div className="text-lg font-black">{selectedChurnCustomer.riskLevel.replace('_', ' ')}</div>
-                  <div className="text-xs mt-0.5">Primary Driver: <strong>{selectedChurnCustomer.primaryRiskDriver}</strong></div>
+                  <div className="text-xs mt-0.5">Primary Driver: <strong className="text-ink">{selectedChurnCustomer.primaryRiskDriver}</strong></div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs uppercase font-bold tracking-wider opacity-75">Churn Propensity</div>
@@ -2735,36 +2760,36 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
               {/* Behavioral Feature Vectors */}
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700 mb-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-ink mb-2">
                   Observed Behavioral Feature Vectors
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                    <span className="text-stone-500 text-[10px] uppercase font-bold">Inactivity Lag</span>
-                    <div className="font-mono font-bold text-stone-900 text-base">{selectedChurnCustomer.daysInactive} days</div>
+                  <div className="p-3 bg-card-elevated rounded-xl border border-border-subtle">
+                    <span className="text-muted text-[10px] uppercase font-bold">Inactivity Lag</span>
+                    <div className="font-mono font-bold text-ink text-base">{selectedChurnCustomer.daysInactive} days</div>
                   </div>
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                    <span className="text-stone-500 text-[10px] uppercase font-bold">Abandonment</span>
-                    <div className="font-mono font-bold text-stone-900 text-base">{Math.round(selectedChurnCustomer.cartAbandonmentRatio * 100)}%</div>
+                  <div className="p-3 bg-card-elevated rounded-xl border border-border-subtle">
+                    <span className="text-muted text-[10px] uppercase font-bold">Abandonment</span>
+                    <div className="font-mono font-bold text-ink text-base">{Math.round(selectedChurnCustomer.cartAbandonmentRatio * 100)}%</div>
                   </div>
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                    <span className="text-stone-500 text-[10px] uppercase font-bold">Total Orders</span>
-                    <div className="font-mono font-bold text-stone-900 text-base">{selectedChurnCustomer.totalOrders}</div>
+                  <div className="p-3 bg-card-elevated rounded-xl border border-border-subtle">
+                    <span className="text-muted text-[10px] uppercase font-bold">Total Orders</span>
+                    <div className="font-mono font-bold text-ink text-base">{selectedChurnCustomer.totalOrders}</div>
                   </div>
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                    <span className="text-stone-500 text-[10px] uppercase font-bold">Total Spend</span>
-                    <div className="font-mono font-bold text-stone-900 text-base">{formatCurrency(selectedChurnCustomer.totalSpend)}</div>
+                  <div className="p-3 bg-card-elevated rounded-xl border border-border-subtle">
+                    <span className="text-muted text-[10px] uppercase font-bold">Total Spend</span>
+                    <div className="font-mono font-bold text-ink text-base">{formatCurrency(selectedChurnCustomer.totalSpend)}</div>
                   </div>
                 </div>
               </div>
 
               {/* Logistic Decomposition */}
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700 mb-2 flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-ink mb-2 flex items-center justify-between">
                   <span>Logit Model Decomposition: z = w0 + Σ wi · xi</span>
-                  <span className="text-[10px] font-mono text-stone-500">Sigmoid: 1 / (1 + e^-z)</span>
+                  <span className="text-[10px] font-mono text-muted">Sigmoid: 1 / (1 + e^-z)</span>
                 </h4>
-                <div className="bg-stone-900 text-stone-200 p-3.5 rounded-xl font-mono text-xs space-y-1.5 shadow-inner">
+                <div className="bg-slate-950 text-stone-200 p-3.5 rounded-xl font-mono text-xs space-y-1.5 shadow-inner border border-border-subtle">
                   <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400 text-[11px]">
                     <span>Feature Component</span>
                     <span>Contribution to Logit</span>
@@ -2801,18 +2826,18 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
               </div>
 
               {/* Prescriptive Recommendation */}
-              <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">Prescriptive Retention Action</span>
-                <p className="text-xs font-semibold text-stone-900">
+              <div className="bg-card-elevated p-3.5 rounded-xl border border-border-subtle space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Prescriptive Retention Action</span>
+                <p className="text-xs font-semibold text-ink">
                   {selectedChurnCustomer.prescriptiveAction}
                 </p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
-              <span className="text-[11px] text-stone-500">
-                Rule ID: <strong className="font-mono text-stone-700">{selectedChurnCustomer.matchedRule?.ruleId || 'N/A'}</strong>
+            <div className="p-4 border-t border-border-subtle bg-card-elevated flex items-center justify-between">
+              <span className="text-[11px] text-muted">
+                Rule ID: <strong className="font-mono text-ink">{selectedChurnCustomer.matchedRule?.ruleId || 'N/A'}</strong>
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -2820,10 +2845,10 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                     handleTriggerOutreach(selectedChurnCustomer);
                     setSelectedChurnCustomer(null);
                   }}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 text-xs font-bold text-stone-900 bg-accent hover:opacity-90 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  Dispatch Action
+                  Mark Action Taken
                 </button>
               </div>
             </div>

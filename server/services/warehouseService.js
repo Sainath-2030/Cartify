@@ -283,6 +283,8 @@ export const warehouseService = {
         };
       }),
       pivotData: (cubeResult.pivotData || []).map(row => ({
+        rowDim: row.row_dim || row.category_name,
+        colDim: row.col_dim || row.price_tier,
         categoryName: row.category_name,
         priceTier: row.price_tier,
         netRevenue: parseFloat(row.net_revenue) || 0,

@@ -568,11 +568,18 @@ export const warehouseModel = {
       `;
     }
 
-    // 5. Query Cross-Tabulation Pivot Data (Category x Price Tier Matrix)
+    // 5. Query Cross-Tabulation Pivot Data (Category x Price Tier Matrix or Customer Tier x Category Matrix)
+    const isCustomerCube = cubeMode === 'customer_cube';
+    const pivotRowCol = isCustomerCube
+      ? `COALESCE(dc.activity_tier, 'UNASSIGNED') AS row_dim, dp.category_name AS col_dim, dp.category_name, 'ALL'::varchar AS price_tier`
+      : `dp.category_name AS row_dim, dp.price_tier AS col_dim, dp.category_name, dp.price_tier`;
+    const pivotGroupBy = isCustomerCube
+      ? `dc.activity_tier, dp.category_name`
+      : `dp.category_name, dp.price_tier`;
+
     const pivotQuery = `
       SELECT 
-        dp.category_name,
-        dp.price_tier,
+        ${pivotRowCol},
         COALESCE(SUM(fs.net_revenue), 0) AS net_revenue,
         COALESCE(SUM(fs.quantity_sold), 0) AS units_sold,
         COUNT(DISTINCT fs.order_id) AS order_count
@@ -581,8 +588,8 @@ export const warehouseModel = {
       JOIN dim_product dp ON fs.product_id = dp.product_id
       LEFT JOIN dim_customer dc ON fs.customer_id = dc.customer_id
       ${whereClause}
-      GROUP BY dp.category_name, dp.price_tier
-      ORDER BY dp.category_name, dp.price_tier;
+      GROUP BY ${pivotGroupBy}
+      ORDER BY 1, 2;
     `;
 
     const [summaryRes, timeSeriesRes, cubeRes, pivotRes] = await Promise.all([
