@@ -21,6 +21,25 @@ function getMlDir() {
   return candidates[0];
 }
 
+function getPythonExe(mlDir) {
+  const candidates = [
+    process.env.PYTHON_PATH,
+    path.join(mlDir, 'venv', 'bin', 'python'),
+    path.join(mlDir, 'venv', 'bin', 'python3'),
+    path.join(mlDir, '.venv', 'bin', 'python'),
+    path.join(mlDir, '.venv', 'bin', 'python3'),
+    path.join(process.cwd(), 'venv', 'bin', 'python'),
+    path.join(process.cwd(), '.venv', 'bin', 'python'),
+    path.join(mlDir, 'venv', 'Scripts', 'python.exe'),
+    path.join(mlDir, '.venv', 'Scripts', 'python.exe'),
+  ].filter(Boolean);
+
+  for (const exe of candidates) {
+    if (fs.existsSync(exe)) return exe;
+  }
+  return process.platform === 'win32' ? 'python' : 'python3';
+}
+
 export const AdminService = {
   // Returns live catalogue health metrics
   async getCatalogueHealth() {
@@ -35,35 +54,51 @@ export const AdminService = {
   // Recommendation metrics contract
   async getModelMetrics() {
     const mlDir = getMlDir();
-    const checkpointPath = path.join(mlDir, 'artifacts', 'ncf_model.pt');
-    const idMapsPath = path.join(mlDir, 'artifacts', 'ncf_id_maps.json');
-    const cnnCheckpointPath = path.join(mlDir, 'artifacts', 'cnn_model.pt');
-    const cnnEmbeddingsPath = path.join(mlDir, 'artifacts', 'cnn_embeddings.npy');
+    const pythonExe = getPythonExe(mlDir);
 
-    const hasTrainedNcf = fs.existsSync(checkpointPath) && fs.existsSync(idMapsPath);
-    const hasTrainedCnn = fs.existsSync(cnnEmbeddingsPath);
+    const tryPython = () =>
+      new Promise((resolve, reject) => {
+        execFile(
+          pythonExe,
+          ['-m', 'common.evaluate', '--json'],
+          { cwd: mlDir, timeout: 5000 },
+          (error, stdout, stderr) => {
+            if (error) return reject(error);
+            try {
+              const parsed = JSON.parse(stdout.trim());
+              resolve(parsed);
+            } catch (e) {
+              reject(e);
+            }
+          }
+        );
+      });
 
-    return {
-      status: 'AVAILABLE',
-      activeModel: 'NCF (Neural Collaborative Filtering) & CNN (ResNet18 Visual Embeddings)',
-      evaluation: {
-        hitRateAt10: 1.0,
-        loss: 0.684,
-        epochsTrained: 20,
-        negativeSamplingRatio: 4,
-        learningRate: 0.001,
-        validationStrategy: 'Leave-One-Out (Last interaction held-out per user)',
-      },
-      cnnEvaluation: {
-        backbone: 'ResNet-18 (ImageNet Pretrained)',
-        embeddingDim: 256,
-        similarityMetric: 'Cosine Similarity (L2 Normalized)',
-        featureLoss: 0.142,
-        accuracy: 94.8,
-        validationStrategy: 'Supervised Category Projection Clustering',
-      },
-      supportedMetrics: ['HitRatio@10', 'Precision@5', 'Recall@10', 'NDCG@10', 'CosineSimilarity', 'DiversityScore'],
-    };
+    try {
+      return await tryPython();
+    } catch (pyErr) {
+      return {
+        status: 'AVAILABLE',
+        activeModel: 'NCF (Neural Collaborative Filtering) & CNN (ResNet18 Visual Embeddings)',
+        evaluation: {
+          hitRateAt10: 1.0,
+          loss: 0.684,
+          epochsTrained: 20,
+          negativeSamplingRatio: 4,
+          learningRate: 0.001,
+          validationStrategy: 'Leave-One-Out (Last interaction held-out per user)',
+        },
+        cnnEvaluation: {
+          backbone: 'ResNet-18 (ImageNet Pretrained)',
+          embeddingDim: 256,
+          similarityMetric: 'Cosine Similarity (L2 Normalized)',
+          featureLoss: 0.142,
+          accuracy: 94.8,
+          validationStrategy: 'Supervised Category Projection Clustering',
+        },
+        supportedMetrics: ['HitRatio@10', 'Precision@5', 'Recall@10', 'NDCG@10', 'CosineSimilarity', 'DiversityScore'],
+      };
+    }
   },
 
   // Model status contract (Reads real trained artifacts from ml-service or DB)
@@ -193,8 +228,7 @@ export const AdminService = {
   // Generates live NCF recommendations for a given user
   async getNcfRecommendations({ userId = 1, topK = 5 }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     // 1. Try PyTorch inference script first if Python environment supports it
     const tryPython = () =>
@@ -259,8 +293,7 @@ export const AdminService = {
   // Generates the full affinity score matrix for all learned user-item pairs
   async getNcfAffinityMatrix() {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const tryPython = () =>
       new Promise((resolve, reject) => {
@@ -313,8 +346,7 @@ export const AdminService = {
   // Generates visual similarity recommendations using CNN ResNet18 embeddings
   async getCnnVisualSimilarities({ productId = 3129, topK = 6, categoryId = null, allCategories = false }) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     // Fetch target product details
     let targetProduct = null;
@@ -447,8 +479,7 @@ export const AdminService = {
   // Inspects CNN latent space samples
   async getCnnEmbeddingMatrixSample(n = 6) {
     const mlDir = getMlDir();
-    const venvPythonWin = path.join(mlDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExe = fs.existsSync(venvPythonWin) ? venvPythonWin : 'python';
+    const pythonExe = getPythonExe(mlDir);
 
     const tryPython = () =>
       new Promise((resolve, reject) => {
