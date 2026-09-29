@@ -20,21 +20,27 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <div className="rounded-xl border border-amber-200/80 bg-[#FFFBEB] dark:bg-[#2A2010] dark:border-amber-700/50 px-5 py-3.5 text-sm text-[#92400E] dark:text-[#FDE68A] shadow-xs">
         This dashboard is a structural foundation. Live analytics and model data are not yet connected —
         see each section for its current status.
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CARDS.map(({ title, description, to, icon: Icon }) => (
-          <Link key={to} to={to} className="card group flex flex-col gap-3 p-5 transition-shadow hover:shadow-cardHover">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Icon className="h-5 w-5" />
+          <Link
+            key={to}
+            to={to}
+            className="group flex flex-col justify-between rounded-2xl border border-border-subtle bg-card p-6 transition-all hover:border-border-strong hover:bg-card-elevated"
+          >
+            <div>
+              <div className="mb-4">
+                <Icon className="h-5 w-5 text-accent" />
+              </div>
+              <h2 className="text-sm font-semibold text-ink sm:text-base">{title}</h2>
+              <p className="mt-2 text-xs text-muted leading-relaxed sm:text-sm">{description}</p>
             </div>
-            <h3 className="text-sm font-semibold text-ink">{title}</h3>
-            <p className="text-xs text-muted">{description}</p>
-            <span className="mt-auto flex items-center gap-1 text-xs font-semibold text-primary">
-              Open <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            <span className="mt-6 flex items-center gap-1.5 text-xs font-semibold text-accent">
+              Open <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
             </span>
           </Link>
         ))}
