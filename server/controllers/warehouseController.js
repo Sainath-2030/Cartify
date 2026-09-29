@@ -8,6 +8,7 @@
 import { warehouseService } from '../services/warehouseService.js';
 import { aprioriService } from '../services/mining/aprioriService.js';
 import { kmeansService } from '../services/mining/kmeansService.js';
+import { churnService } from '../services/mining/churnService.js';
 
 export const warehouseController = {
   /**
@@ -204,5 +205,28 @@ export const warehouseController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  /**
+   * GET /api/admin/bi/churn-predictions
+   * Section 5: Customer Churn Classification & Predictive Forecasting
+   */
+  async getChurnPredictions(req, res, next) {
+    try {
+      const { riskLevel, limit, sortBy } = req.query;
+      const data = await churnService.predictChurn({
+        riskLevelFilter: riskLevel || 'all',
+        limit: parseInt(limit, 10) || 50,
+        sortBy: sortBy || 'churnProbability'
+      });
+
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };
+

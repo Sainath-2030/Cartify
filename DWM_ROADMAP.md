@@ -262,15 +262,18 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 *Goal: Apply predictive data mining to identify churn risk and sales trends.*
 
-- [ ] **Step 5.1: Churn Risk Feature Vector**
+- [x] **Step 5.1: Churn Risk Feature Vector**
   - Compute feature vectors per user: `days_inactive`, `cart_abandonment_ratio`, `negative_review_count`, `average_session_interval`.
+  - Implemented in [`churnService.js`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/server/services/mining/churnService.js).
 
-- [ ] **Step 5.2: Classification Rule Engine**
+- [x] **Step 5.2: Classification Rule Engine**
   - Train/apply a classification model (Decision Tree / Logistic Scoring) predicting Churn Probability ($0.0 - 1.0$).
   - Label users as *High Risk*, *Medium Risk*, or *Safe*.
+  - Added REST endpoint `GET /api/admin/bi/churn-predictions`.
 
-- [ ] **Step 5.3: BI Dashboard Churn & Risk Panel**
-  - Add a **Customer Retention & Churn Risk** component to the BI Dashboard showing users requiring proactive re-engagement.
+- [x] **Step 5.3: BI Dashboard Churn & Risk Panel**
+  - Added a **Customer Retention & Churn Risk** component to the BI Dashboard showing users requiring proactive re-engagement.
+  - Interactive risk filtering, decision tree rule visualizer modal, individual customer logit decomposition modal, and one-click retention action dispatching in [`AdminBIDashboard.jsx`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx).
 
 ---
 
@@ -305,5 +308,5 @@ Use this checklist during future pair-programming turns:
 - [x] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
 - [x] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
 - [x] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)
-- [ ] **Milestone 5: Churn Classification & Predictive Insights** (Section 5)
+- [x] **Milestone 5: Churn Classification & Predictive Insights** (Section 5)
 - [ ] **Milestone 6: ETL Lineage & Data Quality Audit** (Section 6)

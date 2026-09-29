@@ -67,5 +67,8 @@ router.get('/bi/customer-segments', warehouseController.getCustomerSegments);
 // Section 4: Interactive Multi-Dimensional OLAP Slice & Dice (CUBE & ROLLUP)
 router.get('/bi/olap-cube', warehouseController.getOlapCube);
 
+// Section 5: Customer Churn Classification & Predictive Forecasting
+router.get('/bi/churn-predictions', warehouseController.getChurnPredictions);
+
 export default router;
 
