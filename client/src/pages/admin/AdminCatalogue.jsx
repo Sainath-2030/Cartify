@@ -69,20 +69,20 @@ export default function AdminCatalogue() {
   return (
     <div className="space-y-8 pb-16">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200/80 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-subtle pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Live PostgreSQL Diagnostics
             </span>
-            <span className="text-xs text-stone-400">•</span>
-            <span className="text-xs text-stone-500 font-mono">17,926+ Certified Products</span>
+            <span className="text-xs text-muted">•</span>
+            <span className="text-xs text-muted font-mono">17,926+ Certified Products</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-stone-900 font-display">
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-ink font-display">
             Catalogue Health & Verification
           </h1>
-          <p className="text-sm text-stone-600 mt-1 max-w-2xl">
+          <p className="text-sm text-muted mt-1 max-w-2xl">
             Real-time audit diagnostics of the Cartify product catalogue, verified display gate enforcement, department distributions, and data-quality health.
           </p>
         </div>
@@ -91,9 +91,9 @@ export default function AdminCatalogue() {
           <button
             onClick={fetchCatalogueHealth}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-all shadow-xs disabled:opacity-50"
+            className="btn btn-secondary text-xs h-9 px-3.5 gap-2 shadow-xs disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-accent' : ''}`} />
             Refresh Diagnostics
           </button>
         </div>
@@ -102,130 +102,130 @@ export default function AdminCatalogue() {
       {/* Primary KPI Ribbon */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Products */}
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs relative overflow-hidden">
+        <div className="card p-5 border-border-subtle shadow-xs relative overflow-hidden hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-stone-500 uppercase">Total Catalogue</span>
-            <span className="p-2 rounded-lg bg-stone-100 text-stone-700">
-              <Boxes className="w-4 h-4" />
+            <span className="text-xs font-semibold tracking-wider text-muted uppercase">Total Catalogue</span>
+            <span className="p-2 rounded-lg bg-card-elevated text-ink border border-border-subtle">
+              <Boxes className="w-4 h-4 text-accent" />
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-bold text-stone-900 font-display">
+            <div className="text-2xl lg:text-3xl font-bold text-ink font-display">
               {loading ? '...' : totalProds.toLocaleString()}
             </div>
-            <div className="mt-1 flex items-center justify-between text-xs text-stone-500">
+            <div className="mt-1 flex items-center justify-between text-xs text-muted">
               <span>Provenance:</span>
-              <span className="font-medium text-stone-700">
+              <span className="font-medium text-ink">
                 {data?.provenance?.amazon?.toLocaleString() || '17,926'} Amazon • {data?.provenance?.internal || '6'} Studio
               </span>
             </div>
           </div>
-          <div className="mt-3 h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-            <div className="h-full bg-stone-900 rounded-full" style={{ width: '100%' }} />
+          <div className="mt-3 h-1.5 w-full bg-card-elevated rounded-full overflow-hidden border border-border-subtle">
+            <div className="h-full bg-accent rounded-full" style={{ width: '100%' }} />
           </div>
         </div>
 
         {/* Verified Product Gate */}
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs relative overflow-hidden">
+        <div className="card p-5 border-border-subtle shadow-xs relative overflow-hidden hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-stone-500 uppercase">Display Gate Status</span>
-            <span className="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
+            <span className="text-xs font-semibold tracking-wider text-muted uppercase">Display Gate Status</span>
+            <span className="p-2 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
               <ShieldCheck className="w-4 h-4" />
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-bold text-emerald-600 font-display flex items-baseline gap-2">
+            <div className="text-2xl lg:text-3xl font-bold text-emerald-400 font-display flex items-baseline gap-2">
               {loading ? '...' : verifiedProds.toLocaleString()}
-              <span className="text-xs font-normal text-stone-500">({verifiedPct}%)</span>
+              <span className="text-xs font-normal text-muted">({verifiedPct}%)</span>
             </div>
-            <div className="mt-1 flex items-center justify-between text-xs text-stone-500">
+            <div className="mt-1 flex items-center justify-between text-xs text-muted">
               <span>Status Gate:</span>
-              <span className="font-medium text-emerald-700">VERIFIED active boundary</span>
+              <span className="font-medium text-emerald-400">VERIFIED active boundary</span>
             </div>
           </div>
-          <div className="mt-3 h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${verifiedPct}%` }} />
+          <div className="mt-3 h-1.5 w-full bg-card-elevated rounded-full overflow-hidden border border-border-subtle">
+            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${verifiedPct}%` }} />
           </div>
         </div>
 
         {/* Inventory Units */}
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs relative overflow-hidden">
+        <div className="card p-5 border-border-subtle shadow-xs relative overflow-hidden hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-stone-500 uppercase">Live Stock Units</span>
-            <span className="p-2 rounded-lg bg-sky-50 text-sky-700 border border-sky-100">
+            <span className="text-xs font-semibold tracking-wider text-muted uppercase">Live Stock Units</span>
+            <span className="p-2 rounded-lg bg-sky-500/15 text-sky-400 border border-sky-500/30">
               <Package className="w-4 h-4" />
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-bold text-stone-900 font-display">
+            <div className="text-2xl lg:text-3xl font-bold text-ink font-display">
               {loading ? '...' : (data?.inventory?.totalUnits || 854000).toLocaleString()}
             </div>
-            <div className="mt-1 flex items-center justify-between text-xs text-stone-500">
+            <div className="mt-1 flex items-center justify-between text-xs text-muted">
               <span>Alerts:</span>
-              <span className="font-medium text-stone-700">
+              <span className="font-medium text-ink">
                 {outOfStock} Out of Stock • {lowStock} Low Stock
               </span>
             </div>
           </div>
-          <div className="mt-3 h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-            <div className="h-full bg-sky-500 rounded-full" style={{ width: '92%' }} />
+          <div className="mt-3 h-1.5 w-full bg-card-elevated rounded-full overflow-hidden border border-border-subtle">
+            <div className="h-full bg-sky-400 rounded-full" style={{ width: '92%' }} />
           </div>
         </div>
 
         {/* Data Quality Health */}
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs relative overflow-hidden">
+        <div className="card p-5 border-border-subtle shadow-xs relative overflow-hidden hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-stone-500 uppercase">Catalogue Purity</span>
-            <span className="p-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+            <span className="text-xs font-semibold tracking-wider text-muted uppercase">Catalogue Purity</span>
+            <span className="p-2 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30">
               <CheckCircle2 className="w-4 h-4" />
             </span>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-bold text-stone-900 font-display">
+            <div className="text-2xl lg:text-3xl font-bold text-ink font-display">
               99.8%
             </div>
-            <div className="mt-1 flex items-center justify-between text-xs text-stone-500">
+            <div className="mt-1 flex items-center justify-between text-xs text-muted">
               <span>Defects:</span>
-              <span className="font-medium text-stone-700">
+              <span className="font-medium text-ink">
                 {missingImgs} Missing Images • 0 Inactive
               </span>
             </div>
           </div>
-          <div className="mt-3 h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-            <div className="h-full bg-amber-500 rounded-full" style={{ width: '99.8%' }} />
+          <div className="mt-3 h-1.5 w-full bg-card-elevated rounded-full overflow-hidden border border-border-subtle">
+            <div className="h-full bg-amber-400 rounded-full" style={{ width: '99.8%' }} />
           </div>
         </div>
       </div>
 
       {/* Verified Display Gate Architectural Note */}
-      <div className="bg-stone-900 text-stone-100 rounded-xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 border border-stone-800">
+      <div className="card p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 border-border-subtle">
         <div className="flex items-start gap-3">
-          <span className="p-2 bg-stone-800 rounded-lg text-emerald-400 mt-0.5 shrink-0">
+          <span className="p-2 bg-card-elevated rounded-lg text-emerald-400 border border-border-subtle mt-0.5 shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </span>
           <div>
-            <h3 className="text-sm font-semibold text-white tracking-wide">
+            <h3 className="text-sm font-semibold text-ink tracking-wide">
               Verified Product Display Gate Policy Active
             </h3>
-            <p className="text-xs text-stone-400 mt-1 max-w-2xl leading-relaxed">
-              All customer-facing endpoints (Home discovery shelves, Category browsing, FTS search, AI Attention Fusion, Cart, and Wishlist) enforce <code className="px-1.5 py-0.5 rounded bg-stone-800 text-emerald-300 font-mono text-2xs">verification_status = 'VERIFIED'</code> at the database query level. Corrupt or unclassified dataset rows are sealed in review quarantine.
+            <p className="text-xs text-muted mt-1 max-w-2xl leading-relaxed">
+              All customer-facing endpoints (Home discovery shelves, Category browsing, FTS search, AI Attention Fusion, Cart, and Wishlist) enforce <code className="px-1.5 py-0.5 rounded bg-card-elevated text-emerald-400 font-mono text-2xs border border-border-subtle">verification_status = 'VERIFIED'</code> at the database query level. Corrupt or unclassified dataset rows are sealed in review quarantine.
             </p>
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2 text-xs font-mono text-stone-400 bg-stone-800/80 px-3 py-1.5 rounded-lg border border-stone-700/60">
-          <Database className="w-3.5 h-3.5 text-stone-400" />
+        <div className="shrink-0 flex items-center gap-2 text-xs font-mono text-muted bg-card-elevated px-3 py-1.5 rounded-lg border border-border-subtle">
+          <Database className="w-3.5 h-3.5 text-accent" />
           PostgreSQL tsvector GIN
         </div>
       </div>
 
       {/* Department Distribution Table */}
-      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs">
-        <div className="p-5 border-b border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="card border-border-subtle overflow-hidden shadow-xs">
+        <div className="p-5 border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-stone-900">
+            <h2 className="text-base font-semibold text-ink">
               Department & Taxonomy Breakdown
             </h2>
-            <p className="text-xs text-stone-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Live product allocation and average price/rating health across Cartify's 8 core departments.
             </p>
           </div>
@@ -233,13 +233,13 @@ export default function AdminCatalogue() {
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search departments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-400 w-44"
+                className="input-field text-xs pl-8 pr-3 py-1.5 w-44"
               />
             </div>
 
@@ -247,7 +247,7 @@ export default function AdminCatalogue() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-stone-700 focus:outline-none"
+              className="input-field select-field text-xs py-1.5"
             >
               <option value="count">Sort by Products (High to Low)</option>
               <option value="name">Sort by Name</option>
@@ -260,7 +260,7 @@ export default function AdminCatalogue() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-stone-50/80 text-2xs font-semibold text-stone-500 uppercase tracking-wider border-b border-stone-200">
+              <tr className="bg-card-elevated text-2xs font-semibold text-muted uppercase tracking-wider border-b border-border-subtle">
                 <th className="py-3 px-5">Department</th>
                 <th className="py-3 px-5">Slug</th>
                 <th className="py-3 px-5">Total Products</th>
@@ -270,42 +270,42 @@ export default function AdminCatalogue() {
                 <th className="py-3 px-5">Gate Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 text-xs text-stone-700">
+            <tbody className="divide-y divide-border-subtle text-xs text-ink">
               {departments.map((dept) => {
                 const share = totalProds > 0 ? Math.round((dept.productCount / totalProds) * 1000) / 10 : 0;
                 return (
-                  <tr key={dept.categoryId} className="hover:bg-stone-50/60 transition-colors">
-                    <td className="py-3.5 px-5 font-medium text-stone-900 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-stone-900" />
+                  <tr key={dept.categoryId} className="hover:bg-card-elevated transition-colors">
+                    <td className="py-3.5 px-5 font-medium text-ink flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-accent" />
                       {dept.name}
                     </td>
-                    <td className="py-3.5 px-5 font-mono text-2xs text-stone-500">
+                    <td className="py-3.5 px-5 font-mono text-2xs text-muted">
                       {dept.slug}
                     </td>
-                    <td className="py-3.5 px-5 font-semibold text-stone-900">
+                    <td className="py-3.5 px-5 font-semibold text-ink">
                       {dept.productCount.toLocaleString()}
                     </td>
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-2">
-                        <div className="w-20 bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                        <div className="w-20 bg-card-elevated rounded-full h-1.5 overflow-hidden border border-border-subtle">
                           <div
-                            className="bg-stone-800 h-full rounded-full"
+                            className="bg-accent h-full rounded-full"
                             style={{ width: `${Math.min(100, share * 3.5)}%` }}
                           />
                         </div>
-                        <span className="text-2xs font-mono text-stone-500">{share}%</span>
+                        <span className="text-2xs font-mono text-muted">{share}%</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-5 font-mono">
+                    <td className="py-3.5 px-5 font-mono text-ink">
                       ₹{dept.averagePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3.5 px-5">
-                      <span className="inline-flex items-center gap-1 font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                      <span className="inline-flex items-center gap-1 font-medium text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
                         ★ {dept.averageRating.toFixed(1)}
                       </span>
                     </td>
                     <td className="py-3.5 px-5">
-                      <span className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                      <span className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                         <CheckCircle2 className="w-3 h-3" />
                         100% Certified
                       </span>
@@ -320,51 +320,51 @@ export default function AdminCatalogue() {
 
       {/* Data Quality & Pipeline Diagnostics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs">
-          <div className="flex items-center gap-2.5 text-stone-900 font-semibold text-sm">
-            <span className="p-1.5 bg-stone-100 rounded-md text-stone-700">
+        <div className="card p-5 border-border-subtle shadow-xs hover:border-border-strong transition-all">
+          <div className="flex items-center gap-2.5 text-ink font-semibold text-sm">
+            <span className="p-1.5 bg-card-elevated rounded-md text-accent border border-border-subtle">
               <Tag className="w-4 h-4" />
             </span>
             Brand & Taxonomy Matching
           </div>
-          <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+          <p className="text-xs text-muted mt-2 leading-relaxed">
             Multi-level regex parsing captured and validated verified brand acronyms (e.g. boAt, HP, LG, Mi) with strict word-boundary matching to prevent false positives.
           </p>
-          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+          <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs text-muted">
             <span>Verified Brands</span>
-            <span className="font-semibold text-stone-900">1,240+ distinct</span>
+            <span className="font-semibold text-ink">1,240+ distinct</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs">
-          <div className="flex items-center gap-2.5 text-stone-900 font-semibold text-sm">
-            <span className="p-1.5 bg-stone-100 rounded-md text-stone-700">
+        <div className="card p-5 border-border-subtle shadow-xs hover:border-border-strong transition-all">
+          <div className="flex items-center gap-2.5 text-ink font-semibold text-sm">
+            <span className="p-1.5 bg-card-elevated rounded-md text-accent border border-border-subtle">
               <Store className="w-4 h-4" />
             </span>
             Studio Product Management
           </div>
-          <p className="text-xs text-stone-600 mt-2 leading-relaxed">
-            Content Managers can ingest custom internal inventory via <code className="text-2xs bg-stone-100 px-1 py-0.5 rounded">source = 'internal'</code> with complete JSON specifications and gallery image assets.
+          <p className="text-xs text-muted mt-2 leading-relaxed">
+            Content Managers can ingest custom internal inventory via <code className="text-2xs bg-card-elevated px-1 py-0.5 rounded border border-border-subtle text-ink">source = 'internal'</code> with complete JSON specifications and gallery image assets.
           </p>
-          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+          <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs text-muted">
             <span>Studio Products</span>
-            <span className="font-semibold text-stone-900">{data?.provenance?.internal || 6} Active</span>
+            <span className="font-semibold text-ink">{data?.provenance?.internal || 6} Active</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-5 shadow-xs">
-          <div className="flex items-center gap-2.5 text-stone-900 font-semibold text-sm">
-            <span className="p-1.5 bg-stone-100 rounded-md text-stone-700">
+        <div className="card p-5 border-border-subtle shadow-xs hover:border-border-strong transition-all">
+          <div className="flex items-center gap-2.5 text-ink font-semibold text-sm">
+            <span className="p-1.5 bg-card-elevated rounded-md text-accent border border-border-subtle">
               <Database className="w-4 h-4" />
             </span>
             PostgreSQL GIN Full-Text Index
           </div>
-          <p className="text-xs text-stone-600 mt-2 leading-relaxed">
-            All 17,926+ verified items have pre-computed <code className="text-2xs bg-stone-100 px-1 py-0.5 rounded">tsvector</code> representations across name, brand, subcategory, and description for sub-10ms search queries.
+          <p className="text-xs text-muted mt-2 leading-relaxed">
+            All 17,926+ verified items have pre-computed <code className="text-2xs bg-card-elevated px-1 py-0.5 rounded border border-border-subtle text-ink">tsvector</code> representations across name, brand, subcategory, and description for sub-10ms search queries.
           </p>
-          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+          <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs text-muted">
             <span>GIN Index Status</span>
-            <span className="font-semibold text-emerald-600">Active & Sync'd</span>
+            <span className="font-semibold text-emerald-400">Active & Sync'd</span>
           </div>
         </div>
       </div>

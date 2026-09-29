@@ -112,7 +112,7 @@ export default function AdminAnalytics() {
       arch: 'Softmax Attention over 4 Sub-Models',
       isLead: true,
       color: 'from-amber-500 to-primary',
-      badgeBg: 'bg-primary/10 text-primary border-primary/20',
+      badgeBg: 'bg-primary/15 text-primary border-primary/30',
       data: fusion,
     },
     {
@@ -121,7 +121,7 @@ export default function AdminAnalytics() {
       tag: 'Latent Manifold',
       arch: '64d Latent Bottleneck + 30% Corruption',
       color: 'from-purple-500 to-indigo-600',
-      badgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
+      badgeBg: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
       data: autoencoder,
     },
     {
@@ -130,7 +130,7 @@ export default function AdminAnalytics() {
       tag: 'NeuMF Core',
       arch: 'GMF 32d + MLP 32d Embedding Fusion',
       color: 'from-blue-500 to-cyan-600',
-      badgeBg: 'bg-blue-50 text-blue-700 border-blue-200',
+      badgeBg: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
       data: ncf,
     },
     {
@@ -139,7 +139,7 @@ export default function AdminAnalytics() {
       tag: 'Sequential RNN',
       arch: '1-Layer GRU (64d Embedding, 64d Hidden)',
       color: 'from-emerald-500 to-teal-600',
-      badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      badgeBg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
       data: gru,
     },
     {
@@ -148,7 +148,7 @@ export default function AdminAnalytics() {
       tag: 'Visual Similarity',
       arch: 'Pretrained ResNet-18 + 256d L2 Projection',
       color: 'from-rose-500 to-pink-600',
-      badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+      badgeBg: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
       data: cnn,
     },
   ];
@@ -219,15 +219,15 @@ export default function AdminAnalytics() {
   return (
     <div className="flex flex-col gap-8 pb-16">
       {/* 1. Header Banner & Filters */}
-      <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-6 lg:flex-row lg:items-center">
+      <div className="flex flex-col justify-between gap-4 border-b border-border-subtle pb-6 lg:flex-row lg:items-center">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
               <LineChart className="h-5 w-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-ink">Analytics & Model Performance</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               Section 11 Active (Offline Benchmarks + Real Telemetry)
             </span>
           </div>
@@ -239,7 +239,7 @@ export default function AdminAnalytics() {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Timeframe selector */}
-          <div className="flex items-center rounded-lg border border-border bg-white p-0.5 shadow-sm text-xs font-medium text-muted">
+          <div className="flex items-center rounded-lg border border-border-subtle bg-card-elevated p-0.5 shadow-xs text-xs font-medium text-muted">
             {[
               { label: '24h', val: '24h' },
               { label: '7d', val: '7d' },
@@ -251,7 +251,7 @@ export default function AdminAnalytics() {
                 type="button"
                 onClick={() => setTimeframe(val)}
                 className={`rounded-md px-2.5 py-1 transition-colors ${
-                  timeframe === val ? 'bg-primary text-white font-semibold' : 'hover:text-ink'
+                  timeframe === val ? 'bg-accent text-accent-ink font-semibold' : 'hover:text-ink'
                 }`}
               >
                 {label}
@@ -264,10 +264,10 @@ export default function AdminAnalytics() {
             type="button"
             onClick={handleRunEvaluation}
             disabled={evaluating}
-            className="btn btn-outline text-xs h-8 px-3 gap-1.5 shadow-sm"
+            className="btn btn-secondary text-xs h-8 px-3 gap-1.5 shadow-xs"
             title="Re-run Leave-One-Out validation on latest PostgreSQL telemetry"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${evaluating ? 'animate-spin text-primary' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${evaluating ? 'animate-spin text-accent' : ''}`} />
             {evaluating ? 'Evaluating...' : 'Re-Run Benchmark'}
           </button>
         </div>
@@ -275,10 +275,10 @@ export default function AdminAnalytics() {
 
       {/* 2. Executive KPI Ribbon */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card flex flex-col justify-between p-5 bg-gradient-to-br from-white to-slate-50 border-border/80 shadow-sm">
+        <div className="card flex flex-col justify-between p-5 border-border-subtle hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted">Tracked Events</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400">
               <Activity className="h-4 w-4" />
             </div>
           </div>
@@ -289,16 +289,16 @@ export default function AdminAnalytics() {
               <span className="font-semibold text-ink">{uniqueSessions}</span> sessions
             </p>
           </div>
-          <div className="mt-3 flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+          <div className="mt-3 flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
             <TrendingUp className="h-3 w-3" />
             <span>PostgreSQL telemetry pipeline healthy</span>
           </div>
         </div>
 
-        <div className="card flex flex-col justify-between p-5 bg-gradient-to-br from-white to-slate-50 border-border/80 shadow-sm">
+        <div className="card flex flex-col justify-between p-5 border-border-subtle hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted">High-Intent Actions</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
               <ShoppingCart className="h-4 w-4" />
             </div>
           </div>
@@ -310,16 +310,16 @@ export default function AdminAnalytics() {
               Cart additions ({funnelData?.stages?.[1]?.breakdown?.cartAdds || 0}) &amp; Wishlists ({funnelData?.stages?.[1]?.breakdown?.wishlistAdds || 0})
             </p>
           </div>
-          <div className="mt-3 flex items-center gap-1 text-[11px] text-purple-700 font-medium">
+          <div className="mt-3 flex items-center gap-1 text-[11px] text-purple-400 font-medium">
             <Zap className="h-3 w-3" />
             <span>{intentConversion}% view-to-intent conversion</span>
           </div>
         </div>
 
-        <div className="card flex flex-col justify-between p-5 bg-gradient-to-br from-white to-slate-50 border-border/80 shadow-sm">
+        <div className="card flex flex-col justify-between p-5 border-border-subtle hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted">Purchases &amp; Orders</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
               <Award className="h-4 w-4" />
             </div>
           </div>
@@ -331,16 +331,16 @@ export default function AdminAnalytics() {
               {overallConversion}% total view-to-order conversion rate
             </p>
           </div>
-          <div className="mt-3 flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+          <div className="mt-3 flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
             <CheckCircle2 className="h-3 w-3" />
             <span>ACID verified checkout transactions</span>
           </div>
         </div>
 
-        <div className="card flex flex-col justify-between p-5 bg-gradient-to-br from-white to-amber-50/40 border-amber-200/80 shadow-sm">
+        <div className="card flex flex-col justify-between p-5 border-border-subtle hover:border-border-strong transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-900">Lead AI Model (Fusion)</span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted">Lead AI Model (Fusion)</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
               <BrainCircuit className="h-4 w-4" />
             </div>
           </div>
@@ -356,19 +356,19 @@ export default function AdminAnalytics() {
               <span className="font-semibold text-ink">{(fusion.mrr ?? 0.1498).toFixed(3)}</span>
             </p>
           </div>
-          <div className="mt-3 flex items-center gap-1 text-[11px] text-amber-800 font-medium">
-            <Sparkles className="h-3 w-3 text-amber-600" />
+          <div className="mt-3 flex items-center gap-1 text-[11px] text-amber-400 font-medium">
+            <Sparkles className="h-3 w-3 text-amber-400" />
             <span>Softmax Attention ensemble active</span>
           </div>
         </div>
       </div>
 
       {/* 3. The Core Section 11 Benchmark Comparison Matrix */}
-      <div className="card p-6 border-border/80 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 pb-6 border-b border-border/60 sm:flex-row sm:items-center">
+      <div className="card p-6 border-border-subtle shadow-xs">
+        <div className="flex flex-col justify-between gap-4 pb-6 border-b border-border-subtle sm:flex-row sm:items-center">
           <div>
             <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
+              <Target className="h-5 w-5 text-accent" />
               <h2 className="text-lg font-bold text-ink">Recommendation Quality Benchmarks</h2>
             </div>
             <p className="text-xs text-muted mt-1">
@@ -387,8 +387,8 @@ export default function AdminAnalytics() {
                   onClick={() => setSelectedK(k)}
                   className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                     selectedK === k
-                      ? 'bg-ink text-white shadow-sm'
-                      : 'border border-border bg-white text-muted hover:text-ink'
+                      ? 'bg-accent text-accent-ink shadow-xs'
+                      : 'border border-border-subtle bg-card-elevated text-muted hover:text-ink'
                   }`}
                 >
                   K = {k}
@@ -397,7 +397,7 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Metric Dimension Selector */}
-            <div className="flex items-center rounded-lg border border-border bg-slate-50 p-0.5 text-xs font-medium text-muted">
+            <div className="flex items-center rounded-lg border border-border-subtle bg-card-elevated p-0.5 text-xs font-medium text-muted">
               {[
                 { id: 'hitRate', label: 'Hit Ratio' },
                 { id: 'ndcg', label: 'NDCG' },
@@ -411,7 +411,7 @@ export default function AdminAnalytics() {
                   type="button"
                   onClick={() => setSelectedMetric(id)}
                   className={`rounded px-2.5 py-1 transition-all ${
-                    selectedMetric === id ? 'bg-white text-ink font-semibold shadow-xs' : 'hover:text-ink'
+                    selectedMetric === id ? 'bg-card text-accent font-semibold shadow-xs border border-border-subtle' : 'hover:text-ink'
                   }`}
                 >
                   {label}
@@ -440,8 +440,8 @@ export default function AdminAnalytics() {
                 key={m.id}
                 className={`rounded-xl border p-4 transition-all ${
                   m.isLead
-                    ? 'border-primary/30 bg-primary/[0.02] shadow-xs'
-                    : 'border-border/60 bg-white hover:border-border'
+                    ? 'border-accent/40 bg-accent/5 shadow-xs'
+                    : 'border-border-subtle bg-card hover:border-border-strong hover:bg-card-elevated/40'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
@@ -451,22 +451,22 @@ export default function AdminAnalytics() {
                       {m.tag}
                     </span>
                     {m.isLead && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                        <Sparkles className="h-3 w-3 text-amber-600" />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
+                        <Sparkles className="h-3 w-3 text-amber-400" />
                         Dominant Multi-Modal Engine
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <span className="text-muted hidden sm:inline">{m.arch}</span>
-                    <span className="font-mono text-sm font-bold text-ink bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/60">
+                    <span className="font-mono text-sm font-bold text-ink bg-card-elevated px-2.5 py-0.5 rounded-md border border-border-subtle">
                       {getMetricLabel(selectedMetric, selectedK)}: {displayVal}
                     </span>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="relative h-3 w-full overflow-hidden rounded-full bg-card-elevated border border-border-subtle">
                   <div
                     className={`h-full rounded-full bg-gradient-to-r ${m.color} transition-all duration-700 ease-out`}
                     style={{ width: `${pctOfMax}%` }}
@@ -474,7 +474,7 @@ export default function AdminAnalytics() {
                 </div>
 
                 {/* Micro-metrics summary footer */}
-                <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-muted border-t border-slate-100 pt-2 flex-wrap font-mono">
+                <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-muted border-t border-border-subtle pt-2 flex-wrap font-mono">
                   <span>HR@10: {((m.data?.hitRateAt10 ?? 0) * 100).toFixed(1)}%</span>
                   <span>NDCG@10: {(m.data?.ndcgAt10 ?? 0).toFixed(3)}</span>
                   <span>Precision@10: {(m.data?.precisionAt10 ?? 0).toFixed(3)}</span>
@@ -488,8 +488,8 @@ export default function AdminAnalytics() {
         </div>
 
         {/* Methodology note */}
-        <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/60 p-3.5 text-xs text-blue-900">
-          <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+        <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 p-3.5 text-xs text-sky-300">
+          <Info className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold">Academic Validation Methodology:</span> Held-out Leave-One-Out validation protocol
             across 50 genuine user interaction trajectories. For each held-out positive ground-truth item, 99 random unseen
@@ -500,11 +500,11 @@ export default function AdminAnalytics() {
 
       {/* 4. Conversion Funnel & Stage Dropoff */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="card p-6 lg:col-span-2 border-border/80 shadow-sm">
-          <div className="flex items-center justify-between pb-4 border-b border-border/60">
+        <div className="card p-6 lg:col-span-2 border-border-subtle shadow-xs">
+          <div className="flex items-center justify-between pb-4 border-b border-border-subtle">
             <div>
               <div className="flex items-center gap-2">
-                <Compass className="h-5 w-5 text-primary" />
+                <Compass className="h-5 w-5 text-accent" />
                 <h2 className="text-lg font-bold text-ink">E-Commerce Telemetry Funnel</h2>
               </div>
               <p className="text-xs text-muted mt-1">
@@ -523,7 +523,7 @@ export default function AdminAnalytics() {
                 <div key={stage.stage} className="flex flex-col gap-2">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-ink">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-card-elevated text-xs font-bold text-ink border border-border-subtle">
                         {idx + 1}
                       </span>
                       <span className="font-semibold text-ink text-sm">{stage.stage}</span>
@@ -532,7 +532,7 @@ export default function AdminAnalytics() {
 
                     <div className="flex items-center gap-3">
                       {stage.conversionFromPrevious !== undefined && (
-                        <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        <span className="font-semibold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
                           {stage.conversionFromPrevious}% Retention
                         </span>
                       )}
@@ -545,7 +545,7 @@ export default function AdminAnalytics() {
                   </div>
 
                   {/* Funnel Visual Bar */}
-                  <div className="relative h-6 w-full overflow-hidden rounded-lg bg-slate-100">
+                  <div className="relative h-6 w-full overflow-hidden rounded-lg bg-card-elevated border border-border-subtle">
                     <div
                       className={`h-full rounded-lg transition-all duration-700 ${
                         idx === 0
@@ -566,29 +566,29 @@ export default function AdminAnalytics() {
           </div>
 
           {/* Funnel conversion metric pills */}
-          <div className="mt-8 grid grid-cols-3 gap-3 border-t border-border/60 pt-4 text-center">
-            <div className="rounded-lg bg-slate-50 p-3">
+          <div className="mt-8 grid grid-cols-3 gap-3 border-t border-border-subtle pt-4 text-center">
+            <div className="rounded-lg bg-card-elevated border border-border-subtle p-3">
               <span className="text-[11px] font-medium text-muted block">View $\to$ Intent</span>
               <span className="text-lg font-bold text-ink">{intentConversion}%</span>
             </div>
-            <div className="rounded-lg bg-slate-50 p-3">
+            <div className="rounded-lg bg-card-elevated border border-border-subtle p-3">
               <span className="text-[11px] font-medium text-muted block">Intent $\to$ Purchase</span>
               <span className="text-lg font-bold text-ink">
                 {funnelData?.rates?.intentToPurchaseRate || 0}%
               </span>
             </div>
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200/60 p-3">
-              <span className="text-[11px] font-bold text-emerald-800 block">Overall Conversion</span>
-              <span className="text-lg font-bold text-emerald-700">{overallConversion}%</span>
+            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 p-3">
+              <span className="text-[11px] font-bold text-emerald-400 block">Overall Conversion</span>
+              <span className="text-lg font-bold text-emerald-400">{overallConversion}%</span>
             </div>
           </div>
         </div>
 
         {/* Multi-Modal Attention Weight Attribution */}
-        <div className="card p-6 border-border/80 shadow-sm flex flex-col justify-between">
+        <div className="card p-6 border-border-subtle shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 pb-4 border-b border-border/60">
-              <Layers className="h-5 w-5 text-amber-600" />
+            <div className="flex items-center gap-2 pb-4 border-b border-border-subtle">
+              <Layers className="h-5 w-5 text-amber-400" />
               <h2 className="text-lg font-bold text-ink">Attention Weights</h2>
             </div>
             <p className="text-xs text-muted mt-2">
@@ -633,7 +633,7 @@ export default function AdminAnalytics() {
                       {(item.weight * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-card-elevated border border-border-subtle">
                     <div
                       className={`h-full rounded-full ${item.color}`}
                       style={{ width: `${item.weight * 100}%` }}
@@ -645,7 +645,7 @@ export default function AdminAnalytics() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-[11px] text-amber-900">
+          <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-300">
             <span className="font-bold">Dynamic Orchestration:</span> NCF provides the strong collaborative anchor,
             while CDAE and GRU dynamically modulate scores based on session novelty and sparse interaction contexts.
           </div>
@@ -655,10 +655,10 @@ export default function AdminAnalytics() {
       {/* 5. Interaction Distribution & Activity Density Timeline */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Interaction breakdown by event type */}
-        <div className="card p-6 border-border/80 shadow-sm">
-          <div className="flex items-center justify-between pb-4 border-b border-border/60">
+        <div className="card p-6 border-border-subtle shadow-xs">
+          <div className="flex items-center justify-between pb-4 border-b border-border-subtle">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-accent" />
               <h2 className="text-lg font-bold text-ink">Interaction Type Distribution</h2>
             </div>
             <span className="text-xs font-semibold text-muted uppercase font-mono">
@@ -682,9 +682,9 @@ export default function AdminAnalytics() {
                       {t.eventCount.toLocaleString()} ({pct}%)
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-card-elevated border border-border-subtle">
                     <div
-                      className="h-full rounded-full bg-primary/80"
+                      className="h-full rounded-full bg-accent"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -695,11 +695,11 @@ export default function AdminAnalytics() {
         </div>
 
         {/* Activity Timeline */}
-        <div className="card p-6 border-border/80 shadow-sm flex flex-col justify-between">
+        <div className="card p-6 border-border-subtle shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-border/60">
+            <div className="flex items-center justify-between pb-4 border-b border-border-subtle">
               <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
+                <Calendar className="h-5 w-5 text-accent" />
                 <h2 className="text-lg font-bold text-ink">Activity Timeline</h2>
               </div>
               <span className="text-xs font-semibold text-muted uppercase font-mono">Daily Volume</span>
@@ -712,13 +712,13 @@ export default function AdminAnalytics() {
             <div className="mt-5 flex flex-col gap-3">
               {analyticsData?.timeline && analyticsData.timeline.length > 0 ? (
                 analyticsData.timeline.slice(-6).map((t) => (
-                  <div key={t.date} className="flex items-center justify-between rounded-lg bg-slate-50 p-2.5 text-xs">
+                  <div key={t.date} className="flex items-center justify-between rounded-lg bg-card-elevated border border-border-subtle p-2.5 text-xs">
                     <span className="font-mono font-medium text-ink">{t.date}</span>
                     <div className="flex items-center gap-3 font-mono text-[11px]">
-                      <span className="text-blue-600 font-semibold">{t.views} views</span>
-                      <span className="text-purple-600 font-semibold">{t.intent} intent</span>
-                      <span className="text-emerald-600 font-semibold">{t.purchases} orders</span>
-                      <span className="bg-white px-2 py-0.5 rounded border border-border text-ink font-bold">
+                      <span className="text-blue-400 font-semibold">{t.views} views</span>
+                      <span className="text-purple-400 font-semibold">{t.intent} intent</span>
+                      <span className="text-emerald-400 font-semibold">{t.purchases} orders</span>
+                      <span className="bg-card px-2 py-0.5 rounded border border-border-subtle text-ink font-bold">
                         {t.total} total
                       </span>
                     </div>
@@ -732,7 +732,7 @@ export default function AdminAnalytics() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4 text-xs text-muted">
+          <div className="mt-6 flex items-center justify-between border-t border-border-subtle pt-4 text-xs text-muted">
             <span>Synchronized with PostgreSQL `interactions` table</span>
             <span className="font-mono text-ink font-semibold">{totalEvents} total records</span>
           </div>

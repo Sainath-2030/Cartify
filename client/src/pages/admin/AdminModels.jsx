@@ -505,8 +505,8 @@ export default function AdminModels() {
 
           {/* Target Product Banner */}
           {cnnResult?.targetProduct && (
-            <div className="flex flex-wrap items-center gap-4 rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5">
-              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-border bg-white p-1">
+            <div className="flex flex-wrap items-center gap-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5">
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-card p-1">
                 <img
                   src={cnnResult.targetProduct.mainImage || '/placeholder.png'}
                   alt={cnnResult.targetProduct.name}
@@ -518,7 +518,7 @@ export default function AdminModels() {
               </div>
               <div className="flex-1 min-w-[200px]">
                 <div className="flex items-center gap-2">
-                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
                     SOURCE QUERY PRODUCT #{cnnResult.targetProduct.id}
                   </span>
                   {cnnResult.targetProduct.categoryName && (
@@ -556,12 +556,12 @@ export default function AdminModels() {
                     <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
                       Rank #{item.rank}
                     </span>
-                    <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                    <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-400 border border-emerald-500/20">
                       {item.similarityPercentage}% Visual Match
                     </span>
                   </div>
 
-                  <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                  <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-card border border-border-subtle p-2">
                     <img
                       src={item.mainImage || '/placeholder.png'}
                       alt={item.name}
@@ -977,7 +977,7 @@ export default function AdminModels() {
                       </span>
                     </div>
 
-                    <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                    <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-card border border-border-subtle p-2">
                       <img
                         src={rec.mainImage || '/placeholder.png'}
                         alt={rec.name}
@@ -1168,7 +1168,7 @@ export default function AdminModels() {
                       </span>
                     </div>
 
-                    <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                    <div className="my-3 flex items-center justify-center overflow-hidden rounded-lg bg-card border border-border-subtle p-2">
                       <img
                         src={rec.mainImage || '/placeholder.png'}
                         alt={rec.name}
@@ -1424,7 +1424,7 @@ export default function AdminModels() {
                         </span>
                       </div>
 
-                      <div className="my-2.5 flex items-center justify-center overflow-hidden rounded-lg bg-white p-2">
+                      <div className="my-2.5 flex items-center justify-center overflow-hidden rounded-lg bg-card border border-border-subtle p-2">
                         <img
                           src={rec.mainImage || '/placeholder.png'}
                           alt={rec.name}
