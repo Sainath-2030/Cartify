@@ -128,7 +128,7 @@ export default function AdminBIDashboard() {
   const [selectedChurnCustomer, setSelectedChurnCustomer] = useState(null);
   const [showDecisionTreeModal, setShowDecisionTreeModal] = useState(false);
   const [outreachSentMap, setOutreachSentMap] = useState({});
-
+  const churnRequestIdRef = useRef(0);
   const requestIdRef = useRef(0);
 
   const fetchDashboardData = useCallback(async () => {
@@ -273,6 +273,7 @@ export default function AdminBIDashboard() {
   }, [fetchOlapCube]);
 
   const fetchChurnPredictions = useCallback(async () => {
+    const currentRequestId = ++churnRequestIdRef.current;
     setChurnLoading(true);
     setChurnError(false);
     try {
@@ -281,13 +282,20 @@ export default function AdminBIDashboard() {
         sortBy: churnSortBy,
         limit: 50
       });
+      if (currentRequestId !== churnRequestIdRef.current) {
+        return;
+      }
       const data = res?.data || res;
       setChurnData(data);
     } catch (err) {
-      console.error('Failed to load churn predictions:', err);
-      setChurnError(true);
+      if (currentRequestId === churnRequestIdRef.current) {
+        console.error('Failed to load churn predictions:', err);
+        setChurnError(true);
+      }
     } finally {
-      setChurnLoading(false);
+      if (currentRequestId === churnRequestIdRef.current) {
+        setChurnLoading(false);
+      }
     }
   }, [churnRiskFilter, churnSortBy]);
 
@@ -297,7 +305,7 @@ export default function AdminBIDashboard() {
 
   const handleTriggerOutreach = (customer) => {
     setOutreachSentMap(prev => ({ ...prev, [customer.customerId]: true }));
-    showToast(`Retention action initiated for ${customer.fullName}: "${customer.prescriptiveAction}"`, 'success');
+    showToast(`Retention action marked for ${customer.fullName}: "${customer.prescriptiveAction}"`, 'success');
   };
 
   const handleTriggerETL = async () => {

@@ -339,8 +339,9 @@ export const churnService = {
 
     // Filtering
     let filtered = predictions;
-    if (riskLevelFilter && riskLevelFilter !== 'all') {
-      filtered = predictions.filter(p => p.riskLevel.toLowerCase() === riskLevelFilter.toLowerCase());
+    if (typeof riskLevelFilter === 'string' && riskLevelFilter !== 'all') {
+      const normalizedFilter = riskLevelFilter.toLowerCase();
+      filtered = predictions.filter(p => typeof p.riskLevel === 'string' && p.riskLevel.toLowerCase() === normalizedFilter);
     }
 
     // Sorting

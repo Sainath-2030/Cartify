@@ -214,9 +214,13 @@ export const warehouseController = {
   async getChurnPredictions(req, res, next) {
     try {
       const { riskLevel, limit, sortBy } = req.query;
+      const rawLimit = parseInt(limit, 10);
+      const parsedLimit = Number.isInteger(rawLimit) ? rawLimit : 50;
+      const clampedLimit = Math.max(1, Math.min(500, parsedLimit));
+
       const data = await churnService.predictChurn({
         riskLevelFilter: riskLevel || 'all',
-        limit: parseInt(limit, 10) || 50,
+        limit: clampedLimit,
         sortBy: sortBy || 'churnProbability'
       });
 

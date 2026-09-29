@@ -23,6 +23,16 @@ async function seedChurnTelemetry() {
     const users = usersRes.rows;
     console.log(`Found ${users.length} shopper users.`);
 
+    // Fetch sample products to attach to reviews and carts
+    const prodRes = await client.query('SELECT id FROM products LIMIT 5');
+    const sampleProductIds = prodRes.rows.map(r => r.id);
+    if (sampleProductIds.length === 0) {
+      throw new Error('No products available for seeding churn telemetry.');
+    }
+
+    // Begin transaction for all cohort updates
+    await client.query('BEGIN');
+
     // Segment cohorts for diverse churn distribution:
     // Cohort A (Dormant / High Risk): Users 35 to 44 (~10 users)
     //   - Account created 80-100 days ago
@@ -64,9 +74,6 @@ async function seedChurnTelemetry() {
 
     // Cohort B: Dissatisfied friction users (Negative Reviews + 25-45 days inactive)
     const frictionUsers = users.slice(40, 44); // 4 users
-    // Fetch a couple products to review
-    const prodRes = await client.query('SELECT id FROM products LIMIT 5');
-    const sampleProductIds = prodRes.rows.map(r => r.id);
 
     const complaints = [
       { rating: 1, text: 'Product arrived damaged with broken packaging. Customer support took 4 days to respond.' },
@@ -122,19 +129,23 @@ async function seedChurnTelemetry() {
         WHERE user_id = $1
       `, [u.id]);
 
-      // Seed an active cart item for some friction
+      // Seed an active cart item for some friction; update timestamps on conflict
       const prodId = sampleProductIds[Math.floor(Math.random() * sampleProductIds.length)];
       await client.query(`
         INSERT INTO cart_items (user_id, product_id, quantity, created_at, updated_at)
         VALUES ($1, $2, 2, NOW() - INTERVAL '${daysBack} days', NOW() - INTERVAL '${daysBack} days')
-        ON CONFLICT (user_id, product_id) DO NOTHING
+        ON CONFLICT (user_id, product_id) 
+        DO UPDATE SET created_at = EXCLUDED.created_at, updated_at = EXCLUDED.updated_at
       `, [u.id, prodId]);
     }
     console.log(`✓ Updated ${cartAbandoners.length} cart abandoners with open cart items (Cohort C).`);
 
+    await client.query('COMMIT');
     console.log('✅ Realistic churn telemetry seeding completed successfully!');
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Error seeding churn telemetry:', err);
+    process.exitCode = 1;
   } finally {
     client.release();
     await pool.end();
