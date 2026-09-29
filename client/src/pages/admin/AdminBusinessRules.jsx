@@ -116,8 +116,8 @@ export default function AdminBusinessRules() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="inline-flex items-center gap-2 text-stone-500 text-sm">
-          <div className="w-4 h-4 rounded-full border-2 border-stone-800 border-t-transparent animate-spin" />
+        <div className="inline-flex items-center gap-2 text-muted text-sm">
+          <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
           Loading business rules from PostgreSQL system_configs...
         </div>
       </div>
@@ -127,20 +127,20 @@ export default function AdminBusinessRules() {
   return (
     <div className="space-y-8 pb-16 max-w-5xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200/80 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-subtle pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/60">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
               <SlidersHorizontal className="w-3.5 h-3.5" />
               system_configs Table Active
             </span>
-            <span className="text-xs text-stone-400">•</span>
-            <span className="text-xs text-stone-500 font-mono">Live Ranking Tuning</span>
+            <span className="text-xs text-muted">•</span>
+            <span className="text-xs text-muted font-mono">Live Ranking Tuning</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-stone-900 font-display">
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-ink font-display">
             Recommendation Business Rules
           </h1>
-          <p className="text-sm text-stone-600 mt-1 max-w-2xl">
+          <p className="text-sm text-muted mt-1 max-w-2xl">
             Configure multi-modal ranking weights, interaction telemetry scoring multipliers, and diversity thresholds applied to the Attention Fusion engine.
           </p>
         </div>
@@ -149,18 +149,18 @@ export default function AdminBusinessRules() {
           <button
             onClick={handleReset}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-stone-700 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-all shadow-xs"
+            className="btn btn-secondary text-xs h-9 px-3.5 gap-2 shadow-xs"
           >
-            <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+            <RotateCcw className="w-3.5 h-3.5 text-muted" />
             Reset Defaults
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg shadow-xs transition-all ${
+            className={`btn text-xs h-9 px-4 gap-2 ${
               hasChanges
-                ? 'bg-stone-900 hover:bg-stone-800 text-white'
-                : 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                ? 'btn-primary'
+                : 'btn-secondary opacity-50 cursor-not-allowed'
             }`}
           >
             <Save className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
@@ -170,15 +170,15 @@ export default function AdminBusinessRules() {
       </div>
 
       {hasChanges && (
-        <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-4 flex items-center justify-between gap-4 text-xs text-amber-900 animate-in fade-in duration-200">
+        <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-4 flex items-center justify-between gap-4 text-xs text-amber-300 animate-in fade-in duration-200">
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
             <span>You have unsaved changes to the recommendation parameters. Click <strong>Save Changes</strong> to update live ranking.</span>
           </div>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-3 py-1 bg-amber-900 text-white font-semibold rounded-md hover:bg-amber-800 shrink-0"
+            className="btn btn-primary text-xs px-3 py-1 shrink-0"
           >
             Save Now
           </button>
@@ -186,23 +186,23 @@ export default function AdminBusinessRules() {
       )}
 
       {/* Global Hyperparameters */}
-      <div className="bg-white rounded-xl border border-stone-200 p-6 shadow-xs space-y-6">
+      <div className="card border-border-subtle p-6 shadow-xs space-y-6">
         <div>
-          <h2 className="text-base font-semibold text-stone-900 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-stone-800" />
+          <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent" />
             Global Recommendation Hyperparameters
           </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             High-level policy constraints applied to candidate generation and re-ranking layers.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Diversity Boost */}
-          <div className="border border-stone-200/80 rounded-lg p-4 bg-stone-50/50 space-y-3">
+          <div className="border border-border-subtle rounded-lg p-4 bg-card-elevated space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-stone-900">Diversity Boost</label>
-              <span className="font-mono text-xs font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
+              <label className="text-xs font-semibold text-ink">Diversity Boost</label>
+              <span className="font-mono text-xs font-bold text-ink bg-card px-2 py-0.5 rounded border border-border-subtle">
                 {(rules.diversityBoost * 100).toFixed(0)}%
               </span>
             </div>
@@ -213,21 +213,21 @@ export default function AdminBusinessRules() {
               step="0.01"
               value={rules.diversityBoost}
               onChange={(e) => updateField('diversityBoost', parseFloat(e.target.value))}
-              className="w-full accent-stone-900 cursor-pointer"
+              className="w-full accent-accent cursor-pointer"
             />
-            <p className="text-2xs text-stone-500 leading-relaxed">
+            <p className="text-2xs text-muted leading-relaxed">
               Injects exploratory cross-department candidates to prevent filter-bubble stagnation.
             </p>
           </div>
 
           {/* Min Rating Threshold */}
-          <div className="border border-stone-200/80 rounded-lg p-4 bg-stone-50/50 space-y-3">
+          <div className="border border-border-subtle rounded-lg p-4 bg-card-elevated space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-stone-900 flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <label className="text-xs font-semibold text-ink flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                 Min Rating Cutoff
               </label>
-              <span className="font-mono text-xs font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
+              <span className="font-mono text-xs font-bold text-ink bg-card px-2 py-0.5 rounded border border-border-subtle">
                 ★ {rules.minRatingThreshold.toFixed(1)}
               </span>
             </div>
@@ -238,21 +238,21 @@ export default function AdminBusinessRules() {
               step="0.1"
               value={rules.minRatingThreshold}
               onChange={(e) => updateField('minRatingThreshold', parseFloat(e.target.value))}
-              className="w-full accent-stone-900 cursor-pointer"
+              className="w-full accent-accent cursor-pointer"
             />
-            <p className="text-2xs text-stone-500 leading-relaxed">
+            <p className="text-2xs text-muted leading-relaxed">
               Products below this rating threshold will be deprioritized in primary discovery carousels.
             </p>
           </div>
 
           {/* Max Discount Highlight */}
-          <div className="border border-stone-200/80 rounded-lg p-4 bg-stone-50/50 space-y-3">
+          <div className="border border-border-subtle rounded-lg p-4 bg-card-elevated space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-stone-900 flex items-center gap-1">
-                <Percent className="w-3.5 h-3.5 text-emerald-600" />
+              <label className="text-xs font-semibold text-ink flex items-center gap-1">
+                <Percent className="w-3.5 h-3.5 text-emerald-400" />
                 Max Discount Multiplier
               </label>
-              <span className="font-mono text-xs font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
+              <span className="font-mono text-xs font-bold text-ink bg-card px-2 py-0.5 rounded border border-border-subtle">
                 {(rules.maxDiscountHighlight * 100).toFixed(0)}%
               </span>
             </div>
@@ -263,9 +263,9 @@ export default function AdminBusinessRules() {
               step="0.05"
               value={rules.maxDiscountHighlight}
               onChange={(e) => updateField('maxDiscountHighlight', parseFloat(e.target.value))}
-              className="w-full accent-stone-900 cursor-pointer"
+              className="w-full accent-accent cursor-pointer"
             />
-            <p className="text-2xs text-stone-500 leading-relaxed">
+            <p className="text-2xs text-muted leading-relaxed">
               Maximum ceiling for deal boost multipliers applied to promotional candidate scoring.
             </p>
           </div>
@@ -273,13 +273,13 @@ export default function AdminBusinessRules() {
       </div>
 
       {/* Interaction Telemetry Weights */}
-      <div className="bg-white rounded-xl border border-stone-200 p-6 shadow-xs space-y-6">
+      <div className="card border-border-subtle p-6 shadow-xs space-y-6">
         <div>
-          <h2 className="text-base font-semibold text-stone-900 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-stone-800" />
+          <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+            <Activity className="w-4 h-4 text-accent" />
             Interaction Telemetry Scoring Weights
           </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Explicit scoring weights applied to user interaction telemetry events when training NCF and computing Attention Fusion affinity matrices.
           </p>
         </div>
@@ -287,12 +287,12 @@ export default function AdminBusinessRules() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(rules.interactionWeights || {}).map(([eventType, weight]) => {
             return (
-              <div key={eventType} className="border border-stone-200 rounded-lg p-4 bg-stone-50/30 space-y-2.5">
+              <div key={eventType} className="border border-border-subtle rounded-lg p-4 bg-card-elevated space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-2xs font-mono font-bold tracking-wider uppercase text-stone-600">
+                  <span className="text-2xs font-mono font-bold tracking-wider uppercase text-muted">
                     {eventType}
                   </span>
-                  <span className="font-mono text-xs font-semibold text-stone-900 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+                  <span className="font-mono text-xs font-semibold text-ink bg-card px-1.5 py-0.5 rounded border border-border-subtle">
                     {weight.toFixed(1)}x
                   </span>
                 </div>
@@ -303,9 +303,9 @@ export default function AdminBusinessRules() {
                   step="0.5"
                   value={weight}
                   onChange={(e) => updateWeight('interactionWeights', eventType, e.target.value)}
-                  className="w-full accent-stone-900 cursor-pointer"
+                  className="w-full accent-accent cursor-pointer"
                 />
-                <div className="flex justify-between text-3xs text-stone-400 font-mono">
+                <div className="flex justify-between text-3xs text-muted font-mono">
                   <span>0.5x</span>
                   <span>6.0x</span>
                 </div>
@@ -316,13 +316,13 @@ export default function AdminBusinessRules() {
       </div>
 
       {/* Department Weights */}
-      <div className="bg-white rounded-xl border border-stone-200 p-6 shadow-xs space-y-6">
+      <div className="card border-border-subtle p-6 shadow-xs space-y-6">
         <div>
-          <h2 className="text-base font-semibold text-stone-900 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-stone-800" />
+          <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+            <Layers className="w-4 h-4 text-accent" />
             Department Ranking Multipliers
           </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Boost or balance individual departments across homepage discovery and category suggestions.
           </p>
         </div>
@@ -330,10 +330,10 @@ export default function AdminBusinessRules() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {Object.entries(rules.categoryWeights || {}).map(([catSlug, multiplier]) => {
             return (
-              <div key={catSlug} className="border border-stone-200 rounded-lg p-3 bg-stone-50/30 space-y-2">
+              <div key={catSlug} className="border border-border-subtle rounded-lg p-3 bg-card-elevated space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="capitalize font-medium text-stone-800">{catSlug.replace('-', ' ')}</span>
-                  <span className="font-mono font-bold text-stone-900 text-2xs bg-white px-1.5 py-0.5 rounded border border-stone-200">
+                  <span className="capitalize font-medium text-ink">{catSlug.replace('-', ' ')}</span>
+                  <span className="font-mono font-bold text-ink text-2xs bg-card px-1.5 py-0.5 rounded border border-border-subtle">
                     {multiplier.toFixed(2)}x
                   </span>
                 </div>
@@ -344,7 +344,7 @@ export default function AdminBusinessRules() {
                   step="0.05"
                   value={multiplier}
                   onChange={(e) => updateWeight('categoryWeights', catSlug, e.target.value)}
-                  className="w-full accent-stone-900 cursor-pointer"
+                  className="w-full accent-accent cursor-pointer"
                 />
               </div>
             );
@@ -353,10 +353,10 @@ export default function AdminBusinessRules() {
       </div>
 
       {/* Audit Log Guarantee */}
-      <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 flex items-start gap-3 text-xs text-stone-600">
-        <ShieldCheck className="w-4 h-4 text-stone-700 shrink-0 mt-0.5" />
+      <div className="card border-border-subtle p-4 flex items-start gap-3 text-xs text-muted">
+        <ShieldCheck className="w-4 h-4 text-accent shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold text-stone-900">Governance & Audit Logging:</span> Every change to business rules is recorded in the PostgreSQL <code className="font-mono text-stone-800">audit_logs</code> table with previous values, modified fields, timestamp, and administrator identity.
+          <span className="font-semibold text-ink">Governance & Audit Logging:</span> Every change to business rules is recorded in the PostgreSQL <code className="font-mono text-ink bg-card-elevated px-1.5 py-0.5 rounded border border-border-subtle">audit_logs</code> table with previous values, modified fields, timestamp, and administrator identity.
         </div>
       </div>
     </div>
