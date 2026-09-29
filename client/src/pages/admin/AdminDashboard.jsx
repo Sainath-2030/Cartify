@@ -20,10 +20,6 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-amber-200/80 bg-[#FFFBEB] dark:bg-[#2A2010] dark:border-amber-700/50 px-5 py-3.5 text-sm text-[#92400E] dark:text-[#FDE68A] shadow-xs">
-        This dashboard is a structural foundation. Live analytics and model data are not yet connected —
-        see each section for its current status.
-      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CARDS.map(({ title, description, to, icon: Icon }) => (
