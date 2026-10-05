@@ -218,8 +218,8 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
         <span className="text-xs font-semibold text-ink">3. Target Fact Metric:</span>
         <div className="inline-flex items-center rounded-lg border border-border-subtle bg-card p-0.5 shadow-xs text-xs">
           {[
-            { key: 'net_revenue', label: 'Net Revenue ($)' },
-            { key: 'gross_revenue', label: 'Gross Revenue ($)' },
+            { key: 'net_revenue', label: 'Net Revenue (₹)' },
+            { key: 'gross_revenue', label: 'Gross Revenue (₹)' },
             { key: 'units_sold', label: 'Units Sold (#)' },
             { key: 'order_count', label: 'Orders Count (#)' }
           ].map(m => (

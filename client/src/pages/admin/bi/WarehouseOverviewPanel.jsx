@@ -246,7 +246,7 @@ export default function WarehouseOverviewPanel({
           </div>
           <div className="text-right font-mono">
             <p className="font-bold text-ink">{formatCurrency(tier.totalRevenue)}</p>
-            <p className="text-[11px] text-muted">Avg ${tier.avgUnitPrice}</p>
+            <p className="text-[11px] text-muted">Avg ₹{tier.avgUnitPrice}</p>
           </div>
         </div>
       ))}

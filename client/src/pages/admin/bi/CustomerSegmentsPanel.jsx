@@ -99,10 +99,10 @@ export default function CustomerSegmentsPanel({
       const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(f * yDomainMax));
 
       const formatYAxisTick = (val) => {
-        if (val === 0) return '$0';
-        if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
-        if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
-        return `$${val}`;
+        if (val === 0) return '₹0';
+        if (val >= 1000000) return `₹${(val / 1000000).toFixed(1)}M`;
+        if (val >= 1000) return `₹${(val / 1000).toFixed(0)}k`;
+        return `₹${val}`;
       };
 
       return (
@@ -315,7 +315,7 @@ export default function CustomerSegmentsPanel({
                   transform="rotate(-90)"
                   className="text-[11px] fill-muted font-medium"
                 >
-                  Monetary Value (Total Spend in $) ➔
+                  Monetary Value (Total Spend in ₹) ➔
                 </text>
 
                 {/* Cluster Centroids */}

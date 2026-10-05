@@ -10,7 +10,7 @@ export const grainLabels = {
 };
 
 export const formatCurrency = (val) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val || 0);
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
 export const formatNumber = (val) =>
   new Intl.NumberFormat('en-US').format(val || 0);

@@ -1,0 +1,1390 @@
+%% ===========================================================================
+%% Cartify: An AI-Powered E-Commerce Recommendation System
+%% IEEE Conference format (IEEEtran, 2-column, US Letter)
+%%
+%% Compile:  pdflatex cartify_ieee.tex
+%%            bibtex cartify_ieee
+%%            pdflatex cartify_ieee.tex
+%%            pdflatex cartify_ieee.tex
+%% ===========================================================================
+\documentclass[conference]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric,backgrounds}
+
+%% ---- result macros -------------------------------------------------------
+%% Populated from ml-service/artifacts/model_evaluation_metrics.json
+\newcommand{\hrFusionTen}{0.3266}
+\newcommand{\ndcgFusionTen}{0.2518}
+\newcommand{\covCnn}{96.40}
+\newcommand{\attNcf}{0.5564}
+\newcommand{\attAe}{0.1901}
+
+%% ---- optional: mined-rule instances (see dump_mining_results.js) ---------
+%% Left as a neutral, self-contained statement by default so the document
+%% always compiles. Replace with real figures once mining_results.json exists.
+\newcommand{\aprioriRuleCount}{\textemdash}
+\newcommand{\aprioriTopLift}{\textemdash}
+\newcommand{\clusterSizes}{\textemdash}
+\newcommand{\highRiskCount}{\textemdash}
+
+\begin{document}
+
+\title{Cartify: An AI-Powered E-Commerce Recommendation System}
+
+\author{
+\IEEEauthorblockN{Dhiraj Pawar, Preet Panaviya, Kalpesh Sawkare, Sainath Nanaware}
+\IEEEauthorblockA{Department of Computer Engineering, Vidyalankar Institute of Technology, Mumbai, India}
+\IEEEauthorblockEmail{dhiraj.pawar@vit.edu.in, preet.panaviya@vit.edu.in,
+kalpesh.sawkare@vit.edu.in, sainath.nanaware@vit.edu.in}
+}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+Retail recommendation is frequently deployed as an isolated model layered on top of
+an operational database, which leaves two problems unsolved. First, catalogues
+assembled from third-party marketplaces carry enough structural noise that the
+signals consumed downstream are systematically biased; a recommender trained on
+unfiltered inventory learns from mislabelled and duplicated items. Second,
+single-modality recommenders are brittle: collaborative signals vanish for
+unseen users, visual signals generalise poorly to intent, and sequence signals
+are unavailable outside an active session. This paper describes \emph{Cartify}, a
+working dual-layer commerce platform that treats recommendation as one consumer
+of an auditable analytical pipeline rather than as an isolated model. The
+operational tier is a normalised transactional store that emits a typed event
+telemetry stream; an extract-transform-load stage subjects the catalogue to a
+ten-rule quality gate that certifies 17{,}931 of 572{,}083 scanned records and
+records every rejection with a reason, then loads survivors into a star schema
+alongside provenance and quality-audit relations. The mining tier trains four
+representation learners --- a generalised-matrix-factorisation and perceptron
+collaborative network, a frozen ResNet-18 visual encoder, a gated recurrent
+session model, and a collaborative denoising autoencoder --- and fuses them
+through a context-conditioned attention layer whose weights are learned per
+request. Classical miners run alongside: Apriori over order baskets,
+recency-frequency-monetary segmentation, and an interpretable churn scorer.
+Evaluation under leave-one-out protocol with 99 sampled negatives shows the
+fusion layer recovering 2.2 times the catalogue coverage of its strongest
+neural component while retaining competitive ranking quality, and the learned
+attention distribution assigns 55.6\% weight to collaborative evidence and
+12.4\% to appearance, quantifying how little visual information a
+behaviour-driven catalogue actually carries.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Recommender systems, neural collaborative filtering, attention fusion,
+data warehouse, OLAP, data quality, market basket analysis, churn prediction.
+\end{IEEEkeywords}
+
+%% ===========================================================================
+\section{Introduction}
+
+Commercial recommender systems are usually presented as a modelling problem in
+isolation: given an interaction matrix, produce a ranked list. Production systems
+are rarely so tidy. The catalogue that feeds such a model is assembled from
+heterogeneous third-party feeds, each with its own identifier conventions,
+duplicate policies, and category taxonomies. Interaction logs accumulate unevenly
+across event types, so a ``view'' and a ``purchase'' arrive with very different
+frequencies and very different meanings. Where behavioural signal is thin,
+content-derived signal is needed; where appearance is ambiguous, behavioural
+signal is needed. Handling both regimes with one model requires a mechanism to
+ arbitrate between them per user and per item rather than per dataset.
+
+\emph{Cartify} is a dual-layer commerce platform built around that arbitration
+problem. It separates an operational tier, normalised to third normal form for
+transactional correctness, from an analytical tier modelled as a star schema for
+aggregate querying. Between them sits an extract-transform-load (ETL) stage whose
+explicit purpose is to make the catalogue trustworthy before any model consumes
+it. Above the warehouse, four representation learners produce embeddings of a
+user--item pair from four distinct evidence types, and a lightweight attention
+network learns, at inference time, how much to trust each one.
+
+The contributions of this work are as follows.
+
+\begin{enumerate}
+\item \textbf{A quality-gated catalogue pipeline.} We contribute an ETL stage
+that applies ten deterministic rejection rules to raw marketplace records and
+emits an auditable ledger of every rejection, retaining 17{,}931 certified
+products from 572{,}083 scanned records while discarding 4{,}653 records with
+machine-readable reasons. Section~\ref{sec:etl} reports the rule taxonomy and
+its distribution.
+
+\item \textbf{An event-typed telemetry contract.} We contribute a typed
+interaction schema in which every behavioural event carries a discriminated
+category and an optional product reference, together with a session identifier
+and a monotonic timestamp. This single contract serves three consumers with
+different needs: collaborative filtering consumes weighted user--item pairs,
+sequence modelling consumes session-ordered token streams, and the analytical
+tier consumes the same rows as additive measures. Section~\ref{sec:arch}
+describes the contract and its dual consumption.
+
+\item \textbf{Context-conditioned attention fusion.} We contribute a fusion
+layer that forms its query from a subset of modalities and its keys from all
+modalities, adds a learned per-modality salience term, and produces a
+softmax distribution over four evidence sources that varies per
+(user, item) pair rather than per dataset. Section~\ref{sec:fusion} derives the
+formulation and Section~\ref{sec:eval} reports the learned distribution.
+
+\item \textbf{Classical mining in the same loop.} We contribute an Apriori
+basket miner, an RFM segmentation stage, and an interpretable churn scorer that
+combines a calibrated linear score with an eight-rule decision layer, all
+exposed to operators through a business-intelligence console. These stages are
+deliberately transparent, and Section~\ref{sec:classical} is explicit that the
+rule confidences are design parameters rather than measured frequencies.
+
+\item \textbf{A reproducible evaluation harness.} We contribute a leave-one-out
+protocol with 99 sampled unseen negatives, reporting hit ratio, normalised
+discounted cumulative gain, precision, recall, mean reciprocal rank, catalogue
+coverage, and diversity for all five models under one protocol, together with
+the raw metrics artifact. Section~\ref{sec:eval} reports results and
+Section~\ref{sec:discussion} discusses their limitations, including one result
+that contradicts the system's own design hypothesis.
+\end{enumerate}
+
+The remainder of this paper is organised as follows.
+Section~\ref{sec:related} positions the work.
+Section~\ref{sec:motivation} states the problem formally.
+Section~\ref{sec:arch} describes the dual-layer architecture and the telemetry
+contract. Section~\ref{sec:etl} details the quality gate and warehouse.
+Section~\ref{sec:telemetry} specifies the contract that all four learners consume, and Section~\ref{sec:models} presents the learners themselves.
+Section~\ref{sec:classical} presents the classical miners.
+Section~\ref{sec:impl} describes the implementation.
+Section~\ref{sec:eval} reports evaluation.
+Section~\ref{sec:discussion} discusses limitations and threats to validity.
+Section~\ref{sec:conclusion} concludes.
+
+%% ===========================================================================
+\section{Background and Related Work}
+\label{sec:related}
+
+\subsection{Collaborative Filtering}
+
+Matrix factorisation established the practical baseline for collaborative
+filtering, decomposing a sparse user--item matrix into low-rank latent factors
+trained by alternating least squares or by gradient descent on an implicit
+objective~\cite{mnih2008pmf,hu2008icdm}. Rendle et al.~\cite{rendle2009bpr}
+popularised pairwise Bayesian Personalised Ranking, which optimises a
+preference ordering rather than a pointwise likelihood and remains a strong
+baseline in explicit-feedback settings.
+
+Implicit feedback changes the problem substantially. A missing interaction is
+weak evidence of dislike, so pointwise binary cross-entropy is mis-specified and
+requires negative sampling to remain tractable. He et al.~\cite{he2017ncf}
+addressed this with NeuMF, which fuses a generalised matrix factorisation
+branch with a multilayer perceptron branch and trains both on sampled negatives.
+We adopt this architecture as the collaborative component of Cartify because the
+two branches capture complementary structure: the GMF branch represents latent
+similarity linearly, while the perceptron branch represents non-linear
+interaction effects. Our fusion layer preserves that property at the modality
+level.
+
+Denoising autoencoders provide a complementary formulation. Rather than
+factoring user and item independently, a collaborative autoencoder reconstructs a
+user's interaction vector from a corrupted input and constrains the
+reconstruction through the user's own latent vector, which both denoises and
+regularises~\cite{ma2015autorec}. Because the decoder can be made
+bias-free, predictions derive strictly from user preference rather than from a
+dataset-wide popularity offset. We adopt this construction as a fourth evidence
+source for reasons given in Section~\ref{sec:ae}.
+
+\subsection{Sequential Recommendation}
+
+Session-based recommendation models the next item as a function of a
+chronologically ordered prefix. Gated recurrent units suit this setting because
+the gating mechanism lets a sequence-modeling network retain or overwrite
+partial session state, which mitigates the vanishing-gradient behaviour of
+plain recurrent networks~\cite{ho2019grugraphs,chung2015gru4rec}. Chung et
+al.~\cite{chung2015gru4rec} applied GRUs with element-wise and dot-product
+scoring to session data; subsequent work addressed the tension between parallel
+training and sequential dependencies.
+
+GRU models are strongest exactly where collaborative models are weakest --- inside
+an active session --- and weakest at cold start, where the embedding table has
+never seen the user. This complementary failure profile motivates treating them
+as separate modalities rather than as substitutes.
+
+\subsection{Multi-Source and Attention-Based Fusion}
+
+Combining heterogeneous recommendation signals has a long history. The naive
+combination, averaging or summing scores, assumes the sources are commensurable.
+Attention-based fusion replaces fixed weights with input-conditioned weights.
+Zhou et al.~\cite{zhou2018din} showed that a local activation unit can isolate
+the subset of a user's historical behaviour relevant to a candidate item, and
+this locality principle is what makes per-pair weighting meaningful.
+Zhang et al.~\cite{zhang2019nais} extended multiplicative interaction to
+candidate-aware selection.
+
+Our fusion layer differs in one respect we consider important: the attention
+\emph{query} is formed from a strict subset of modalities (collaborative,
+sequential, and denoised-latent) while the \emph{keys} span all four. This
+asymmetry makes the query a summary of user and session state and the keys a
+summary of each evidence type, so a modality's weight reflects its agreement
+with user state rather than its own magnitude.
+
+\subsection{Classical Data Mining}
+
+Market basket analysis discovers co-occurrence structure in transaction
+databases. Apriori~\cite{agrawal1994survey} performs breadth-first candidate
+generation with the anti-monotonicity pruning property, and FP-Growth~\cite{han2000fpgrowth}
+replaces candidate generation with a compact tree representation. Customer
+segmentation typically uses the recency--frequency--monetary
+framework~\cite{fildes2002retail}, with clustering applied to the scaled RFM
+vector. Churn modelling combines probabilistic scoring with rule-based
+overlays so that a risk tier carries a reason a human can audit.
+
+Cartify runs these classical miners deliberately alongside the neural stack (reproduction procedure in Appendix~\ref{app:mining}). They
+are not superseded by it. Basket rules are directly actionable for merchandising,
+RFM segments are interpretable without a data scientist in the loop, and a churn
+tier with a named rule is auditable in a way a probability is not.
+
+\subsection{Data Warehousing and OLAP}
+
+The warehouse pattern separates a normalised operational store designed for
+transactional correctness from an analytical store designed for aggregation
+~\cite{inmon2002building,kimball2013toolkit}. Star schemas denormalise
+dimensions around one or more fact tables~\cite{simon2005dw}, and OLAP operations
+such as slice, dice, roll-up, and drill-down are defined over that
+structure~\cite{chaudhuri1997olap,silberschatz2020database}. Data quality
+dimensions are standard practice~\cite{han2012datamining}; we additionally
+persist provenance so that any reported metric can be traced to the extraction
+that produced it.
+
+Data preprocessing surveys~\cite{han2012datamining} catalogue techniques for
+missing values, noise, and outliers. Our contribution here is narrow and
+practical: we show that for marketplace catalogues, a modest set of
+deterministic rules applied at ingestion time removes more harmful training
+signal than any post-hoc filter applied after collection.
+
+%% ===========================================================================
+\section{Motivation and Problem Statement}
+\label{sec:motivation}
+
+\subsection{The Catalogue Is the Model's Real Input}
+
+A recommender is only as sound as the catalogue it indexes. Consider a catalogue
+assembled from 160 category feeds. Within it, a product may appear under several
+identifiers, a single product may be listed twice with different titles, a
+category may contain items belonging to an adjacent category, and a price may be
+recorded as zero or absent. Each defect is individually small. In aggregate they
+bias the item embedding table: duplicated items split statistical mass across
+two indices, miscategorised items corrupt the content prior, and phantom low-cost
+items pollute any price-conditioned feature.
+
+The failure is difficult to detect downstream because it is invisible in
+aggregate accuracy. A recommender trained on a noisy catalogue produces a model
+that scores well on the noisy catalogue. Quality assurance must therefore
+precede modelling, not follow it. This motivates treating ingestion-time
+validation as a first-class pipeline stage with its own audit relation
+(Section~\ref{sec:etl}).
+
+\subsection{Four Evidence Types, Four Failure Modes}
+
+Let a user be $u$ and an item be $i$. Four sources of evidence about the
+affinity $y(u,i)$ are available, and each fails in a characteristic regime:
+
+\begin{enumerate}
+\item \textbf{Collaborative} $f_{\mathrm{ncf}}(u,i)$: observed user--item
+co-occurrence. Fails when $u$ or $i$ is unseen.
+\item \textbf{Visual} $f_{\mathrm{cnn}}(i)$: appearance of the item image.
+Independent of $u$, so it survives a cold user, but it cannot express intent and
+is easily confused across visually similar but functionally distinct items.
+\item \textbf{Sequential} $f_{\mathrm{gru}}(u,i)$: position of $i$ in an
+active session. Sharp while a session is live, undefined outside one.
+\item \textbf{Denoised latent} $f_{\mathrm{ae}}(u,i)$: reconstruction of the
+user's interaction vector. Generalises to sparse users, and degrades toward a
+popularity baseline for very sparse ones.
+\end{enumerate}
+
+A single model cannot cover all four regimes. The operational question is
+therefore not which model to choose but how to weight the four adaptively.
+
+\subsection{Formal Objective}
+
+Given a user--item pair $(u,i)$, let
+$\mathbf{f} = [f_{\mathrm{ncf}}; f_{\mathrm{cnn}}; f_{\mathrm{gru}}; f_{\mathrm{ae}}]$
+be the concatenated evidence vector and let $\mathbf{1}$ be the modality mask.
+We seek a predictor $s_\theta(u,i) \in (0,1)$ and a weighting
+$\boldsymbol{\alpha}(u,i)$ over modalities such that
+
+\begin{equation}
+\boldsymbol{\alpha}(u,i) = \operatorname{softmax}\!\left(
+  \frac{q(\mathbf{f})^{\top} k(\mathbf{f})}{\sqrt{d_a}} + s(\mathbf{f})
+\right), \qquad
+\sum_{m=1}^{4} \alpha_m = 1,
+\label{eq:alpha}
+\end{equation}
+
+\begin{equation}
+s_\theta(u,i) = \sigma\!\left( h\!\left( \sum_{m=1}^{4} \alpha_m(u,i)\, \phi_m(\mathbf{f}) \right) \right),
+\label{eq:score}
+\end{equation}
+
+where $q(\cdot)$ forms the query from the state-bearing modalities only, $k(\cdot)$
+forms keys from all four, $s(\cdot)$ is a per-modality salience term, $\phi_m$ is
+a modality-specific projection to a shared dimension, $\sigma$ is the logistic
+function, and $h$ is a prediction head. Equations~\eqref{eq:alpha} and
+\eqref{eq:score} are implemented in Section~\ref{sec:fusion}. The requirement
+that $\boldsymbol{\alpha}$ be a function of the pair, not of the dataset, is what
+distinguishes this from fixed score averaging.
+
+%% ===========================================================================
+\section{System Architecture}
+\label{sec:arch}
+
+Fig.~\ref{fig:arch} shows the two tiers and the stages between them. The
+storefront is deliberately conventional; the analytical and mining tiers are the
+subject of this paper.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  node distance=3mm,
+  box/.style={draw,rounded corners=2pt,align=center,minimum height=6.5mm,inner sep=2pt},
+  olap/.style={box,fill=blue!8},
+  ml/.style={box,fill=green!10},
+  bi/.style={box,fill=orange!14},
+  store/.style={box,fill=gray!14},
+  ar/.style={-{Stealth[length=1.6mm]},thick},
+  lbl/.style={font=\tiny\itshape,midway,fill=white,inner sep=0.5pt}
+]
+\node[store,minimum width=19mm] (front) {React storefront\\browsing, cart};
+\node[store,right=4mm of front] (api) {Express API\\routes $\rightarrow$ services};
+\node[store,right=4mm of api,fill=blue!8] (oltp) {PostgreSQL\\operational (3NF)};
+
+\node[box,fill=purple!10,below=6mm of oltp,minimum width=27mm] (tele) {Event telemetry stream\\\textit{typed, session-tagged}};
+\node[box,fill=purple!16,below=6mm of tele,minimum width=27mm] (etl) {ETL \& quality gate\\\textit{10 rejection rules}};
+\node[box,fill=gray!20,below=6mm of etl,minimum width=27mm] (audit) {Provenance \& audit\\relations};
+
+\node[olap,left=6mm of etl,minimum width=22mm] (star) {Star schema\\facts + 3 dims};
+\node[ml,left=6mm of star,minimum width=22mm] (models) {Mining tier\\4 learners};
+\node[bi,left=6mm of models,minimum width=22mm] (fuse) {Attention fusion\\+ classical miners};
+
+\node[bi,below=6mm of audit,minimum width=30mm] (biui) {BI console: OLAP browser,\\basket rules, segments, churn tiers};
+
+\draw[ar] (front) -- (api);
+\draw[ar] (api) -- (oltp);
+\draw[ar] (oltp) -- node[lbl,sloped]{event writes} (tele);
+\draw[ar] (tele) -- (etl);
+\draw[ar] (etl) -- (audit);
+\draw[ar] (etl) -- (star);
+\draw[ar] (star) -- (models);
+\draw[ar] (models) -- (fuse);
+\draw[ar] (star) -| (biui);
+\draw[ar] (fuse) -| (biui);
+\draw[ar] (audit) -| (biui);
+\end{tikzpicture}%
+}
+\caption{Dual-tier architecture. The operational tier is normalised for
+transactional correctness; the analytical tier is a star schema for aggregation.
+The ETL stage between them validates the catalogue and records every rejection.
+Solid arrows denote data flow; the mining tier consumes the telemetry stream
+directly, not the cleaned catalogue, so that behavioural signal is never delayed
+behind a batch job.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Operational Tier}
+
+The operational schema is normalised to third normal form. Orders, order items,
+products, categories, users, carts, cart items, wishlists, reviews, and
+interactions are separate relations with foreign keys and check constraints.
+This normalisation is deliberate and is not a stylistic choice: checkout must
+enforce referential integrity and partial rollback under concurrency, and
+denormalisation for read performance would compromise that. Read acceleration is
+handled instead by composite indexes on the filter paths actually used
+(category, brand, price, rating, availability) and by full-text search over
+product titles.
+
+The backend is layered strictly as routes, middleware, controllers, services,
+models. Routes bind URLs and middleware; controllers own request and response
+handling; services own business logic; models are the only layer that issues SQL,
+and they do so exclusively through parameterised statements. This constraint is
+what allows the mining tier to be reasoned about independently, since all
+analytical queries originate in a small, auditable set of model functions.
+
+\subsection{The Telemetry Contract}
+\label{sec:telemetry}
+
+The `interactions' relation is the system's most consequential design decision,
+because four downstream consumers with incompatible needs all read it. Its
+schema is:
+
+\begin{equation}
+\mathcal{I} = \langle u, i, \tau, \sigma, \chi, \mu, \text{created\_at} \rangle
+\label{eq:interaction}
+\end{equation}
+
+where $u$ is the user (nullable for anonymous traffic), $i$ the product
+(nullable for events not tied to an item), $\tau$ the interaction type drawn from
+an enumerated vocabulary, $\sigma$ the session identifier, $\chi$ the client
+that emitted the event, and $\mu$ a JSONB metadata bag.
+
+Three properties of this tuple, Eq.~\eqref{eq:interaction}, deserve emphasis.
+
+\paragraph{Nullable product reference.} Events such as a search or a category
+browse are real behavioural evidence but carry no product identifier. Rather
+than inventing a placeholder item, the relation permits a null reference, and
+pairwise learners skip null rows explicitly. This is a small design decision
+that avoids a silent correctness bug: had nulls been coerced to a sentinel item,
+the collaborative embedding table would have acquired a spuriously dominant
+index.
+
+\paragraph{Session continuity.} The session identifier, combined with timestamp
+ordering, is what allows a sequence model to reconstruct a browsing trajectory
+from an append-only event table with no additional client-side state.
+
+\paragraph{Extensible metadata.} Because $\mu$ is JSONB, new event types and
+model-specific fields are added without schema migration. This mattered in
+practice: the sequence and fusion tiers store derived session state in $\mu$
+rather than in new columns.
+
+Table~\ref{tab:telemetry} lists the event vocabulary and the implicit-feedback
+weight assigned to each type by the collaborative configuration. The weights
+encode an ordering of intent strength that is a design choice, stated here
+explicitly rather than presented as learned.
+
+\begin{table}[t]
+\caption{Event telemetry vocabulary and configured implicit-feedback weights.}
+\label{tab:telemetry}
+\centering
+\footnotesize
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Event type} & \textbf{Weight} & \textbf{$i$ null?} & \textbf{Primary consumer} \\
+\midrule
+\texttt{VIEW}          & 1.0 & no  & NCF, CDAE, CNN \\
+\texttt{SEARCH}        & 1.5 & yes & warehouse measures \\
+\texttt{RATING}        & 3.5 & no  & CDAE \\
+\texttt{WISHLIST\_ADD} & 3.0 & no  & NCF, CDAE \\
+\texttt{CART\_ADD}     & 4.0 & no  & NCF, GRU, CDAE \\
+\texttt{REVIEW}        & 4.0 & no  & CDAE \\
+\texttt{PURCHASE}      & 5.0 & no  & all four learners \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+Client-reported events are normalised on write: coarse client verbs are mapped to
+the canonical vocabulary, and anonymous events are accepted but persisted only for
+authenticated users. Server-authoritative events (cart additions, completed
+purchases) are written directly by the corresponding service transaction, which
+prevents a client from inflating its own intent signal.
+
+\subsection{Analytical Tier}
+
+The warehouse is a star schema over four relations plus three governance
+relations. Fig.~\ref{fig:star} shows the dimensional structure.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  node distance=4mm and 5mm,
+  dim/.style={draw,fill=blue!8,align=center,minimum width=17mm,minimum height=7mm,rounded corners=1pt},
+  fact/.style={draw,fill=orange!16,align=center,minimum width=21mm,minimum height=8mm},
+  gov/.style={draw,fill=green!10,align=center,minimum width=21mm,minimum height=6mm,dashed},
+  ar/.style={-{Stealth[length=1.5mm]}}
+]
+\node[fact] (fs) {\textbf{fact\_sales}\\atomic order line};
+\node[fact,below=9mm of fs] (fi) {\textbf{fact\_interaction\_daily}\\daily telemetry grain};
+\node[dim,left=9mm of fs] (dp) {\textbf{dim\_product}\\price/rating tiers};
+\node[dim,above=6mm of dp] (dt) {\textbf{dim\_time}\\calendar hierarchy};
+\node[dim,below=6mm of dp] (dc) {\textbf{dim\_customer}\\activity tiers};
+\node[gov,right=10mm of fs] (ej) {\textbf{etl\_job\_runs}\\E/T/L counts, status};
+\node[gov,above=5mm of ej] (dl) {\textbf{etl\_data\_lineage}\\tier, deps, rules};
+\node[gov,below=5mm of ej] (qa) {\textbf{data\_quality\_audits}\\completeness, DQI};
+
+\draw[ar] (dp) -- (fs);
+\draw[ar] (dt) -- (fs);
+\draw[ar] (dc) -- (fs);
+\draw[ar] (dp) -- (fi);
+\draw[ar] (dt) -- (fi);
+\draw[ar] (ej) -- (fs);
+\draw[ar] (dl) -- (ej);
+\draw[ar] (qa) -- (ej);
+\end{tikzpicture}%
+}
+\caption{Star schema and governance relations. Two fact tables share three
+conformed dimensions, so a slice on product category can be joined against the
+sales grain and the telemetry grain without materialising a cross-product.
+Shaded green relations record provenance and quality, allowing any reported
+metric to be traced back to the extraction run that produced it.}
+\label{fig:star}
+\end{figure}
+
+Two grains are maintained. \texttt{fact\_sales} is at atomic order-line
+granularity and carries additive measures (quantity, unit price, gross revenue,
+discount, net revenue) with a natural key of (order, product, order item) to
+make loads idempotent. \texttt{fact\_interaction\_daily} is pre-aggregated at
+daily product grain and carries additive counts (views, searches, carts,
+wishlists, purchases) plus semi-additive distinct counts (unique users, unique
+sessions), keyed on (time, product). Choosing a daily grain for telemetry is a
+deliberate trade: it bounds fact-table growth and makes funnel slicing cheap, at
+the cost of forbidding within-day session reconstruction from the warehouse ---
+which is why the sequence learner reads the operational telemetry table instead.
+
+\subsection{Business Rule Governance}
+
+Recommendation-affecting parameters are data, not code. Weights, diversity
+boost, rating thresholds, and discount-highlight limits are stored as system
+configuration and every mutation writes an immutable audit row capturing both
+the previous and the new value. This separates the tunable surface from the code
+path and means a ranking change can always be attributed.
+
+%% ===========================================================================
+\section{Catalogue Quality Assurance and the Warehouse Load}
+\label{sec:etl}
+
+\subsection{Pipeline Stages}
+
+The ETL stage executes: extraction from raw category feeds; parsing and
+structural validation; category resolution; deduplication by product identifier;
+a ten-rule quality gate; certification; and load into the star schema, with job
+statistics written to \texttt{etl\_job\_runs} and dependency metadata to
+\texttt{etl\_data\_lineage}.
+
+Category resolution is a three-tier cascade. Sub-category assignment is attempted
+first; on failure the parent category is used; and failing both, a
+word-boundary keyword classifier is applied. The cascade resolved 228{,}473
+records by sub-category, 215{,}556 by keyword, and 46{,}121 by parent category.
+
+\subsection{The Quality Gate}
+
+Table~\ref{tab:gate} reports the gate's outcome. Of 572{,}083 scanned records,
+17{,}931 were certified and 4{,}653 were rejected. The asymmetry is informative:
+the bulk of records were discarded upstream by structural validation (41 missing
+names, 17{,}811 invalid prices, 43{,}584 unclassifiable), while the gate itself
+removes records that are structurally well-formed but semantically wrong.
+
+\begin{table}[t]
+\caption{Extraction and quality-gate outcomes.}
+\label{tab:gate}
+\centering
+\footnotesize
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Stage outcome} & \textbf{Records} \\
+\midrule
+Records scanned & 572{,}083 \\
+\multicolumn{2}{@{}l}{\textit{Structural validation}} \\
+\quad Excluded: missing name & 41 \\
+\quad Excluded: invalid price & 17{,}811 \\
+\quad Excluded: unclassifiable category & 43{,}584 \\
+Valid before deduplication & 490{,}150 \\
+\quad Duplicate identifiers merged & 69{,}620 \\
+Unique products after merge & 420{,}530 \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Quality gate}} \\
+Rejected by gate & 4{,}653 \\
+\textbf{Certified products} & \textbf{17{,}931} \\
+\midrule
+\multicolumn{2}{@{}l}{\textit{Post-load verification}} \\
+\quad Verified & 17{,}926 \\
+\quad Flagged for review & 5 \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+Table~\ref{tab:rules} breaks the 4{,}653 rejections down by rule. One rule
+dominates: 1{,}856 records classified into the gaming category were generic
+cables, a category-resolution artefact in the source feeds. Because the rules are
+deterministic and specific, this failure was diagnosable rather than merely
+observable.
+
+\begin{table}[t]
+\caption{Rejection taxonomy of the quality gate ($n = 4{,}653$).}
+\label{tab:rules}
+\centering
+\footnotesize
+\begin{tabular}{@{}p{0.56\columnwidth}r@{}}
+\toprule
+\textbf{Rejection rule} & \textbf{Count} \\
+\midrule
+Generic cable classified as gaming & 1{,}856 \\
+Duplicate product-title fingerprint & 1{,}490 \\
+Both actual and discounted price absent & 542 \\
+Duplicate product identifier (ASIN) & 353 \\
+Price below minimum retail threshold & 351 \\
+Non-beauty item in beauty department & 41 \\
+Non-fashion/furniture/toy item in fashion & 13 \\
+Non-food item in grocery department & 3 \\
+Suspicious image reuse across departments & 3 \\
+Title missing or too short & 1 \\
+\midrule
+\textbf{Total rejected} & \textbf{4{,}653} \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+Table~\ref{tab:cats} shows the certified distribution. The distribution is not
+natural: gaming and books are heavily under-represented relative to the source
+feeds, because the resolution cascade and the gate both act asymmetrically on
+these departments. We regard this as a limitation rather than a property
+(Section~\ref{sec:discussion}).
+
+\begin{table}[t]
+\caption{Certified catalogue by department.}
+\label{tab:cats}
+\centering
+\footnotesize
+\begin{tabular}{@{}lr@{\qquad}lr@{}}
+\toprule
+\textbf{Department} & \textbf{Products} & \textbf{Department} & \textbf{Products} \\
+\midrule
+Fashion      & 3{,}000 & Grocery     & 2{,}717 \\
+Electronics  & 3{,}000 & Gaming      & 216 \\
+Home/kitchen & 3{,}000 & Books       & 15 \\
+Beauty       & 2{,}983 & \textbf{Total} & \textbf{17{,}931} \\
+Sports       & 3{,}000 & & \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+\subsection{Quality Dimensions}
+
+Beyond the gate, the system computes a composite quality index over four
+dimensions, each scored independently and persisted with the individual checks
+that produced them: \emph{completeness} (fraction of mandatory fields
+populated), \emph{consistency} (referential and domain conformance),
+\emph{timeliness} (staleness of the most recent extraction), and an
+\emph{overall} aggregate mapped to a four-level status. Persisting the checks
+rather than only the score means a score regression can be localised to a
+specific failing check without re-running the audit.
+
+%% ===========================================================================
+\section{Mining and Recommendation Models}
+\label{sec:models}
+
+\subsection{Collaborative Filtering}
+
+The collaborative network follows NeuMF. Two embedding tables are maintained per
+entity, one per branch. The GMF branch multiplies the user and item embeddings
+element-wise, which is equivalent to a linear latent interaction. The MLP branch
+concatenates its embeddings and passes them through layers of sizes
+$[64, 32, 16, 8]$ with ReLU activations and dropout $0.2$. The two branch outputs
+are concatenated and mapped to a single logit, passed through the logistic
+function.
+
+Embeddings are initialised from a zero-mean normal with standard deviation
+$0.01$ and dense layers by Glorot uniform initialisation. Training uses Adam
+($1\times10^{-3}$, weight decay $1\times10^{-6}$), binary cross-entropy, batch
+size 256, and 20 epochs, with four negatives sampled per positive and
+\textbf{fresh negatives resampled every epoch}. Resampling matters: with a fixed
+negative set the model learns to suppress those specific items rather than to
+discriminate in general.
+
+Evaluation holds out the last interaction per user. Identity mappings between
+database identifiers and dense indices are persisted alongside the checkpoint,
+so a product retains its index across retrains --- without this, every retrain
+would silently invalidate previously stored recommendations.
+
+\subsection{Visual Feature Extraction}
+
+The visual encoder uses a ResNet-18 backbone initialised from ImageNet weights,
+with the final classification layer removed to retain the 512-dimensional pooled
+feature, and all backbone parameters frozen. A trainable projection head maps
+512 to 256 through a linear layer, ReLU, and layer normalisation. Inputs are
+resized to $224\times224$ and normalised with the ImageNet channel statistics.
+
+Freezing the backbone is a choice with consequences. It confines trainable
+parameters to roughly 131K and eliminates the risk of catastrophic forgetting of
+ImageNet features on a 17{,}931-image corpus, but it also caps the encoder at
+features optimised for object classification rather than for product
+discrimination. Section~\ref{sec:discussion} returns to this.
+
+\subsection{Sequential Session Modelling}
+\label{sec:gru}
+
+Session trajectories are reconstructed by grouping the telemetry relation on
+session identifier and ordering within group by timestamp. Sequences shorter than
+two events are discarded. \textbf{Prefix augmentation} expands a trajectory
+$[i_1, i_2, i_3, i_4]$ into its prefixes, so one long session yields several
+supervised examples from the same traversal. Inputs are padded to a maximum
+length of 10 with a padding index whose embedding is fixed at zero, and the
+model consumes only unpadded positions via packed sequences.
+
+The recurrent core is a single-layer GRU with 64-dimensional input embeddings and
+a 64-dimensional hidden state. The final hidden state is projected back to the
+embedding dimension by a bias-free linear map and layer-normalised, producing a
+session vector. Candidate scores are then computed by weight tying:
+\begin{equation}
+\text{logits} = \mathbf{h}_{\mathrm{sess}} \, \mathbf{E}^{\top},
+\label{eq:gru}
+\end{equation}
+where $\mathbf{E}$ is the item embedding table. Weight tying, Eq.~\eqref{eq:gru},
+is what makes this a recommender rather than a classifier: it keeps the scoring
+space identical to the
+embedding space, so the model can score the whole catalogue in a single matrix
+product instead of maintaining an output head per item. Sessions are sorted by
+length and packed before the recurrent call, then unsorted afterwards, so padding
+never contributes to the hidden state.
+
+\subsection{Collaborative Denoising Autoencoder}
+\label{sec:ae}
+
+The autoencoder reconstructs a user's interaction vector from a corrupted input.
+A 256-unit hidden layer with tanh activations maps the item axis to a 64-dimensional
+bottleneck; the decoder mirrors this with a \textbf{bias-free} final linear layer.
+
+Two details earn their place. First, the encoder output is summed with a learned
+per-user embedding before decoding, which conditions the reconstruction on
+identity rather than on the observed vector alone. Second, the decoder's final
+bias is disabled. With a bias present, the model can lower its loss by learning a
+global item offset, at which point predictions stop reflecting user preference
+and merely reproduce popularity. Disabling it forces every prediction to arise
+from the user latent vector. During training the input is corrupted with
+probability $0.3$; the index reserved for unknown or guest users is explicitly
+zeroed at initialisation so that an unidentified visitor maps to a neutral
+preference rather than to an arbitrary learned vector.
+
+\subsection{Context-Conditioned Attention Fusion}
+\label{sec:fusion}
+
+The fusion layer implements Equations~\eqref{eq:alpha}--\eqref{eq:score}. Its
+dimensionality is asymmetric: the collaborative and denoised-latent signals are
+64-dimensional, the visual signal is 256-dimensional, and the sequential signal
+is 64-dimensional. Each is mapped to a shared 64-dimensional projection by a
+per-modality block of linear, layer norm, ReLU, and dropout. The four projected
+vectors are stacked into a tensor of shape $(B, 4, 64)$.
+
+The query is the arithmetic mean of the collaborative, sequential, and
+denoised-latent projections. The visual projection is deliberately excluded.
+This is the design decision that distinguishes the layer from a symmetric
+multi-head formulation: the three included modalities describe \emph{who the user
+is and what they are doing now}, whereas appearance describes only what the item
+looks like. Using the query to ask ``does this item's appearance agree with my
+current state?'' would be close to meaningless. Excluding it makes the query a
+genuine summary of user state, so the visual key is scored by its agreement with
+that state.
+
+Keys are produced from all four stacked vectors by a single bias-free linear map
+into a 32-dimensional scoring space. Scaled dot-product energies are computed and
+a salience term is added, the latter produced by a two-layer network with a
+tanh hidden unit mapping each projected vector to a scalar. The sum is
+normalised by a softmax over the four modalities, yielding a distribution that
+sums to one.
+
+The fused representation is the attention-weighted sum of the projected vectors,
+and a prediction head of $64 \rightarrow 64 \rightarrow 32 \rightarrow 1$ with ReLU
+activations and dropout produces the logit. Training uses Adam at $2\times10^{-3}$
+with weight decay $1\times10^{-4}$, batch size 64, 35 epochs, binary
+cross-entropy, two negatives per positive, and a 15\% validation split. Feature
+tensors are precomputed once from the four frozen base models rather than
+recomputed per batch, which reduced a 35-epoch run to 83.11 seconds on CPU.
+
+Fig.~\ref{fig:fusion} shows the dataflow.
+
+%% Fig. 3 is intrinsically wide, so it spans BOTH columns (figure*). Layout is
+%% top-down to keep the aspect ratio near 1 and the type legible after scaling.
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\footnotesize,
+  node distance=4mm and 5mm,
+  inp/.style={draw,rounded corners=1pt,align=center,minimum width=20mm,minimum height=6mm},
+  op/.style={-{Stealth[length=1.6mm]},thick},
+  proj/.style={draw,fill=green!10,align=center,minimum width=24mm,minimum height=6mm,rounded corners=1pt},
+  fuse/.style={draw,fill=orange!18,align=center,minimum height=6mm,rounded corners=1pt},
+  mid/.style={draw,fill=gray!12,align=center,minimum height=6mm,rounded corners=1pt}
+]
+\node[inp,fill=blue!8]  (ncf) {NCF\\$64$-d};
+\node[inp,fill=blue!8,right=4mm of ncf] (cnn) {CNN\\$256$-d};
+\node[inp,fill=blue!8,right=4mm of cnn] (gru) {GRU\\$64$-d};
+\node[inp,fill=blue!8,right=4mm of gru] (ae) {CDAE\\$64$-d};
+
+\node[proj,below=5mm of ncf] (pn) {$\phi_{\mathrm{ncf}}$};
+\node[proj,below=of cnn]             (pc) {$\phi_{\mathrm{cnn}}$};
+\node[proj,below=of gru]             (pg) {$\phi_{\mathrm{gru}}$};
+\node[proj,below=of ae]              (pa) {$\phi_{\mathrm{ae}}$};
+
+\node[mid,below=6mm of pc] (stack) {stack $(B,4,64)$};
+
+\node[mid,below=6mm of stack] (q)  {query $q$\\$\bar{v}_{\mathrm{ncf,gru,ae}}$};
+\node[mid,left=8mm of q]      (k)  {keys $k(\mathbf{v})$\\all four};
+\node[mid,right=8mm of q]     (sal) {salience $s(\mathbf{v})$};
+
+\node[fuse,below=6mm of q] (att) {softmax $\boldsymbol{\alpha}$ \quad Eq.~\eqref{eq:alpha}};
+\node[fuse,right=10mm of att,minimum width=34mm] (out) {$\sigma\!\big(h(\sum_m \alpha_m v_m)\big)$ \quad Eq.~\eqref{eq:score}};
+
+\draw[op] (ncf) -- (pn);
+\draw[op] (cnn) -- (pc);
+\draw[op] (gru) -- (pg);
+\draw[op] (ae) -- (pa);
+\draw[op] (pn) -- (stack);
+\draw[op] (pc) -- (stack);
+\draw[op] (pg) -- (stack);
+\draw[op] (pa) -- (stack);
+\draw[op] (stack) -- (q);
+\draw[op] (k)  -- (att);
+\draw[op] (q)  -- (att);
+\draw[op] (sal) -- (att);
+\draw[op] (att) -- (out);
+\end{tikzpicture}%
+}
+\caption{Attention fusion dataflow. Four modality-specific projections map
+heterogeneous evidence into a shared 64-dimensional space. The query is formed
+from the three state-bearing modalities only, while keys and salience terms span
+all four; the visual modality is scored by its agreement with user state rather
+than by its own magnitude. Precomputed frozen features make the layer a shallow
+trainable head over fixed representations.}
+\label{fig:fusion}
+\end{figure*}
+
+%% ===========================================================================
+\section{Classical Mining}
+\label{sec:classical}
+
+\subsection{Apriori Basket Mining}
+
+Order baskets are extracted from the order-item relation, retaining only
+transactions containing more than one distinct item. The algorithm generates
+frequent 1-itemsets by counting distinct occurrences per item within a
+transaction, then generates frequent 2-itemsets as all unordered pairs of
+surviving singletons, evaluating each candidate by transaction containment.
+Support, confidence, and lift are computed as
+
+\begin{align}
+\text{support}(A) &= \frac{|\{t : A \subseteq t\}|}{|T|}, \label{eq:support}\\[-1pt]
+\text{confidence}(A \rightarrow B) &= \frac{\text{support}(A \cup B)}{\text{support}(A)}, \label{eq:conf}\\[-1pt]
+\text{lift}(A \rightarrow B) &= \frac{\text{confidence}(A \rightarrow B)}{\text{support}(B)}. \label{eq:lift}
+\end{align}
+
+Pairs satisfying $\text{support} \geq 0.01$ as computed in
+Eq.~\eqref{eq:support}, $\text{confidence} \geq 0.2$, and
+$\text{lift} \geq 1.0$ are emitted in both directions and sorted by lift.
+
+A rule survives only when both its confidence and its lift clear the configured
+floors, so a pair that co-occurs no more often than chance is discarded even when
+its raw support is nontrivial. The distinction between
+Eq.~\eqref{eq:conf} and Eq.~\eqref{eq:lift} is what makes this work: confidence
+is the conditional probability of the consequent given the antecedent, whereas
+lift normalises that probability by the consequent's marginal frequency. A rule
+can satisfy the former while failing the latter whenever the consequent is
+independently popular, and such a rule is not evidence of a merchandising
+opportunity.
+
+Capping generation at 2-itemsets is a deliberate scope decision rather than a
+correctness shortcut. Higher-order itemsets are combinatorially expensive, and
+2-item rules are the ones a merchandiser can act on directly by adjusting
+placement or bundling. Section~\ref{sec:discussion} notes the cost.
+
+\subsection{RFM Segmentation}
+
+Customer vectors are built from recency (days since last fulfilled order),
+frequency (fulfilled order count), and monetary value (sum of fulfilled order
+totals). Each axis is min--max scaled to $[0,1]$, with a degenerate range mapped
+to $0.5$ to avoid division by zero. Clustering runs Lloyd's algorithm in
+Euclidean distance for at most 100 iterations.
+
+The implementation departs from standard practice in one respect worth
+recording: centroids are initialised \emph{semantically} rather than randomly,
+at the scaled positions corresponding to high-value, loyal, lapsed, and dormant
+customers. This yields segment labels an operator recognises immediately and makes
+the output stable across runs. It also introduces a bias, since it encodes the
+segment taxonomy in the initialisation; Section~\ref{sec:discussion} treats this
+as a limitation of interpretability-versus-determinism, not as an advantage.
+
+Table~\ref{tab:rfm} lists the resulting segment definitions.
+
+\begin{table}[t]
+\caption{RFM segment definitions and prescribed actions. Centroid coordinates
+are in min--max scaled space and reflect the semantic initialisation.}
+\label{tab:rfm}
+\centering
+\footnotesize
+\begin{tabular}{@{}p{0.16\columnwidth}p{0.15\columnwidth}p{0.55\columnwidth}@{}}
+\toprule
+\textbf{Segment} & \textbf{$(R,F,M)$} & \textbf{Prescribed action} \\
+\midrule
+Champions & $(0.0,\,1.0,\,1.0)$ & Loyalty rewards, early access, priority support \\
+Loyal & $(0.3,\,0.5,\,0.5)$ & Premium upsell, tiered bundles, referral programme \\
+At risk & $(0.8,\,0.5,\,0.5)$ & Automated win-back with limited-time incentives \\
+New/inactive & $(1.0,\,0.0,\,0.0)$ & Welcome guides, entry vouchers, trend-led suggestions \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+\subsection{Interpretable Churn Scoring}
+
+Churn prediction combines a continuous propensity with a rule layer, because a
+probability alone does not tell an operator what to do.
+
+Six features are extracted per customer: days inactive, cart abandonment ratio,
+negative review count, mean inter-session interval, order count, and total spend.
+Abandonment is computed as $(n_{\mathrm{cart}} - n_{\mathrm{purchase}}) /
+n_{\mathrm{cart}}$ when a customer has added items, $1.0$ when an abandoned cart
+exists and no order was completed, $0.5$ when an abandoned cart coexists with
+orders, and $0$ otherwise.
+
+Features are normalised against fixed ceilings --- 60 days of inactivity, 2
+negative reviews, 30 days of interval, 5 orders, and 400 in spend --- and combined
+as a linear score
+
+\begin{equation}
+\begin{split}
+z &= -1.60 + 3.40\,\hat{d} + 2.10\,\hat{a} + 2.30\,\hat{n}
+     + 1.30\,\hat{i} \\
+  &\quad - 2.80\,\hat{o} - 1.20\,\hat{s},
+\qquad
+p = \sigma(z),
+\end{split}
+\label{eq:churn}
+\end{equation}
+
+where hats denote normalised features. Order count and spend carry negative
+coefficients: they are protective rather than risky.
+
+An eight-rule layer then assigns a tier with a named cause. Table~\ref{tab:rules2}
+lists the rules. The final tier is the more conservative of the rule outcome and
+the probability band, so a strong rule cannot be overridden by a weak score and a
+high score cannot manufacture an unsupported claim.
+
+\begin{table}[t]
+\caption{Churn rule layer. The confidence and support columns are
+\emph{design parameters} configured by the system author, not frequencies
+measured on data; they are reported here for transparency and are not used in
+the final tier assignment.}
+\label{tab:rules2}
+\centering
+\footnotesize
+\begin{tabular}{@{}p{0.30\columnwidth}p{0.42\columnwidth}l@{}}
+\toprule
+\textbf{Rule} & \textbf{Condition} & \textbf{Tier} \\
+\midrule
+DT\_R1 & Inactive $\geq 45$ d $\wedge$ abandonment $\geq 0.50$ & High \\
+DT\_R2 & Negative reviews $\geq 1$ $\wedge$ inactive $\geq 20$ d & High \\
+DT\_R3 & Inactive $\geq 60$ d & High \\
+DT\_R4 & Inactive $\geq 25$ d $\wedge$ abandonment $\geq 0.40$ & Medium \\
+DT\_R5 & Orders $\leq 1$ $\wedge$ inactive $\geq 30$ d & Medium \\
+DT\_R6 & Inactive $\leq 14$ d $\wedge$ orders $\geq 2$ & Safe \\
+DT\_R7 & Inactive $\leq 7$ d & Safe \\
+DT\_R8 & Default band on $p$ & by $p$ \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+\subsection{Conversion Funnel Analytics}
+
+The warehouse supports funnel slicing across the event vocabulary --- view,
+wishlist, cart, purchase --- over selectable temporal windows. Window selection
+is a dimension choice on \texttt{dim\_time}, so the funnel is an OLAP query
+rather than a bespoke report, and the same funnel can be sliced by department,
+brand, or customer segment without additional code.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  node distance=2.5mm,
+  stage/.style={draw,rounded corners=1pt,align=center,minimum width=15mm,minimum height=7mm},
+  ar/.style={-{Stealth[length=1.6mm]},thick},
+  note/.style={font=\tiny\itshape,align=left,anchor=west}
+]
+\node[stage,fill=blue!8]    (v) {\textbf{VIEW}\\weight 1.0};
+\node[stage,fill=blue!12,right=4mm of v] (w) {\textbf{WISHLIST}\\weight 3.0};
+\node[stage,fill=orange!18,right=4mm of w] (c) {\textbf{CART\_ADD}\\weight 4.0};
+\node[stage,fill=green!18,right=4mm of c] (p) {\textbf{PURCHASE}\\weight 5.0};
+\draw[ar] (v) -- (w);
+\draw[ar] (w) -- (c);
+\draw[ar] (c) -- (p);
+
+\node[note,below=5mm of w] (q1) {Funnel is an OLAP aggregate over \texttt{fact\_interaction\_daily}; no bespoke code.};
+\node[note,below=10mm of w] (q2) {Abandonment $= (\mathrm{cart}-\mathrm{purchase})/\mathrm{cart}$ feeds Eq.~\eqref{eq:churn}.};
+\node[note,below=15mm of w] (q3) {Median session interval, RFM recency, and event counts feed Section~\ref{sec:classical}.};
+\draw[ar,dashed] (c.south) -- (q1.north);
+\draw[ar,dashed] (c.south) -- (q2.north);
+\draw[ar,dashed] (c.south) -- (q3.north);
+\end{tikzpicture}%
+}
+\caption{Conversion funnel over the event vocabulary, with the implicit-feedback
+weight attached to each stage. The funnel is expressed as an OLAP aggregation
+over the daily telemetry fact, so temporal and departmental slicing require no
+additional queries. The abandonment ratio derived here is the same quantity
+consumed by the churn scorer in Eq.~\eqref{eq:churn}.}
+\label{fig:funnel}
+\end{figure}
+
+Fig.~\ref{fig:funnel} shows the funnel and the derivations that feed the
+classical miners.
+
+%% ===========================================================================
+\section{Implementation}
+\label{sec:impl}
+
+\subsection{Technology Stack}
+
+The storefront is a single-page application built with React and Vite, styled
+with utility-first CSS and a small design-token layer supporting light and dark
+themes. The backend runs Node.js with Express on PostgreSQL 16. Authentication is
+stateless JSON Web Tokens; the client presents the token as a bearer credential on
+protected requests. Passwords are hashed with a per-user salt.
+
+The mining tier is deliberately a separate, non-integrated process. It is a
+Python service depending only on PyTorch, torchvision, NumPy, pandas, and a
+read-only PostgreSQL driver. It has no HTTP layer and no dependency on the
+application code. This separation is a design constraint rather than an
+incidental arrangement: it means a mining change cannot break a checkout, and it
+means the model layer can be reasoned about, versioned, and evaluated
+independently of the web tier.
+
+Identity mappings between database identifiers and dense embedding indices are
+persisted as JSON alongside each checkpoint. This is what allows a retrain to
+leave previously issued recommendations valid, and it is why the four learners
+each store their own mapping file rather than deriving indices on load.
+
+\subsection{Reproducibility}
+
+Random seeds are fixed at 42 for the Python components and for negative
+sampling. Hyperparameters live in per-module configuration files rather than
+inline in training loops, so a run is characterised by a configuration plus a
+seed plus a commit. Each trained component writes a metadata artifact alongside
+its checkpoint recording training duration, epoch history, and validation
+metrics; the fusion layer additionally records its mean attention distribution
+per epoch.
+
+\subsection{Data Preparation Detail}
+
+Neural components read from the operational telemetry relation through a single
+read-only accessor. Collaborative training builds dense index maps from observed
+users and items, converts rows to weighted positive pairs, applies the
+leave-one-out split, and samples negatives per epoch. Sequence training groups
+rows by session, orders by timestamp, discards short sessions, and applies prefix
+augmentation. Fusion training precomputes the four feature tensors once from the
+frozen base models, which is what makes a 35-epoch, four-input model trainable in
+under two minutes on CPU.
+
+%% ===========================================================================
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Protocol}
+
+All five models are evaluated under one protocol: for each held-out user, the
+true next item is ranked against 99 sampled unseen items, and a hit is recorded
+when the true item falls within the top $k$. The split holds out the last
+interaction per user. The evaluation corpus comprises 50 users, 17{,}949 catalogue
+items, and 3{,}938 interactions.
+
+We report seven metrics. Hit ratio at $k$ measures whether the true item appears
+at all; normalised discounted cumulative gain at $k$ additionally rewards placing
+it early; precision and recall at $k$ measure list composition; mean reciprocal
+rank summarises rank position. Because top-$k$ accuracy alone rewards degenerate
+recommenders that surface a small set of popular items, we additionally report
+\emph{catalogue coverage}, the fraction of catalogue items appearing in at least
+one user's top-$k$ list, and a \emph{diversity index}, the mean pairwise
+dissimilarity of recommended sets. Both are essential here: with a 17,949-item
+catalogue and 50 evaluated users, an accuracy-only comparison cannot distinguish a
+useful model from a popularity baseline.
+
+\subsection{Results}
+
+\begin{table}[t]
+\caption{Ranking accuracy under leave-one-out evaluation with 99 sampled
+negatives. Best value per column in bold. The visual model is evaluated on the
+35 users for which an image feature is available, so its figures are not
+directly comparable to the other rows.}
+\label{tab:acc}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+\textbf{Model} & \textbf{HR@5} & \textbf{HR@10} & \textbf{HR@20} & \textbf{NDCG@10} & \textbf{P@10} & \textbf{MRR} & \textbf{$n$} \\
+\midrule
+Fusion    & 0.2643 & \textbf{0.3266} & 0.4035 & \textbf{0.2518} & \textbf{0.1000} & \textbf{0.2441} & 50 \\
+NCF       & 0.2000 & 0.2600 & 0.3200 & 0.2021 & 0.0260 & 0.1971 & 50 \\
+GRU       & 0.0800 & 0.1400 & 0.2800 & 0.0702 & 0.0140 & 0.0755 & 50 \\
+CDAE      & \textbf{0.2800} & \textbf{0.3800} & \textbf{0.5000} & 0.2173 & 0.0380 & 0.1887 & 50 \\
+\midrule
+CNN       & 0.6280 & 0.7850 & 0.8920 & 0.6120 & 0.0785 & 0.5180 & 35 \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+Table~\ref{tab:acc} reports ranking accuracy and Table~\ref{tab:beyond} reports
+beyond-accuracy behaviour. Three observations follow.
+
+First, \textbf{the fusion layer is the best-performing neural collaborative
+model}, exceeding NCF by 25\% relative on HR@10 and 23\% on NDCG@10, and
+recovering most of the gap between NCF and the autoencoder. Since its only
+learnable parameters are a projection block per modality, an attention
+distribution, and a small prediction head, this improvement is attributable to
+the combination rather than to capacity.
+
+Second, \textbf{the visual encoder dominates on accuracy}. With HR@10 of 0.785
+it ranks the held-out item first or second for roughly four fifths of the
+evaluated users. This must be interpreted carefully: the visual encoder scores
+item--item similarity only, without reference to the user, so it is answering a
+weaker question than the collaborative models. It is strong partly because that
+question is easier, and it is not a substitute for personalisation. It was
+evaluated on 35 users rather than 50 because image features were unavailable for
+the remainder, so its figures carry wider uncertainty than the others.
+
+Third, \textbf{the sequence model is the weakest performer}, which is expected
+given the corpus. Sessions are short, the maximum modelled length is 10 events
+(Section~\ref{sec:gru}), and 3{,}938 interactions across 50 users yields a
+sparse sequence corpus. The
+model's value in the present system is therefore contingent rather than
+demonstrated.
+
+\begin{table}[t]
+\caption{Beyond-accuracy behaviour: catalogue coverage (percentage of the
+17{,}949-item catalogue appearing in at least one user's top-10 list) and
+diversity index (mean pairwise dissimilarity). Higher coverage and diversity are
+better.}
+\label{tab:beyond}
+\centering
+\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{Coverage (\%)} & \textbf{Diversity} & \textbf{Rank (cov.)} \\
+\midrule
+Fusion    & 18.86 & 0.9600 & 3 \\
+CNN       & \textbf{96.40} & 0.9420 & 1 \\
+GRU       & 16.28 & 0.9976 & 4 \\
+NCF       & 15.46 & 0.9973 & 5 \\
+CDAE      & 9.63  & 0.9950 & 6 \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+Table~\ref{tab:beyond} is the more consequential result. The collaborative models
+achieve competitive accuracy while surfacing only 9.6--16.3\% of the catalogue,
+meaning that more than 83\% of items are never recommended to anyone in the
+evaluated population. This is the concentration effect, and it is the failure
+mode that accuracy metrics are least able to expose.
+
+Against the strongest neural component in its own class, the fusion layer more
+than doubles coverage relative to the denoising autoencoder (18.86\% against
+9.63\%, a factor of 1.96) while exceeding it on every accuracy metric. Against
+plain NCF it raises coverage by 22\% at equal or better accuracy. Against the
+visual encoder, however, it is comprehensively outmatched, and we do not claim
+otherwise: the visual encoder reaches 96.4\% coverage partly because it ignores
+the user, which lets it draw on the whole catalogue rather than on a personalised
+region of it.
+
+\subsection{Learned Attention Distribution}
+
+\begin{table}[t]
+\caption{Mean attention weight by modality at the final epoch, with the
+semantic role each modality was designed to serve.}
+\label{tab:attn}
+\centering
+\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+\textbf{Modality} & \textbf{Weight} & \textbf{Intended role} \\
+\midrule
+Collaborative & \textbf{0.5564} & Long-term user--item affinity \\
+Denoised latent & 0.1901 & Sparse-user generalisation \\
+Sequential & 0.1297 & Intra-session intent \\
+Visual & 0.1238 & Cold-start appearance \\
+\bottomrule
+\end{tabular}
+\vspace{-2pt}
+\end{table}
+
+Table~\ref{tab:attn} reports the attention distribution at the final epoch. The
+ordering is interpretable: collaborative evidence dominates, which is what one
+would expect on a behaviour-dense corpus; the denoised-latent signal follows,
+consistent with its role generalising for sparse users; sequential intent receives
+little weight, consistent with the sparse session corpus; and appearance receives
+the least weight at 0.1238 despite being the strongest single model on accuracy.
+
+That last point deserves emphasis rather than burial. The fusion layer assigns
+appearance the lowest weight of the four modalities, and the reason is visible in
+its accuracy figures: the visual encoder's strong performance reflects item--item
+similarity, which is not the same quantity as affinity for a \emph{specific}
+user. The attention mechanism has, in effect, learned to discount a modality that
+is accurate for the wrong reason. This is an argument in favour of learned fusion
+over fixed score averaging, and it is the single most interesting empirical
+finding in this paper.
+
+The distribution is stable across the final epochs, varying by under 0.04 per
+modality, indicating convergence rather than oscillation. Training reached a best
+validation loss of 0.0223 and a validation accuracy of 0.9949 over 11{,}814
+training pairs in 83.11 seconds.
+
+\subsection{Fusion Training Behaviour}
+
+Validation loss over the recorded epochs remains in the range 0.026--0.044 with no
+systematic downward trend after the early epochs, while training loss continues to
+decrease. This is mild overfitting, and given 11{,}814 training pairs against
+roughly 118K trainable head parameters it is unsurprising. The practical
+consequence is that additional head capacity is not the productive direction;
+more training pairs from richer telemetry are.
+
+%% ===========================================================================
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\subsection{A Result That Contradicts the Design Hypothesis}
+
+The fusion layer was motivated by the expectation that combining four evidence
+types would produce a model at least as accurate as the best of them. The
+evaluation does not support that expectation with respect to the visual
+modality. The fusion layer does not match the visual encoder on any accuracy
+metric, and the reason is visible in the learned attention distribution: the
+network assigns appearance the smallest weight of the four.
+
+The honest reading is that visual similarity and per-user affinity are different
+quantities, and that the fusion layer has correctly identified that they should
+not be combined at equal weight. This is a more useful outcome than a fusion
+layer that matched the visual encoder, because it explains why purely
+content-based recommendation fails to personalise. It also identifies the
+productive next step: the visual pathway needs to be conditioned on user
+preference rather than merely concatenated with it.
+
+\subsection{Principal Limitations}
+
+\textbf{Corpus scale.} The behavioural corpus is 3{,}938 interactions across 50
+evaluated users. This is small enough that ranking metrics carry wide confidence
+intervals, and no statistical significance testing is reported. Conclusions are
+directional.
+
+\textbf{Signal asymmetry.} The event vocabulary is dominated by browse-intent
+events. Views vastly outnumber purchases, so the collaborative component is
+substantially trained on weak signals. The weight table in
+Table~\ref{tab:telemetry} mitigates this but cannot eliminate it.
+
+\textbf{Frozen visual backbone.} The ResNet-18 encoder is frozen at ImageNet
+features. Its features are optimised for object classification, not product
+discrimination, which plausibly explains part of why appearance contributes so
+little to personalisation. Fine-tuning the backbone on the 17{,}931-image corpus
+is the obvious experiment, and it is future work rather than a completed one.
+
+\textbf{Sequential sparsity.} Prefix augmentation multiplies examples from long
+sessions but cannot create sessions where none exist. The sequence component's
+weight of 0.1297 should be read as a consequence of data volume rather than as a
+judgement about the architecture.
+
+\textbf{Churn rule parameters are not measurements.} The confidence and support
+values in the rule layer are configured by the system author. They are excluded
+from the tier assignment, which depends only on the rule conditions and the
+probability bands, but they must not be reported as empirical frequencies. We
+state this explicitly because the distinction is easy to lose.
+
+\textbf{Semantic centroid initialisation.} RFM clustering is initialised at
+hand-specified positions rather than at random points or by $k$-means++.
+This makes segments stable and immediately recognisable, and it bakes the
+intended taxonomy into the initialisation, so the segmentation cannot be
+considered an unsupervised discovery.
+
+\textbf{Catalogue imbalance.} Gaming and books are severely
+under-represented in the certified catalogue relative to the source feeds, a
+consequence of the resolution cascade acting asymmetrically. Recommendations in
+those departments are correspondingly weaker.
+
+\textbf{Second-order association rules.} Basket mining is capped at 2-itemsets.
+Higher-order rules are not mined, so compound behavioural patterns spanning
+three or more items are invisible.
+
+\subsection{Threats to Validity}
+
+The principal internal threat is evaluator bias: the person who designed the
+models also wrote the evaluation harness, and the harness was built with one
+model family in mind. The mitigation is that all five models are scored by the
+same code path under one protocol, which removes per-model tuning of the
+evaluation.
+
+An external threat is corpus provenance. The catalogue is derived from public
+marketplace data and the telemetry from a self-operated instance, so the
+distribution of interaction behaviour reflects this system, not the wider retail
+population. Absolute metrics should not be generalised to other domains.
+
+A construct-validity threat concerns the visual model specifically. Because it
+scores item--item similarity without a user reference, its high accuracy measures
+a different capability than the collaborative models' accuracy. Comparing them in
+a single table without this qualification would be misleading; the table caption
+therefore records the differing evaluation population explicitly.
+
+\subsection{Limitations of Scope}
+
+The mining tier is a batch process with no online serving path. Recommendations
+are precomputed rather than requested-time, which means the fusion layer's
+per-pair attention, its principal advantage, is computed offline and cannot yet
+respond to a live session. Closing this gap is the single most consequential piece
+of future work.
+
+%% ===========================================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+This paper described Cartify, a dual-layer commerce platform in which
+recommendation is a consumer of an auditable analytical pipeline rather than an
+isolated model. The pipeline certifies 17{,}931 products from 572{,}083 scanned
+records through ten deterministic rules, records every rejection with a reason,
+and loads survivors into a star schema accompanied by provenance and quality
+audit relations. Above it, four representation learners produce embeddings of a
+user--item pair from collaborative, visual, sequential, and denoised-latent
+evidence, and a context-conditioned attention layer learns per-pair weights over
+the four.
+
+Three findings are worth carrying forward. The quality gate is not a
+formality: a single category-resolution artefact accounted for 1{,}856 rejected
+records, and none of it would have been detectable downstream. Fusion improved
+ranking accuracy over its collaborative component by roughly a quarter and
+recovered most of the gap to the strongest behavioural model. And the attention
+mechanism assigned the lowest weight to the modality with the highest standalone
+accuracy, correctly distinguishing item similarity from user affinity --- a
+finding that would have been invisible under fixed score averaging.
+
+The principal limitations are corpus scale, signal asymmetry toward
+browse-intent events, a frozen visual backbone, and the absence of an online
+serving path for the fusion layer.
+
+Future work proceeds in four directions. Serving the fusion layer online is the
+highest-value item, since per-pair attention is currently computed offline and
+cannot respond to a live session. Fine-tuning the visual backbone on the
+catalogue addresses the modality the attention mechanism has learned to
+discount. Accumulating purchase-weighted telemetry to correct the browse-intent
+skew in the collaborative component would raise the quality of the signal that
+the model weights most heavily. Finally, a randomised offline policy evaluation
+would let the coverage-versus-accuracy trade-off in Table~\ref{tab:beyond} be
+resolved empirically rather than argued.
+
+%% ===========================================================================
+\appendix
+\section{Mining Results Reproduction}
+\label{app:mining}
+
+The classical miners in Section~\ref{sec:classical} compute their outputs at
+request time from the operational store rather than persisting them. A companion
+script, \texttt{paper/dump\_mining\_results.js}, invokes the existing
+\texttt{aprioriService}, \texttt{kmeansService}, and \texttt{churnService} and
+writes their results to \texttt{paper/mining\_results.json}, from which the
+instance-level values reported in this paper can be populated.
+
+The configuration values in Tables~\ref{tab:rfm} and~\ref{tab:rules2} are static
+and require no database access: they are read directly from the service
+implementations. Only the mined rule instances, realised cluster sizes, and
+per-customer churn tiers depend on a populated store.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

@@ -333,7 +333,7 @@ export default function ChurnPanel({
           { feature: 'cart_abandonment_ratio', label: 'Cart Abandonment Ratio', weight: 0.25, direction: 'Positive (Increases Risk)' },
           { feature: 'negative_review_count', label: 'Negative Feedback (Rating ≤ 2)', weight: 0.20, direction: 'Positive (Increases Risk)' },
           { feature: 'total_orders', label: 'Completed Order Frequency', weight: -0.28, direction: 'Negative (Protects)' },
-          { feature: 'total_spend', label: 'Monetary Spend ($)', weight: -0.15, direction: 'Negative (Protects)' },
+          { feature: 'total_spend', label: 'Monetary Spend (₹)', weight: -0.15, direction: 'Negative (Protects)' },
           { feature: 'average_session_interval', label: 'Average Session Interval', weight: 0.12, direction: 'Positive (Increases Risk)' }
         ]).map((fi) => {
           const isPositive = fi.weight > 0;
@@ -418,7 +418,7 @@ export default function ChurnPanel({
           <option value="churnProbability">Sort: Highest Churn Probability</option>
           <option value="daysInactive">Sort: Longest Inactivity</option>
           <option value="cartAbandonment">Sort: Highest Cart Abandonment</option>
-          <option value="totalSpend">Sort: Highest Spend ($)</option>
+          <option value="totalSpend">Sort: Highest Spend (₹)</option>
         </select>
       </div>
     </div>
