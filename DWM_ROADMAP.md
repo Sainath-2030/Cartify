@@ -302,6 +302,51 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 ---
 
+### SECTION 7: Higher-Order Association Rule Mining (Apriori L2/L3/L4)
+
+*Goal: Extend the existing Market Basket Analysis engine from 2-itemsets to genuine higher-order Apriori — discovering compound cross-sell patterns invisible to simple A→B analysis.*
+
+- [x] **Step 7.1: Higher-Order Apriori Engine**
+  - Rewrote [`server/services/mining/aprioriService.js`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/server/services/mining/aprioriService.js) with full textbook Apriori:
+    - **Candidate generation:** $L_{k-1} \times L_{k-1}$ prefix-join (shared $k-2$ prefix) — eliminates the brute-force combination approach.
+    - **Anti-monotonicity pruning:** discards any $k$-candidate whose $(k-1)$-subsets are not all frequent.
+    - **Inverted-index support counting:** $O(|T| \times \bar{b})$ per level rather than $O(|C_k| \times |T|)$.
+    - **Rule generation from all levels:** every non-empty proper subset as antecedent; $\text{Conf} = \text{Supp}(X \cup Y)/\text{Supp}(X)$, $\text{Lift} = \text{Conf}/\text{Supp}(Y)$.
+    - **Safety guards:** `maxItemsetSize` clamped [2, 4]; candidate cap of 50,000; minSupport floor of 0.001; `isTruncated` flag in response metadata.
+    - Each rule now carries `itemsetSize`, `antecedentSize`, and `consequentSize`.
+
+- [x] **Step 7.2: API Endpoint Update**
+  - Extended `GET /api/admin/bi/association-rules` with `maxItemsetSize` query parameter (int, 2–4, default 3).
+  - Response now returns `{ data: rules[], meta: { totalTransactions, frequentItemsetCounts, isTruncated, maxItemsetSize, effectiveMinSupport } }`.
+  - Backward-compatible: callers that expect a flat array still work; `meta` is a bonus field.
+
+- [x] **Step 7.3: Dashboard Refactor & Section 7 UI**
+  - Extracted `AdminBIDashboard.jsx` (3,826 lines) into 7 presentational panel components under `client/src/pages/admin/bi/`:
+    - `biShared.js` — shared formatters and CLUSTER_CONFIG.
+    - `BiHeader.jsx` — header, grain switcher, ETL button.
+    - `WarehouseOverviewPanel.jsx` — Section 1 KPIs & charts.
+    - `AssociationRulesPanel.jsx` — Section 2 + Section 7 higher-order UI.
+    - `CustomerSegmentsPanel.jsx` — Section 3 RFM scatter.
+    - `OlapExplorerPanel.jsx` — Section 4 CUBE/ROLLUP explorer.
+    - `ChurnPanel.jsx` — Section 5 churn risk table + modals.
+    - `DataGovernancePanel.jsx` — Section 6 lineage DAG + DQI console.
+  - Shell `AdminBIDashboard.jsx` reduced from 3,826 → 412 lines (pure state + fetch logic).
+  - `AssociationRulesPanel` extended with Section 7 additions:
+    - **3-button L2/L3/L4 order selector** with contextual hint text.
+    - **Order badge column** (`antecedentSize → consequentSize`) on each rule row — L3/L4 rules visually distinct from L2.
+    - **Frequent Itemset Counts** pill summary (L1/L2/L3 counts) in the hyperparameter panel.
+    - Truncation warning banner when candidate cap is hit.
+
+- [x] **Step 7.4: Test Suite**
+  - Created [`server/scripts/test_section7_higher_order_rules.js`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/server/scripts/test_section7_higher_order_rules.js): **27/27 assertions passed**.
+    - Phase 0: Admin authentication.
+    - Phase 1: API contract (meta shape, field types).
+    - Phase 2: L2 backward-compatibility (math invariants, size fields, itemsetSize=2 enforcement).
+    - Phase 3: L3 higher-order rules (new fields, anti-monotonicity sanity, sort order, size range; live result: 274 L2 + 186 L3 rules).
+    - Phase 4: Input clamping (maxItemsetSize=99 → 4, minSupport floor, 401 on unauthenticated).
+
+---
+
 ## 5. Milestone Tracking Checklist
 
 Use this checklist during future pair-programming turns:
@@ -317,4 +362,5 @@ Use this checklist during future pair-programming turns:
 - [x] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4) *(Completed)*
 - [x] **Milestone 5: Churn Classification & Predictive Insights** (Section 5) *(Completed)*
 - [x] **Milestone 6: ETL Lineage & Data Quality Audit** (Section 6) *(Completed)*
+- [x] **Milestone 7: Higher-Order Apriori (L2/L3/L4)** (Section 7) *(Completed)*
 

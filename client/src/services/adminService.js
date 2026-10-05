@@ -124,10 +124,19 @@ export const adminService = {
     return res.data;
   },
 
-  // Section 2: Association Rules
-  getAssociationRules: async (minSupport = 0.01, minConfidence = 0.2, minLift = 1.0) => {
-    const res = await api.get(`/admin/bi/association-rules?minSupport=${minSupport}&minConfidence=${minConfidence}&minLift=${minLift}`);
-    return res.data;
+  // Section 2: Association Rules (Apriori Engine)
+  getAssociationRules: async (minSupport = 0.01, minConfidence = 0.2, minLift = 1.0, maxItemsetSize = 3) => {
+    const res = await api.get(
+      `/admin/bi/association-rules?minSupport=${minSupport}&minConfidence=${minConfidence}&minLift=${minLift}&maxItemsetSize=${maxItemsetSize}`
+    );
+    // API now returns { success, data: rules[], meta: {...} }
+    // Preserve meta for callers that want higher-order information
+    const payload = res.data;
+    if (payload && Array.isArray(payload.data)) {
+      payload.data.meta = payload.meta;
+      return payload.data;
+    }
+    return payload;
   },
 
   // Section 3: Customer Segmentation (K-Means)

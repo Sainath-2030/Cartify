@@ -28,22 +28,33 @@ export const warehouseController = {
 
   /**
    * GET /api/admin/bi/association-rules
+   *
+   * Query params:
+   *   minSupport      {number}  0.001 – 1.0   (default 0.01)
+   *   minConfidence   {number}  0 – 1.0        (default 0.2)
+   *   minLift         {number}  >= 0           (default 1.0)
+   *   maxItemsetSize  {integer} 2 – 4          (default 3)  [Section 7]
    */
   async getAssociationRules(req, res, next) {
     try {
-      const minSupport = parseFloat(req.query.minSupport) || 0.01;
-      const minConfidence = parseFloat(req.query.minConfidence) || 0.2;
-      const minLift = parseFloat(req.query.minLift) || 1.0;
-      
-      const data = await aprioriService.mineAssociationRules({
+      const minSupport    = Math.max(0.001, Math.min(1,   parseFloat(req.query.minSupport)    || 0.01));
+      const minConfidence = Math.max(0,     Math.min(1,   parseFloat(req.query.minConfidence) || 0.2));
+      const minLift       = Math.max(0,                   parseFloat(req.query.minLift)       || 1.0);
+      const maxItemsetSize = Math.max(2, Math.min(4, parseInt(req.query.maxItemsetSize, 10) || 3));
+
+      const result = await aprioriService.mineAssociationRules({
         minSupport,
         minConfidence,
-        minLift
+        minLift,
+        maxItemsetSize
       });
 
       res.status(200).json({
         success: true,
-        data
+        // Flatten for backward-compat: callers that expect an array still work,
+        // while new callers can read result.meta for higher-order metadata.
+        data: result.rules,
+        meta: result.meta
       });
     } catch (error) {
       next(error);
