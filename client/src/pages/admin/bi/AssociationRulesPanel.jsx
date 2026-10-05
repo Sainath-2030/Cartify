@@ -1,4 +1,13 @@
 import { Network, Settings2, Table, Layers } from 'lucide-react';
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 /**
  * Section 2 & Section 7: Market Basket Analysis - Higher-Order Apriori
@@ -171,6 +180,85 @@ export default function AssociationRulesPanel({
     <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">
       <strong>Note:</strong> Candidate generation was capped at 50,000 itemsets for performance.
       Results may be incomplete. Try increasing minSupport.
+    </div>
+  )}
+
+  {/* Lift vs Confidence Scatter Plot */}
+  {associationRules.length > 0 && (
+    <div className="mb-6 card border-border-subtle p-4 shadow-xs">
+      <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-accent" />
+        Rule Quality Scatter: Lift vs Confidence
+      </h4>
+      <div className="h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart
+            margin={{ top: 10, right: 30, left: 50, bottom: 10 }}
+            data={displayedRules.map(r => ({
+              confidence: r.confidence,
+              lift: r.lift,
+              support: r.support,
+              itemsetSize: r.itemsetSize,
+              antecedent: r.antecedentNames.join(', '),
+              consequent: r.consequentNames.join(', '),
+              color: itemsetSizeColors[r.itemsetSize]?.replace('bg-', '').replace('/15 text-', '').replace(' border-', '') || '#22d3ee',
+              size: r.itemsetSize * 6
+            }))}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis
+              type="number"
+              dataKey="confidence"
+              name="Confidence"
+              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tickFormatter={v => (v * 100).toFixed(0) + '%'}
+              domain={[0, 1]}
+            />
+            <YAxis
+              type="number"
+              dataKey="lift"
+              name="Lift"
+              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tickFormatter={v => v.toFixed(2) + 'x'}
+              domain={[0, 'dataMax']}
+            />
+            <Tooltip
+              formatter={(value, name) => [
+                name === 'lift' ? value.toFixed(2) + 'x' : (value * 100).toFixed(1) + '%',
+                name === 'lift' ? 'Lift' : 'Confidence'
+              ]}
+              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+              labelFormatter={(_, payload) => {
+                const item = payload?.[0]?.payload;
+                return item ? `${item.antecedent} → ${item.consequent}` : '';
+              }}
+            />
+            <Scatter
+              name="Rules"
+              dataKey="lift"
+              data={displayedRules.map(r => ({
+                confidence: r.confidence,
+                lift: r.lift,
+                itemsetSize: r.itemsetSize,
+                antecedent: r.antecedentNames.join(', '),
+                consequent: r.consequentNames.join(', '),
+                color: itemsetSizeColors[r.itemsetSize]?.replace('bg-', '').replace('/15 text-', '').replace(' border-', '') || '#22d3ee',
+                size: r.itemsetSize * 6
+              }))}
+              fill="#22d3ee"
+              stroke="#06b6d4"
+              shape="circle"
+            >
+              {displayedRules.map((rule, i) => (
+                <Cell key={i} fill={itemsetSizeColors[rule.itemsetSize]?.replace('bg-', '').replace('/15 text-', '').replace(' border-', '') || '#22d3ee'} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-xs text-muted mt-2">
+        Each dot = one rule. Size/color = itemset order (L2/L3/L4). Hover for details. Top-right quadrant = high confidence + high lift.
+      </p>
     </div>
   )}
 

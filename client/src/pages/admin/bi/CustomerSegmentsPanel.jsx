@@ -5,6 +5,12 @@ import {
   Lightbulb,
   Target
 } from 'lucide-react';
+import {
+  PieChart as RePieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer
+} from 'recharts';
 import { formatCurrency, CLUSTER_CONFIG } from './biShared.js';
 
 /**
@@ -173,6 +179,74 @@ export default function CustomerSegmentsPanel({
                 </div>
               );
             })}
+          </div>
+
+          {/* Cluster Size Distribution Donut */}
+          <div className="mt-6 flex flex-col md:flex-row gap-6 items-stretch">
+            <div className="flex-1 md:flex-[0_0_300px] card border-border-subtle p-4 shadow-xs">
+              <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                Cluster Population Share
+              </h4>
+              <div className="h-[220px] flex items-center justify-center">
+                {customerSegments.clusters.length > 0 && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RePieChart>
+                      <Pie
+                        data={customerSegments.clusters}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="customerCount"
+                        nameKey="label"
+                        label={({ label, percent }) => `${label} ${(percent * 100).toFixed(1)}%`}
+                        labelLine={false}
+                      >
+                        {customerSegments.clusters.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={CLUSTER_CONFIG[customerSegments.clusters[i]?.id]?.color || ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6'][i % 4]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={value => value.toLocaleString()}
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      />
+                    </RePieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-2">
+              {customerSegments.clusters.map((cluster) => {
+                const config = CLUSTER_CONFIG[cluster.id] || {
+                  color: '#818cf8',
+                  dot: 'bg-indigo-400',
+                  badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                };
+                const total = customerSegments.clusters.reduce((s, c) => s + c.customerCount, 0);
+                const pct = total > 0 ? ((cluster.customerCount / total) * 100).toFixed(1) : '0.0';
+                return (
+                  <div key={cluster.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${config.border} ${config.bg}`}>
+                    <div className="flex items-center gap-3">
+                      <span className={`w-3 h-3 rounded-full ${config.dot}`} />
+                      <div>
+                        <p className="font-medium text-ink text-sm">{cluster.label}</p>
+                        <p className="text-xs text-muted">{cluster.customerCount.toLocaleString()} users ({pct}%)</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-ink font-mono">{formatCurrency(cluster.totalRevenue || 0)}</p>
+                      <p className="text-xs text-muted">Avg {formatCurrency(cluster.averageOrderValue || 0)}/order</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Interactive 2D Scatter Plot (Recency vs. Monetary) */}

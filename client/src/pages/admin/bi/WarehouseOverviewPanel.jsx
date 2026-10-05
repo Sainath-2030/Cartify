@@ -8,6 +8,18 @@ import {
   Tag,
   Activity
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart as RePieChart,
+  Pie,
+  Cell
+} from 'recharts';
 import { formatCurrency, formatNumber, grainLabels } from './biShared.js';
 
 /**
@@ -104,33 +116,33 @@ export default function WarehouseOverviewPanel({
         </span>
       </div>
 
-      {/* Visual Bar Chart */}
-      <div className="space-y-3 my-6">
+      {/* Visual Bar Chart - Recharts */}
+      <div className="h-[280px] my-6">
         {salesTrend.length === 0 ? (
           <p className="text-xs text-muted text-center py-12">No time-series data available.</p>
         ) : (
-          (() => {
-            const maxRevenue = Math.max(...salesTrend.map(s => s.netRevenue), 1);
-            return salesTrend.map((row, i) => {
-              const pct = Math.max(8, Math.round((row.netRevenue / maxRevenue) * 100));
-              return (
-                <div key={i} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-medium text-ink">{row.label}</span>
-                    <span className="text-ink font-semibold font-mono">
-                      {formatCurrency(row.netRevenue)} <span className="text-muted font-normal">({row.orderCount} orders)</span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-card-elevated h-2.5 rounded-full overflow-hidden border border-border-subtle">
-                    <div
-                      className="bg-accent h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            });
-          })()
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={salesTrend} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatCurrency} />
+              <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} width={80} />
+              <Tooltip
+                formatter={value => formatCurrency(value)}
+                labelFormatter={label => label}
+                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+              />
+              <Bar
+                dataKey="netRevenue"
+                fill="#22d3ee"
+                radius={[0, 4, 4, 0]}
+                maxBarSize={32}
+              >
+                {salesTrend.map((row, i) => (
+                  <Cell key={i} fill={i % 2 === 0 ? '#22d3ee' : '#06b6d4'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>
@@ -156,23 +168,62 @@ export default function WarehouseOverviewPanel({
         </div>
       </div>
 
-      <div className="space-y-3.5 my-4">
-        {categoryShare.length === 0 ? (
-          <p className="text-xs text-muted text-center py-12">No category data.</p>
-        ) : (
-          categoryShare.slice(0, 6).map((cat, i) => (
-            <div key={i} className="flex items-center justify-between text-xs">
-              <div className="min-w-0 pr-2">
-                <p className="font-medium text-ink truncate">{cat.categoryName}</p>
-                <p className="text-[11px] text-muted font-mono">{formatNumber(cat.unitsSold)} units sold</p>
+      <div className="flex flex-col md:flex-row gap-6 my-4">
+        {/* Pie Chart */}
+        <div className="flex-1 h-[240px]">
+          {categoryShare.length === 0 ? (
+            <p className="text-xs text-muted text-center py-12">No category data.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <RePieChart>
+                <Pie
+                  data={categoryShare.slice(0, 6)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  dataKey="netRevenue"
+                  nameKey="categoryName"
+                  label={({ categoryName, percent }) => `${categoryName} ${(percent * 100).toFixed(1)}%`}
+                  labelLine={false}
+                >
+                  {categoryShare.slice(0, 6).map((_, i) => (
+                    <Cell key={i} fill={['#22d3ee', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444'][i % 6]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={value => formatCurrency(value)}
+                  labelFormatter={label => label}
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                />
+              </RePieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Legend / Details */}
+        <div className="flex-1 space-y-2 overflow-auto max-h-[240px]">
+          {categoryShare.length === 0 ? (
+            <p className="text-xs text-muted text-center py-12">No category data.</p>
+          ) : (
+            categoryShare.slice(0, 6).map((cat, i) => (
+              <div key={i} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 min-w-0 pr-2">
+                  <span
+                    className="w-3 h-3 rounded flex-shrink-0"
+                    style={{ backgroundColor: ['#22d3ee', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444'][i % 6] }}
+                  />
+                  <p className="font-medium text-ink truncate">{cat.categoryName}</p>
+                </div>
+                <div className="text-right flex-shrink-0 font-mono">
+                  <p className="font-semibold text-ink">{formatCurrency(cat.netRevenue)}</p>
+                  <p className="text-[11px] text-emerald-400 font-medium">{cat.revenueSharePct}%</p>
+                </div>
               </div>
-              <div className="text-right flex-shrink-0 font-mono">
-                <p className="font-semibold text-ink">{formatCurrency(cat.netRevenue)}</p>
-                <p className="text-[11px] text-emerald-400 font-medium">{cat.revenueSharePct}%</p>
-              </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
 
@@ -183,9 +234,9 @@ export default function WarehouseOverviewPanel({
   </div>
 </div>
 
-{/* Dimensional Breakdown Tables: Price Tiers & Customer Cohorts */}
+{/* Dimensional Breakdown Charts: Price Tiers & Customer Cohorts */}
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  {/* Customer Activity Cohort (dim_customer) */}
+  {/* Customer Activity Cohort (dim_customer) - Bar Chart */}
   <div className="card border-border-subtle p-6 shadow-xs">
     <div className="flex items-center justify-between mb-4">
       <div>
@@ -199,9 +250,31 @@ export default function WarehouseOverviewPanel({
       </div>
     </div>
 
-    <div className="divide-y divide-border-subtle">
+    <div className="h-[260px]">
+      {customerTiers.length === 0 ? (
+        <p className="text-xs text-muted text-center py-12">No tier data.</p>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={customerTiers} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatCurrency} />
+            <YAxis type="category" dataKey="activityTier" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
+            <Tooltip
+              formatter={value => formatCurrency(value)}
+              labelFormatter={label => label}
+              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            />
+            <Bar dataKey="totalRevenue" fill="#0ea5e9" radius={[0, 4, 4, 0]} maxBarSize={40}>
+              {customerTiers.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#0ea5e9' : '#0284c7'} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+
+    <div className="border-t border-border-subtle pt-3 mt-3 space-y-2">
       {customerTiers.map((tier, idx) => (
-        <div key={idx} className="py-3 flex items-center justify-between text-xs">
+        <div key={idx} className="flex items-center justify-between text-xs">
           <div>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-card-elevated text-ink font-mono border border-border-subtle">
               {tier.activityTier}
@@ -219,7 +292,7 @@ export default function WarehouseOverviewPanel({
     </div>
   </div>
 
-  {/* Price Tier Breakdown (dim_product) */}
+  {/* Price Tier Breakdown (dim_product) - Bar Chart */}
   <div className="card border-border-subtle p-6 shadow-xs">
     <div className="flex items-center justify-between mb-4">
       <div>
@@ -233,9 +306,31 @@ export default function WarehouseOverviewPanel({
       </div>
     </div>
 
-    <div className="divide-y divide-border-subtle">
+    <div className="h-[260px]">
+      {priceTiers.length === 0 ? (
+        <p className="text-xs text-muted text-center py-12">No tier data.</p>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={priceTiers} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatCurrency} />
+            <YAxis type="category" dataKey="priceTier" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
+            <Tooltip
+              formatter={value => formatCurrency(value)}
+              labelFormatter={label => label}
+              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            />
+            <Bar dataKey="totalRevenue" fill="#8b5cf6" radius={[0, 4, 4, 0]} maxBarSize={40}>
+              {priceTiers.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#8b5cf6' : '#7c3aed'} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+
+    <div className="border-t border-border-subtle pt-3 mt-3 space-y-2">
       {priceTiers.map((tier, idx) => (
-        <div key={idx} className="py-3 flex items-center justify-between text-xs">
+        <div key={idx} className="flex items-center justify-between text-xs">
           <div>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-card-elevated text-ink font-mono border border-border-subtle">
               {tier.priceTier}

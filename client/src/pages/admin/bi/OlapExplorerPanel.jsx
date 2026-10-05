@@ -11,6 +11,16 @@ import {
   Code2,
   X
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell
+} from 'recharts';
 import { formatCurrency, formatNumber, grainLabels } from './biShared.js';
 
 /**
@@ -592,6 +602,61 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
           <span className="text-ink font-medium">Auto-Normalized</span>
         </div>
       </div>
+    </div>
+  )}
+
+  {/* Recharts Heatmap: Category × Quarter Revenue */}
+  {olapData?.cubeCells?.length > 0 && !olapLoading && olapCubeMode === 'cube' && (
+    <div className="mb-6 card border-border-subtle p-4 shadow-xs">
+      <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-amber-500" />
+        Category x Quarter Revenue Heatmap (Top 8 Categories)
+      </h4>
+      <div className="h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            layout="vertical"
+            data={(() => {
+              const topCategories = [...new Set(olapData.cubeCells.map(c => c.categoryName).filter(Boolean))]
+                .slice(0, 8);
+              const quarters = [...new Set(olapData.cubeCells.map(c => c.quarterShortName).filter(Boolean))]
+                .sort();
+              return topCategories.map(cat => {
+                const row = { category: cat };
+                quarters.forEach(q => {
+                  const cell = olapData.cubeCells.find(c => c.categoryName === cat && c.quarterShortName === q);
+                  row[q] = cell?.netRevenue || 0;
+                });
+                return row;
+              });
+            })()}
+            margin={{ top: 5, right: 10, left: 100, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatCurrency} />
+            <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#9ca3af' }} width={120} />
+            <Tooltip
+              formatter={value => formatCurrency(value)}
+              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            />
+            <Bar dataKey="Q1" fill="#fef3c7" maxBarSize={20} stackId="a">
+              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#fde047' : '#facc15'} />)}
+            </Bar>
+            <Bar dataKey="Q2" fill="#fef3c7" maxBarSize={20} stackId="a">
+              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#fbbf24' : '#f59e0b'} />)}
+            </Bar>
+            <Bar dataKey="Q3" fill="#fef3c7" maxBarSize={20} stackId="a">
+              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#f97316' : '#fb923c'} />)}
+            </Bar>
+            <Bar dataKey="Q4" fill="#fef3c7" maxBarSize={20} stackId="a">
+              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#dc2626' : '#ef4444'} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-xs text-muted mt-2 text-center">
+        Stacked bars = Quarterly revenue per category. Hover for exact values.
+      </p>
     </div>
   )}
 

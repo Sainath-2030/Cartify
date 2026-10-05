@@ -18,6 +18,15 @@ import {
   ArrowRight,
   FileCheck2
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
 import { formatNumber } from './biShared.js';
 
 /**
@@ -829,6 +838,85 @@ export default function DataGovernancePanel({
             Chronological checkpoints generated during automated quality audits, tracking governance improvements over time.
           </p>
         </div>
+
+        {/* DQI Trend Chart */}
+        {dataQualityData?.auditHistory?.length > 0 && (
+          <div className="card border-border-subtle p-4 shadow-xs">
+            <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              DQI Score Trend Over Time
+            </h4>
+            <div className="h-[240px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={([...dataQualityData.auditHistory].sort((a, b) =>
+                    new Date(a.audited_at) - new Date(b.audited_at)
+                  ))}
+                  margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis
+                    dataKey="audited_at"
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tickFormatter={v => new Date(v).toLocaleDateString()}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tickFormatter={v => v + '%'}
+                  />
+                  <Tooltip
+                    formatter={value => value + '%'}
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="overall_score"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: '#10b981', strokeWidth: 2 }}
+                    name="DQI Score"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="completeness_score"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name="Completeness"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="consistency_score"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name="Consistency"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="timeliness_score"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name="Timeliness"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-muted mt-2 text-center flex items-center justify-center gap-4">
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-emerald-500" /> Overall DQI</span>
+              <span className="flex items-center gap-1"><span className="w-8 h-0.5 bg-blue-500" style={{borderBottom: '2px dashed #3b82f6'}} /> Completeness</span>
+              <span className="flex items-center gap-1"><span className="w-8 h-0.5 bg-amber-500" style={{borderBottom: '2px dashed #f59e0b'}} /> Consistency</span>
+              <span className="flex items-center gap-1"><span className="w-8 h-0.5 bg-violet-500" style={{borderBottom: '2px dashed #8b5cf6'}} /> Timeliness</span>
+            </p>
+          </div>
+        )}
 
         <div className="space-y-3">
           {(dataQualityData?.auditHistory || []).map(audit => (

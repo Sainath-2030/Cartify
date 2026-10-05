@@ -17,6 +17,20 @@ import {
   ShieldAlert,
   Search
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LineChart,
+  Line,
+  AreaChart,
+  Area
+} from 'recharts';
 import { formatCurrency } from './biShared.js';
 
 /**
@@ -423,7 +437,144 @@ export default function ChurnPanel({
       </div>
     </div>
 
-    {/* Table */}
+    {/* Histogram + Decile Lift Charts */}
+      {churnData?.predictions?.length > 0 && !churnLoading && !churnError && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Churn Probability Histogram */}
+          <div className="card border-border-subtle p-4 shadow-xs">
+            <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              Churn Probability Distribution
+            </h4>
+            <div className="h-[240px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={(() => {
+                    const bins = Array.from({ length: 10 }, (_, i) => ({
+                      range: `${(i * 10)}%–${((i + 1) * 10)}%`,
+                      low: i * 0.1,
+                      high: (i + 1) * 0.1,
+                      count: churnData.predictions.filter(p =>
+                        p.churnProbability >= i * 0.1 && p.churnProbability < (i + 1) * 0.1
+                      ).length
+                    }));
+                    // Last bin includes 1.0
+                    bins[9].count += churnData.predictions.filter(p => p.churnProbability === 1.0).length;
+                    return bins;
+                  })()}
+                  layout="vertical"
+                  margin={{ top: 5, right: 10, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                  <YAxis type="category" dataKey="range" tick={{ fontSize: 11, fill: '#9ca3af' }} width={80} />
+                  <Tooltip
+                    formatter={value => value.toLocaleString()}
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={30}>
+                    {bins => bins.map((_, i) => <Cell key={i} fill={i >= 6 ? '#f43f5e' : i >= 3 ? '#f59e0b' : '#22c55e'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-muted mt-2 text-center">
+              Red = High Risk ({'≥'}60%), Amber = Medium (30-60%), Green = Low ({'<' }30%)
+            </p>
+          </div>
+
+          {/* Decile Lift Chart */}
+          <div className="card border-border-subtle p-4 shadow-xs">
+            <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              Decile Analysis: Cumulative Lift
+            </h4>
+            <div className="h-[240px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={(() => {
+                    const sorted = [...churnData.predictions].sort((a, b) => b.churnProbability - a.churnProbability);
+                    const n = sorted.length;
+                    const decileSize = Math.ceil(n / 10);
+                    const overallChurnRate = sorted.reduce((s, p) => s + p.churnProbability, 0) / n;
+                    return Array.from({ length: 10 }, (_, i) => {
+                      const slice = sorted.slice(i * decileSize, (i + 1) * decileSize);
+                      const decileChurnRate = slice.length ? slice.reduce((s, p) => s + p.churnProbability, 0) / slice.length : 0;
+                      const cumSlice = sorted.slice(0, (i + 1) * decileSize);
+                      const cumChurnRate = cumSlice.length ? cumSlice.reduce((s, p) => s + p.churnProbability, 0) / cumSlice.length : 0;
+                      return {
+                        decile: `D${i + 1}`,
+                        decileRate: decileChurnRate,
+                        cumRate: cumChurnRate,
+                        lift: overallChurnRate > 0 ? cumChurnRate / overallChurnRate : 1
+                      };
+                    });
+                  })()}
+                  margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient id="colorLift" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="decile" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tickFormatter={v => v.toFixed(1) + 'x'}
+                    domain={[0.5, 'dataMax']}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [
+                      name === 'lift' ? value.toFixed(2) + 'x' : (value * 100).toFixed(1) + '%',
+                      name === 'lift' ? 'Lift' : 'Churn Rate'
+                    ]}
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="lift"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    fillOpacity={0.3}
+                    fill="url(#colorLift)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumRate"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="decileRate"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    dot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-muted mt-2 text-center flex items-center justify-center gap-4">
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 bg-indigo-500" /> Lift (cumulative)
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-8 h-0.5 bg-green-500" style={{borderBottom: '2px dashed #22c55e'}} /> Cumulative Rate
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-8 h-0.5 bg-amber-500" style={{borderBottom: '2px dashed #f59e0b'}} /> Decile Rate
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
     <div className="overflow-x-auto">
       {churnLoading ? (
         <div className="py-16 text-center">
