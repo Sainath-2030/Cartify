@@ -155,5 +155,22 @@ export const adminService = {
     const res = await api.get(`/admin/bi/churn-predictions${queryStr ? `?${queryStr}` : ''}`);
     return res.data;
   },
+
+  // Section 6: ETL Pipeline Monitoring, Data Lineage & Quality Auditing
+  getDataQualityReport: async () => {
+    const res = await api.get('/admin/bi/data-quality');
+    return res.data;
+  },
+
+  runDataQualityAudit: async () => {
+    const res = await api.post('/admin/bi/data-quality/audit');
+    return res.data;
+  },
+
+  getDataLineage: async () => {
+    const res = await api.get('/admin/bi/data-lineage');
+    return res.data;
+  },
 };
+
 

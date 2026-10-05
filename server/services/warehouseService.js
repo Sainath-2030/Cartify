@@ -7,6 +7,7 @@
 
 import { warehouseModel } from '../models/warehouseModel.js';
 import { runETLPipeline } from '../scripts/etl_populate_warehouse.js';
+import { dataQualityService } from './mining/dataQualityService.js';
 
 let activeEtlPromise = null;
 
@@ -292,5 +293,27 @@ export const warehouseService = {
         orderCount: parseInt(row.order_count, 10) || 0
       }))
     };
+  },
+
+  /**
+   * SECTION 6: Data Quality Audit Report & Historical Trend
+   */
+  async getDataQualityReport() {
+    return dataQualityService.getDataQualityReport();
+  },
+
+  /**
+   * SECTION 6: Trigger Fresh Automated Data Quality Audit
+   */
+  async runDataQualityAudit() {
+    return dataQualityService.runQualityAudit();
+  },
+
+  /**
+   * SECTION 6: 4-Tier Architectural Data Lineage DAG & Live Node Counts
+   */
+  async getDataLineage() {
+    return dataQualityService.getDataLineageGraph();
   }
 };
+

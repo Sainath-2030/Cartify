@@ -231,6 +231,55 @@ export const warehouseController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  /**
+   * GET /api/admin/bi/data-quality
+   * Section 6: Automated Data Quality Scoring & Audit History
+   */
+  async getDataQualityReport(req, res, next) {
+    try {
+      const data = await warehouseService.getDataQualityReport();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/admin/bi/data-quality/audit
+   * Section 6: Trigger Fresh On-Demand Automated Data Quality Audit
+   */
+  async runDataQualityAudit(req, res, next) {
+    try {
+      const data = await warehouseService.runDataQualityAudit();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/admin/bi/data-lineage
+   * Section 6: 4-Tier Architectural Data Lineage DAG Graph
+   */
+  async getDataLineage(req, res, next) {
+    try {
+      const data = await warehouseService.getDataLineage();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };
+
 

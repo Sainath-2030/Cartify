@@ -281,17 +281,24 @@ To maintain clean code quality and ensure manageable progress, future work is or
 
 *Goal: Showcase complete Data Warehousing lifecycle management and data governance.*
 
-- [ ] **Step 6.1: ETL Run Logger & Lineage Table**
-  - Create table `etl_job_runs`: `job_id`, `job_name`, `records_extracted`, `records_transformed`, `records_loaded`, `execution_time_ms`, `status`, `created_at`.
+- [x] **Step 6.1: ETL Run Logger & Lineage Table**
+  - Updated table `etl_job_runs` with `created_at` and created `etl_data_lineage` and `data_quality_audits` in [`database/schema_warehouse_star.sql`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/database/schema_warehouse_star.sql).
+  - Built 4-tier Architectural Data Lineage Directed Acyclic Graph (DAG) generator resolving 22 nodes and 22 directed edges across OLTP Sources, ETL Transforms, Star Schema Tables, and Analytics/ML Consumers in [`dataQualityService.js`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/server/services/mining/dataQualityService.js).
 
-- [ ] **Step 6.2: Automated Data Quality Scoring**
-  - Implement checks for:
-    - **Completeness:** Percentage of non-null attributes across dimensions.
-    - **Consistency:** Referential integrity between operational tables and facts.
-    - **Timeliness:** Latency between transactional event and warehouse ingestion.
+- [x] **Step 6.2: Automated Data Quality Scoring**
+  - Implemented automated multi-dimensional Data Quality scoring in [`dataQualityService.js`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/server/services/mining/dataQualityService.js):
+    - **Completeness (40% Weight):** Evaluates non-null ratios across all 5 Star Schema dimensions and facts (`dim_product`, `dim_customer`, `dim_time`, `fact_sales`, `fact_interaction_daily`).
+    - **Consistency (35% Weight):** Evaluates 6 formal referential integrity checks (zero orphan products, customers, times, or interaction FKs, revenue balance math tolerance, domain range non-negativity).
+    - **Timeliness (25% Weight):** Evaluates ingestion sync latency, operational transaction time delta, and SLA decay curves (&lt; 24h compliance).
+    - **Composite Data Quality Index (DQI):** Weighted composite score with formal status grades (`EXCELLENT`, `GOOD`, `WARNING`, `CRITICAL`) and immutable audit persistence in `data_quality_audits`.
+  - Added REST endpoints `GET /api/admin/bi/data-quality`, `POST /api/admin/bi/data-quality/audit`, and `GET /api/admin/bi/data-lineage` in [`adminRoutes.js`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/server/routes/adminRoutes.js).
 
-- [ ] **Step 6.3: BI Dashboard ETL & Data Quality Console**
-  - Add an **ETL Pipeline Health & Data Lineage** widget displaying pipeline status, last sync timestamp, and overall Data Quality Index ($0 - 100\%$).
+- [x] **Step 6.3: BI Dashboard ETL & Data Quality Console**
+  - Added comprehensive **DWM Section 6 • Data Governance & Lineage** module to [`AdminBIDashboard.jsx`](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx):
+    - 4 Executive KPI Metric Cards (Composite DQI Gauge, Completeness Index, Referential Integrity Ratio, Ingestion Timeliness & SLA).
+    - Interactive 4-Tier Architectural Data Lineage (DAG) Visualizer with dynamic live record counts, health chips, and an interactive Inspector Drawer displaying schema, transformation logic, upstream sources, and downstream consumers.
+    - Deep-Dive Tabbed Console covering Completeness Matrix with column-level bars, Consistency Validation Rules with pass/fail chips, Timeliness SLA monitoring, ETL Job Runs historical log (`etl_job_runs`), and Historical DQI Checkpoint trends.
+    - Interactive Lineage Modal for expanded full-screen architecture exploration.
 
 ---
 
@@ -304,9 +311,10 @@ Use this checklist during future pair-programming turns:
   - [x] Added `BI Dashboard` overview card to [AdminDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminDashboard.jsx).
   - [x] Created [AdminBIDashboard.jsx](file:///d:/Preet/Others/Projects/sem5project/Cartify/Cartify/client/src/pages/admin/AdminBIDashboard.jsx) shell page.
   - [x] Created `DWM_ROADMAP.md` guide.
-- [x] **Milestone 1: Star Schema & Warehouse Layer** (Section 1)
-- [x] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2)
-- [x] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3)
-- [x] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4)
-- [x] **Milestone 5: Churn Classification & Predictive Insights** (Section 5)
-- [ ] **Milestone 6: ETL Lineage & Data Quality Audit** (Section 6)
+- [x] **Milestone 1: Star Schema & Warehouse Layer** (Section 1) *(Completed)*
+- [x] **Milestone 2: Market Basket Analysis & Association Rules** (Section 2) *(Completed)*
+- [x] **Milestone 3: Customer Segmentation & RFM Clustering** (Section 3) *(Completed)*
+- [x] **Milestone 4: OLAP Slice & Dice on BI Dashboard** (Section 4) *(Completed)*
+- [x] **Milestone 5: Churn Classification & Predictive Insights** (Section 5) *(Completed)*
+- [x] **Milestone 6: ETL Lineage & Data Quality Audit** (Section 6) *(Completed)*
+
