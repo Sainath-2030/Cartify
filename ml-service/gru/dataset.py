@@ -4,11 +4,24 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 
-def build_id_maps(interactions: pd.DataFrame):
-    item_ids = sorted(interactions["product_id"].unique())
-    # 0 is padding, so we map product_id to 1..N
+def build_id_maps(interactions: pd.DataFrame, catalogue_product_ids=None):
+    """
+    Dense ID maps for the GRU recommender.
+
+    When `catalogue_product_ids` is supplied the item vocabulary covers the
+    whole active catalogue, not only products seen in telemetry. This matters
+    for a sequential recommender: a session containing any product outside the
+    interacted-only vocabulary previously mapped to `None`, was dropped, and
+    could leave the user with an empty sequence and no recommendations at all.
+
+    Index 0 remains reserved for padding, so real items map to 1..N.
+    """
+    if catalogue_product_ids is not None:
+        item_ids = sorted({int(pid) for pid in catalogue_product_ids})
+    else:
+        item_ids = sorted(int(p) for p in interactions["product_id"].unique())
     item_to_idx = {pid: i + 1 for i, pid in enumerate(item_ids)}
-    user_ids = sorted(interactions["user_id"].unique())
+    user_ids = sorted(int(u) for u in interactions["user_id"].unique())
     user_to_idx = {uid: i for i, uid in enumerate(user_ids)}
     return user_to_idx, item_to_idx
 

@@ -13,7 +13,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 
-from common.db import load_interactions
+from common.db import load_interactions, load_products
 from ncf.config import BATCH_SIZE, EPOCHS, LEARNING_RATE, WEIGHT_DECAY, RANDOM_SEED
 from ncf.dataset import (
     build_id_maps,
@@ -74,10 +74,20 @@ def main():
             "meaningful training, per CLAUDE.MD's documented section order."
         )
 
-    user_to_idx, item_to_idx = build_id_maps(interactions)
+    # Index the whole active catalogue, not just interacted products. Previously
+    # only ~2.8k of 17.949 products had embeddings, so nothing outside that set
+    # could ever be recommended.
+    catalogue = load_products()
+    catalogue_ids = catalogue["id"].dropna().astype(int).tolist()
+    user_to_idx, item_to_idx = build_id_maps(interactions, catalogue_product_ids=catalogue_ids)
     save_id_maps(user_to_idx, item_to_idx, os.path.join(ARTIFACTS_DIR, "ncf_id_maps.json"))
     num_users, num_items = len(user_to_idx), len(item_to_idx)
-    print(f"num_users={num_users} num_items={num_items} - train.py:78")
+    interacted_items = interactions["product_id"].nunique()
+    print(
+        f"num_users={num_users} num_items={num_items} "
+        f"(catalogue={len(catalogue_ids)}, interacted={interacted_items}, "
+        f"cold={num_items - interacted_items}) - train.py"
+    )
 
     positives = prepare_positive_pairs(interactions, user_to_idx, item_to_idx)
     train_df, test_df = leave_one_out_split(positives)
@@ -88,7 +98,10 @@ def main():
 
     model = NCF(num_users, num_items).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    criterion = torch.nn.BCELoss()
+    # BCEWithLogitsLoss takes raw logits and is numerically more stable than
+    # BCELoss on a sigmoid output, which had saturated every score into a
+    # narrow 0.98-0.99 band and destroyed the ranking signal.
+    criterion = torch.nn.BCEWithLogitsLoss()
 
     for epoch in range(1, EPOCHS + 1):
         train_dataset.resample()  # fresh negatives each epoch
@@ -97,8 +110,8 @@ def main():
         for users, items, labels in train_loader:
             users, items, labels = users.to(device), items.to(device), labels.to(device)
             optimizer.zero_grad()
-            preds = model(users, items)
-            loss = criterion(preds, labels)
+            logits = model.forward_logits(users, items)
+            loss = criterion(logits, labels)
             loss.backward()
             optimizer.step()
             total_loss += loss.item() * len(labels)

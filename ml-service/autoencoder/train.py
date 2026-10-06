@@ -56,8 +56,14 @@ def train():
         print("No interactions found in database. Exiting.")
         return
 
-    # Build and save contiguous ID maps
-    user_to_idx, item_to_idx = build_id_maps(interactions)
+    # Build and save contiguous ID maps over the full active catalogue so the
+    # reconstruction head can score every sellable product, not just the ~2.8k
+    # that already appear in telemetry.
+    catalogue = pd.read_sql(
+        "SELECT id FROM products WHERE is_active = true", get_db_connection()
+    )
+    catalogue_ids = catalogue["id"].dropna().astype(int).tolist()
+    user_to_idx, item_to_idx = build_id_maps(interactions, catalogue_product_ids=catalogue_ids)
     os.makedirs(os.path.dirname(ID_MAP_PATH), exist_ok=True)
     save_id_maps(user_to_idx, item_to_idx, ID_MAP_PATH)
 

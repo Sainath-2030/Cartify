@@ -22,11 +22,22 @@ from ncf.config import (
 )
 
 
-def build_id_maps(interactions: pd.DataFrame):
-    user_ids = sorted(interactions["user_id"].unique())
-    item_ids = sorted(interactions["product_id"].unique())
-    user_to_idx = {uid: i for i, uid in enumerate(user_ids)}
-    item_to_idx = {pid: i for i, pid in enumerate(item_ids)}
+def build_id_maps(interactions: pd.DataFrame, catalogue_product_ids=None):
+    """
+    Map raw Cartify IDs -> dense 0..N-1 indices required by nn.Embedding.
+
+    When `catalogue_product_ids` is supplied the item index covers the entire
+    active catalogue rather than only the products that appear in the
+    interaction log. Users are always derived from interactions, since a user
+    with no history has nothing to learn.
+    """
+    user_ids = sorted(interactions["user_id"].dropna().unique())
+    if catalogue_product_ids is not None:
+        item_ids = build_candidate_universe(catalogue_product_ids)
+    else:
+        item_ids = sorted(interactions["product_id"].dropna().unique())
+    user_to_idx = {int(uid): i for i, uid in enumerate(user_ids)}
+    item_to_idx = {int(pid): i for i, pid in enumerate(item_ids)}
     return user_to_idx, item_to_idx
 
 
@@ -63,6 +74,26 @@ def prepare_positive_pairs(interactions: pd.DataFrame, user_to_idx, item_to_idx)
     return positives
 
 
+def build_candidate_universe(product_ids):
+    """
+    The full active catalogue, not just items that happen to appear in the
+    interaction log.
+
+    `build_id_maps` historically derived `item_to_idx` from
+    `interactions.product_id` alone, so the embedding table covered only the
+    ~2.8k products someone had browsed out of 17,949 in the catalogue. The
+    model was therefore structurally incapable of recommending anything else -
+    every cold-start item was outside its output space.
+
+    Cold items get no positive samples, which is exactly what implicit-feedback
+    training expects; they simply stay at their initialisation until real
+    interactions arrive. `rank_candidates` below is what makes them reachable
+    at inference time.
+    """
+    catalogue_ids = sorted({int(pid) for pid in product_ids})
+    return catalogue_ids
+
+
 def leave_one_out_split(positives: pd.DataFrame):
     """Holds out each user's most recent interaction for eval, rest for train."""
     positives = positives.sort_values("created_at")
@@ -83,22 +114,33 @@ class NCFDataset(Dataset):
     """
 
     def __init__(self, positives: pd.DataFrame, num_items: int, user_positive_items: dict,
-                 n_negatives: int = NEGATIVE_SAMPLES_PER_POSITIVE, seed: int = RANDOM_SEED):
+                 n_negatives: int = NEGATIVE_SAMPLES_PER_POSITIVE, seed: int = RANDOM_SEED,
+                 max_positive_weight: float = 5.0):
         self.positives = positives.reset_index(drop=True)
         self.num_items = num_items
         self.user_positive_items = user_positive_items  # user_idx -> set(item_idx)
         self.n_negatives = n_negatives
         self.rng = np.random.default_rng(seed)
+        self.max_positive_weight = max_positive_weight
         self._samples = None
         self.resample()
 
     def resample(self):
-        """Call once per epoch from the training loop to refresh negatives."""
+        """
+        Call once per epoch from the training loop to refresh negatives.
+
+        Positives now carry their interaction weight as a soft label
+        (`min(1.0, weight / max_positive_weight)`) instead of a hard 1.0.
+        `prepare_positive_pairs` had always computed the weight column from
+        INTERACTION_WEIGHTS, but this loop discarded it, so a 'purchase' and a
+        casual 'view' were trained as exactly equivalent signals.
+        """
         users, items, labels = [], [], []
         for row in self.positives.itertuples():
             users.append(row.user_idx)
             items.append(row.item_idx)
-            labels.append(1.0)
+            weight = float(getattr(row, "weight", 1) or 1)
+            labels.append(min(1.0, weight / self.max_positive_weight))
 
             seen = self.user_positive_items.get(row.user_idx, set())
             unseen = [cand for cand in range(self.num_items) if cand not in seen]

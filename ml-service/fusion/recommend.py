@@ -20,6 +20,9 @@ from fusion.config import (
 from fusion.dataset import MultiModalFeatureExtractor
 from fusion.model import AttentionFusion
 
+# Additive nudge in logit units. Category affinity is a tiebreaker only.
+CATEGORY_PRIOR_WEIGHT = 0.15
+
 
 def fetch_user_context(user_id: int):
     """
@@ -173,23 +176,20 @@ def recommend(user_id: int, top_k: int = 10, include_interacted: bool = False, i
     has_cat_affinity = bool(user_cat_affinity)
 
     for idx, pid in enumerate(eval_candidates):
-        raw_sc = scores[idx]
+        raw_sc = float(np.clip(scores[idx], 1e-9, 1 - 1e-9))
         cat_id = prod_cat_map.get(pid)
         aff = user_cat_affinity.get(cat_id, 0.0) if has_cat_affinity else 0.0
         pop = prod_pop_map.get(pid, 0)
 
-        # Multiplier prioritizing items aligned with the user's historical category manifold
-        if has_cat_affinity:
-            if aff > 0:
-                cat_mult = 1.0 + (aff * 15.0)
-            else:
-                cat_mult = 0.005  # Heavy 99.5% penalty for unrelated categories to prevent cross-persona pollution
-        else:
-            cat_mult = 1.0
+        # Rank on the logit scale. Previously this was
+        # `raw_sc * (1 + aff*15)` with unrelated categories multiplied by 0.005
+        # - a 3000x spread that let the heuristic, not the attention layer,
+        # decide the ranking.
+        logit = float(np.log(raw_sc / (1 - raw_sc)))
+        logit += CATEGORY_PRIOR_WEIGHT * aff
+        logit += 0.10 * np.log1p(pop)
 
-        # Singleton noise dampening: unregularized 1-interaction items are dampened
-        pop_disc = 0.25 if pop <= 1 else min(1.3, 1.0 + np.log1p(pop) * 0.15)
-        ranking_scores[idx] = raw_sc * cat_mult * pop_disc
+        ranking_scores[idx] = 1.0 / (1.0 + np.exp(-logit))
 
     # Top K sorting based on fused, category-aligned scores
     top_indices = np.argsort(ranking_scores)[::-1][:top_k]
@@ -208,16 +208,17 @@ def recommend(user_id: int, top_k: int = 10, include_interacted: bool = False, i
         dom_idx = int(np.argmax(item_w))
         dom_modality = modality_labels[dom_idx]
 
-        # Calibrate affinity percentage smoothly relative to top candidate ranking strength
-        relative_ratio = float(ranking_scores[idx] / max_rank_score)
-        rank_decay = (rank) * 0.025
-        calibrated_score = float(np.clip(0.96 * (relative_ratio ** 0.35) - rank_decay, 0.45, 0.98))
-        affinity_pct = round(calibrated_score * 100, 1)
+        # Report the score the fusion layer actually produced. This previously
+        # rescaled it through `0.96 * (relative_ratio ** 0.35) - rank_decay`,
+        # a cosmetic curve that pinned every recommendation into 45-98% no
+        # matter what the attention layer had computed.
+        shown_score = float(ranking_scores[idx])
+        affinity_pct = round(shown_score * 100, 1)
 
         rec = {
             "rank": rank + 1,
             "productId": pid,
-            "score": round(calibrated_score, 4),
+            "score": round(shown_score, 4),
             "affinityPercentage": affinity_pct,
             "dominantModality": dom_modality,
             "attentionWeights": {

@@ -1,4 +1,4 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execFile } from 'child_process';
@@ -47,6 +47,124 @@ function getPythonExe(mlDir = getMlDir()) {
     if (fs.existsSync(c)) return c;
   }
   return process.platform === 'win32' ? 'python' : 'python3';
+}
+
+// Inference budget. The admin panel fans out to every model at once and each
+// call boots a fresh Python process that imports torch (~4s) before doing any
+// work. Under that fan-out a single model measured 8.5s locally and the NCF
+// affinity matrix takes ~39s, so the old 3s/15s budgets were tripping
+// constantly and silently pushing every model onto its fallback path.
+const PY_INFERENCE_TIMEOUT_MS = 90000;
+const PY_MATRIX_TIMEOUT_MS = 120000;
+
+/**
+ * Genuinely per-user degraded recommendations.
+ *
+ * This REPLACES the old "ORDER BY rating DESC, review_count DESC" fallback,
+ * which took no user parameter at all and therefore returned byte-identical
+ * products for every user while still reporting `success: true`. Ranking is
+ * driven by the user's own category affinity from their interaction history,
+ * so even the degraded path differs per user.
+ *
+ * Every caller tags the response with `degraded: true` + `fallbackReason` so
+ * the UI can never present this as model output.
+ */
+async function personalisedFallback({ userId, topK = 5, excludeProductIds = [] }) {
+  const { rows: seenRows } = await query(
+    `SELECT DISTINCT product_id FROM interactions WHERE user_id = $1 AND product_id IS NOT NULL`,
+    [userId]
+  );
+  const seen = new Set(seenRows.map((r) => parseInt(r.product_id, 10)));
+
+  const { rows } = await query(
+    `WITH cat_affinity AS (
+       SELECT p.category_id,
+              count(*)::float / SUM(count(*)) OVER () AS affinity
+       FROM interactions i
+       JOIN products p ON p.id = i.product_id
+       WHERE i.user_id = $1 AND p.category_id IS NOT NULL
+       GROUP BY p.category_id
+     ),
+     pop AS (
+       SELECT product_id, count(*)::float AS cnt
+       FROM interactions
+       WHERE product_id IS NOT NULL
+       GROUP BY product_id
+     )
+     SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image,
+            p.brand, p.rating, p.category_id,
+            c.name AS category_name,
+            COALESCE(ca.affinity, 0) AS cat_affinity,
+            COALESCE(pop.cnt, 0)   AS pop
+     FROM products p
+     LEFT JOIN categories c ON c.id = p.category_id
+     LEFT JOIN cat_affinity ca ON ca.category_id = p.category_id
+     LEFT JOIN pop ON pop.product_id = p.id
+     WHERE p.is_active = true
+       AND p.verification_status = 'VERIFIED'
+       AND NOT (p.id = ANY($2::int[]))
+     ORDER BY (COALESCE(ca.affinity, 0) * 0.7
+             + COALESCE(p.rating, 0)::float / 5 * 0.2
+             + LEAST(COALESCE(pop.cnt, 0), 50)::float / 50 * 0.1) DESC,
+              p.id ASC
+     LIMIT $3`,
+    [userId, Array.from(seen), Math.max(topK, 8)]
+  );
+
+  const hasHistory = seen.size > 0;
+  const scored = rows
+    .filter((p) => !seen.has(parseInt(p.id, 10)))
+    .map((p) => ({
+      ...p,
+      id: parseInt(p.id, 10),
+      _score: 0.7 * parseFloat(p.cat_affinity) +
+              0.2 * (parseFloat(p.rating) || 0) / 5 +
+              0.1 * Math.min(parseFloat(p.pop), 50) / 50,
+    }))
+    .sort((a, b) => b._score - a._score)
+    .slice(0, topK);
+
+  const recs = scored.map((p, i) => {
+    const score = Math.round(Math.min(0.97, 0.55 + p._score * 0.4 - i * 0.012) * 1000) / 1000;
+    return {
+      rank: i + 1,
+      productId: p.id,
+      slug: p.slug || '',
+      score,
+      affinityPercentage: Math.round(score * 1000) / 10,
+      name: p.name,
+      category: p.category_name || 'General',
+      price: parseFloat(p.price) || null,
+      finalPrice: parseFloat(p.final_price) || null,
+      mainImage: p.main_image || '',
+      brand: p.brand || 'Cartify',
+      rating: parseFloat(p.rating) || 0,
+      categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
+    };
+  });
+
+  return {
+    success: true,
+    degraded: true,
+    fallbackReason: hasHistory
+      ? 'Model inference unavailable - ranked by your own category affinity + popularity.'
+      : 'Model inference unavailable and no interaction history - ranked by global rating.',
+    recommendations: recs,
+  };
+}
+
+/**
+ * Decides whether a python inference result is usable. An empty
+ * recommendation list is a failure, not an empty result: the scripts signal
+ * "I could not model this user" (e.g. no mappable session sequence) via an
+ * empty list plus an `error` key.
+ */
+function assertUsableResult(result, label) {
+  if (result?.error) throw new Error(result.error);
+  if (!Array.isArray(result?.recommendations) || result.recommendations.length === 0) {
+    throw new Error(`${label} returned no recommendations`);
+  }
+  return result;
 }
 
 export const AdminService = {
@@ -124,7 +242,7 @@ export const AdminService = {
       execFile(
         pythonExe,
         ['-m', 'common.evaluate', '--json'],
-        { cwd: mlDir, timeout: 60000 },
+        { cwd: mlDir, timeout: PY_MATRIX_TIMEOUT_MS },
         (error, stdout, stderr) => {
           if (error) {
             console.error('Evaluation script execution error:', stderr || error.message);
@@ -206,12 +324,16 @@ export const AdminService = {
     const hasAutoencoderArtifacts = fs.existsSync(autoencoderCheckpointPath) && fs.existsSync(autoencoderIdMapPath);
     const hasFusionArtifacts = fs.existsSync(fusionCheckpointPath);
 
-    let userIds = Array.from({ length: 35 }, (_, i) => i + 1);
-    let itemIds = [1, 2, 3, 4, 5, 6, 7, 8];
-    let usersCount = 35;
-    let itemsCount = 428;
+    // When artifacts are absent we report honest NOT_TRAINED counts. These used to
+// be hardcoded to 35 users / 428 items / 999 CNN items, which the status panel
+// displayed as though they were real measurements.
+let userIds = [];
+    let itemIds = [];
+    let usersCount = 0;
+let itemsCount = 0;
+let ncfTrainedAt = null;
 
-    if (hasNcfArtifacts) {
+if (hasNcfArtifacts) {
       try {
         const idMapsRaw = fs.readFileSync(idMapsPath, 'utf8');
         const idMaps = JSON.parse(idMapsRaw);
@@ -219,14 +341,15 @@ export const AdminService = {
         itemIds = Object.keys(idMaps.item_to_idx || {}).map((k) => parseInt(k, 10));
         usersCount = userIds.length;
         itemsCount = itemIds.length;
+        ncfTrainedAt = fs.statSync(checkpointPath).mtime.toISOString();
       } catch (err) {
         console.error('Error reading NCF artifacts:', err);
       }
     }
 
-    let cnnItemsCount = 999;
-    let cnnSampleProductIds = [14592, 6214, 13817, 14516, 16638, 17753, 8276, 107, 14396, 11165];
-    let cnnTrainedAt = new Date().toISOString();
+    let cnnItemsCount = 0;
+    let cnnSampleProductIds = [];
+    let cnnTrainedAt = null;
 
     if (hasCnnArtifacts) {
       try {
@@ -242,7 +365,7 @@ export const AdminService = {
       }
     }
 
-    let gruTrainedAt = new Date().toISOString();
+    let gruTrainedAt = null;
     if (hasGruArtifacts) {
       try {
         const stat = fs.statSync(gruCheckpointPath);
@@ -274,9 +397,9 @@ export const AdminService = {
     const ncfInfo = {
       name: 'NCF (Neural Collaborative Filtering)',
       type: 'Collaborative Filtering (NeuMF - GMF 32d + MLP 32d)',
-      version: 'v1.0.0-trained',
-      status: 'ACTIVE',
-      lastTrainedAt: new Date().toISOString(),
+      version: hasNcfArtifacts ? 'v1.0.0-trained' : 'v0.0.0-planned',
+      status: hasNcfArtifacts ? 'ACTIVE' : 'NOT_TRAINED',
+      lastTrainedAt: hasNcfArtifacts ? ncfTrainedAt : null,
       usersCount,
       itemsCount,
       userIds,
@@ -340,7 +463,7 @@ export const AdminService = {
       }
     };
 
-    let fusionTrainedAt = new Date().toISOString();
+    let fusionTrainedAt = null;
     let fusionMetadata = null;
     if (hasFusionArtifacts) {
       try {
@@ -416,7 +539,7 @@ export const AdminService = {
         execFile(
           pythonExe,
           ['-m', 'ncf.recommend', '--user', String(userId), '--top_k', String(topK), '--json'],
-          { cwd: mlDir, timeout: 15000 },
+          { cwd: mlDir, timeout: PY_INFERENCE_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -434,41 +557,18 @@ export const AdminService = {
     try {
       return await tryPython();
     } catch (pyErr) {
-      // 2. Graceful Fallback: Query live catalogue from PostgreSQL with affinity ranking
-      const productRes = await query(
-        `SELECT id, name, slug, price, final_price, main_image, brand, rating, category_id
-         FROM products
-         WHERE is_active = true AND verification_status = 'VERIFIED'
-         ORDER BY rating DESC, review_count DESC
-         LIMIT $1`,
-        [Math.max(topK, 8)]
-      );
-
-      const recommendations = productRes.rows.slice(0, topK).map((p, idx) => {
-        const baseScore = Math.max(0.75, 0.985 - idx * 0.038 - (userId % 5) * 0.01);
-        const score = Math.min(0.999, Math.round(baseScore * 1000) / 1000);
-        return {
-          rank: idx + 1,
-          productId: parseInt(p.id, 10),
-          slug: p.slug,
-          score,
-          affinityPercentage: Math.round(score * 1000) / 10,
-          name: p.name,
-          price: parseFloat(p.price) || null,
-          finalPrice: parseFloat(p.final_price) || null,
-          mainImage: p.main_image || '',
-          brand: p.brand || 'Cartify',
-          rating: parseFloat(p.rating) || 4.5,
-          categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
-        };
-      });
-
+      // 2. Degraded path: rank by THIS user's own category affinity + popularity.
+      //    The previous fallback ranked the whole catalogue by global rating and
+      //    returned identical products for every user.
+      console.warn('NCF inference fallback:', pyErr.message);
+      const degraded = await personalisedFallback({ userId, topK });
       return {
+...degraded,
         success: true,
         fallback: true,
         userId,
-        totalCandidates: productRes.rows.length,
-        recommendations,
+        totalCandidates: degraded.recommendations.length,
+        fallbackReason: degraded.fallbackReason,
       };
     }
   },
@@ -482,8 +582,8 @@ export const AdminService = {
       new Promise((resolve, reject) => {
         execFile(
           pythonExe,
-          ['-m', 'ncf.recommend', '--inspect', '--json'],
-          { cwd: mlDir, timeout: 3000 },
+          ['-m', 'ncf.recommend', '--summary'],
+          { cwd: mlDir, timeout: PY_MATRIX_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -499,29 +599,26 @@ export const AdminService = {
     try {
       return await tryPython();
     } catch (pyErr) {
-      // Graceful fallback matrix from active catalogue
-      const productRes = await query(
-        `SELECT id FROM products WHERE is_active = true AND verification_status = 'VERIFIED' LIMIT 6`
+      // Previously this fabricated a matrix with hardcoded `usersCount: 35,
+      // itemsCount: 428` (the real figures are 50 users / 2814 items) and
+      // synthetic scores, while reporting ACTIVE. It is now derived from the
+      // live database so the counts can never drift from reality again.
+      console.warn('NCF affinity matrix fallback:', pyErr.message);
+      const u = await query(
+        `SELECT count(DISTINCT user_id)::int AS n FROM interactions WHERE user_id IS NOT NULL`
       );
-      const productIds = productRes.rows.map((r) => parseInt(r.id, 10));
-      const sampleUsers = [1, 2, 3, 4, 5];
-      const matrix = [];
-
-      for (const u of sampleUsers) {
-        for (let i = 0; i < productIds.length; i++) {
-          const pId = productIds[i];
-          const score = Math.min(0.99, Math.max(0.65, 0.95 - (i * 0.04) - ((u % 3) * 0.03)));
-          matrix.push({
-            user_id: u,
-            product_id: pId,
-            predicted_score: Math.round(score * 1000) / 1000,
-          });
-        }
-      }
-
+      const i = await query(
+        `SELECT count(DISTINCT product_id)::int AS n FROM interactions WHERE product_id IS NOT NULL`
+      );
       return {
-        status: { status: 'ACTIVE', usersCount: 35, itemsCount: 428 },
-        matrix,
+        status: {
+          status: 'DEGRADED',
+          usersCount: u.rows[0]?.n ?? 0,
+          itemsCount: i.rows[0]?.n ?? 0,
+        },
+        degraded: true,
+        fallbackReason: `Affinity matrix inference failed (${pyErr.message}). Matrix unavailable.`,
+        matrix: [],
       };
     }
   },
@@ -569,7 +666,7 @@ export const AdminService = {
         execFile(
           pythonExe,
           cliArgs,
-          { cwd: mlDir, timeout: 15000 },
+          { cwd: mlDir, timeout: PY_INFERENCE_TIMEOUT_MS },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -585,6 +682,8 @@ export const AdminService = {
       });
 
     let rawSimilarities = [];
+    let degraded = false;
+    let degradedReason = null;
     try {
       rawSimilarities = await tryPython();
     } catch (err) {
@@ -621,7 +720,8 @@ export const AdminService = {
         };
       });
     } else {
-      // Fallback query based on target category
+      // Degraded path. Ranked within the target product's own category so it
+      // at least reflects the queried product rather than a global rating list.
       const catId = targetProduct?.categoryId || 1;
       const fallbackRes = await query(
         `SELECT p.id, p.name, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
@@ -650,6 +750,8 @@ export const AdminService = {
           categoryName: p.category_name || '',
         };
       });
+      degraded = true;
+      degradedReason = 'CNN visual embedding inference unavailable - ranked by rating within the target category.';
     }
 
     return {
@@ -657,6 +759,8 @@ export const AdminService = {
       productId: parseInt(productId, 10),
       targetProduct,
       totalMatches: similarProducts.length,
+      degraded,
+      ...(degraded ? { fallbackReason: degradedReason } : {}),
       similarProducts,
     };
   },
@@ -671,7 +775,7 @@ export const AdminService = {
         execFile(
           pythonExe,
           ['-m', 'cnn.similarity', '--matrix_sample', '--top_k', String(n), '--json'],
-          { cwd: mlDir, timeout: 5000 },
+          { cwd: mlDir, timeout: PY_INFERENCE_TIMEOUT_MS },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -686,16 +790,17 @@ export const AdminService = {
 
     try {
       const samples = await tryPython();
-      return { success: true, samples };
+      return { success: true, degraded: false, samples };
     } catch (e) {
+      // Previously returned four hardcoded vectors for product IDs 14592/6214/
+      // 13817/14516 - the same four products the NCF fallback served, so a
+      // fabricated embedding table looked like live CNN output.
+      console.warn('CNN embedding matrix sample fallback:', e.message);
       return {
         success: true,
-        samples: [
-          { product_id: 14592, vector_sample: [0.1245, -0.0452, 0.0891, -0.2104, 0.1542, -0.0312, 0.0911, 0.0418], norm: 1.0, dim: 256 },
-          { product_id: 6214, vector_sample: [0.0841, -0.0912, 0.1412, -0.1874, 0.0991, -0.0125, 0.1145, 0.0654], norm: 1.0, dim: 256 },
-          { product_id: 13817, vector_sample: [0.1012, -0.0621, 0.0714, -0.2015, 0.1234, -0.0415, 0.0821, 0.0512], norm: 1.0, dim: 256 },
-          { product_id: 14516, vector_sample: [0.0954, -0.0784, 0.1102, -0.1945, 0.1142, -0.0254, 0.0987, 0.0489], norm: 1.0, dim: 256 },
-        ],
+        degraded: true,
+        fallbackReason: `CNN embedding inference failed (${e.message}). No real vectors available.`,
+        samples: [],
       };
     }
   },
@@ -719,7 +824,7 @@ export const AdminService = {
         execFile(
           pythonExe,
           cliArgs,
-          { cwd: mlDir, timeout: 15000 },
+          { cwd: mlDir, timeout: PY_INFERENCE_TIMEOUT_MS },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -781,44 +886,18 @@ export const AdminService = {
       };
     } catch (err) {
       console.warn('GRU inference fallback:', err.message);
-      const fallbackRes = await query(
-        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
-         FROM products p
-         LEFT JOIN categories c ON p.category_id = c.id
-         WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
-         ORDER BY p.rating DESC, p.review_count DESC
-         LIMIT $1`,
-        [Math.max(topK, 5)]
-      );
-
-      const recommendations = fallbackRes.rows.slice(0, topK).map((p, idx) => {
-        const baseScore = Math.max(0.70, 0.95 - idx * 0.05);
-        const score = Math.min(0.999, Math.round(baseScore * 1000) / 1000);
-        return {
-          rank: idx + 1,
-          productId: parseInt(p.id, 10),
-          slug: p.slug || '',
-          score,
-          affinityPercentage: Math.round(score * 1000) / 10,
-          name: p.name,
-          category: p.category_name || 'General',
-          price: parseFloat(p.price) || null,
-          finalPrice: parseFloat(p.final_price) || null,
-          mainImage: p.main_image || '',
-          brand: p.brand || 'Cartify',
-          rating: parseFloat(p.rating) || 4.5,
-          categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
-          dominantModality: 'GRU',
-        };
-      });
-
+      // Previously ranked the whole catalogue by global rating -> identical
+      // products for every user.
+      const degraded = await personalisedFallback({ userId: userId || 1, topK });
       return {
         success: true,
         user: userId,
         session: sessionId,
-        fallback: true,
         sequenceLength: 0,
-        recommendations,
+        degraded: true,
+        fallbackReason: degraded.fallbackReason,
+        totalCatalogueCandidates: degraded.recommendations.length,
+        recommendations: degraded.recommendations.map((r) => ({ ...r, dominantModality: 'GRU' })),
       };
     }
   },
@@ -833,7 +912,7 @@ export const AdminService = {
         execFile(
           pythonExe,
           ['-m', 'autoencoder.recommend', '--user', String(userId), '--top_k', String(topK), '--json', '--inspect'],
-          { cwd: mlDir, timeout: 15000 },
+          { cwd: mlDir, timeout: PY_INFERENCE_TIMEOUT_MS },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -892,50 +971,17 @@ export const AdminService = {
         recommendations: finalRecs,
       };
     } catch (pyErr) {
-      console.error('tryPython failed in getAutoencoderRecommendations:', pyErr);
-      // Graceful Fallback from verified catalogue
-      const productRes = await query(
-        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
-         FROM products p
-         LEFT JOIN categories c ON p.category_id = c.id
-         WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
-         ORDER BY p.rating DESC, p.review_count DESC
-         LIMIT $1`,
-        [Math.max(topK, 5)]
-      );
-
-      const recommendations = productRes.rows.slice(0, topK).map((p, idx) => {
-        const baseScore = Math.max(0.65, 0.92 - idx * 0.04);
-        const score = Math.min(0.99, Math.round(baseScore * 1000) / 1000);
-        return {
-          rank: idx + 1,
-          productId: parseInt(p.id, 10),
-          slug: p.slug || '',
-          score,
-          affinityPercentage: Math.round(score * 1000) / 10,
-          name: p.name,
-          category: p.category_name || 'General',
-          price: parseFloat(p.price) || null,
-          finalPrice: parseFloat(p.final_price) || null,
-          mainImage: p.main_image || '',
-          brand: p.brand || 'Cartify',
-          rating: parseFloat(p.rating) || 4.5,
-          categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
-        };
-      });
-
+      console.error('tryPython failed in getAutoencoderRecommendations:', pyErr.message);
+      // Previously ranked globally by rating AND returned a fabricated 64-d
+      // latent vector built from Math.sin(i*0.3), which the UI displayed as a
+      // genuine model embedding.
+      const degraded = await personalisedFallback({ userId, topK });
       return {
-        success: true,
+        ...degraded,
         userId,
         interactedCount: 0,
-        totalCandidates: productRes.rows.length,
-        latentVector: {
-          dimension: 64,
-          norm: 5.12,
-          sample: [0.12, -0.45, 0.88, -0.21, 0.65, 0.03, -0.34, 0.51],
-          full: Array.from({ length: 64 }, (_, i) => Math.sin(i * 0.3) * 0.5),
-        },
-        recommendations,
+        totalCandidates: degraded.recommendations.length,
+        latentVector: null,
       };
     }
   },
@@ -955,7 +1001,7 @@ export const AdminService = {
         execFile(
           pythonExe,
           args,
-          { cwd: mlDir, timeout: 20000 },
+          { cwd: mlDir, timeout: PY_INFERENCE_TIMEOUT_MS },
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
@@ -1019,58 +1065,24 @@ export const AdminService = {
         recommendations: finalRecs,
       };
     } catch (pyErr) {
-      console.error('tryPython failed in getAttentionFusionRecommendations:', pyErr);
-      // Graceful verified fallback
-      const productRes = await query(
-        `SELECT p.id, p.name, p.slug, p.price, p.final_price, p.main_image, p.brand, p.rating, p.category_id, c.name as category_name
-         FROM products p
-         LEFT JOIN categories c ON p.category_id = c.id
-         WHERE p.is_active = true AND p.verification_status = 'VERIFIED'
-         ORDER BY rating DESC, review_count DESC
-         LIMIT $1`,
-        [Math.max(topK, 5)]
-      );
-
-      const modalities = ['NCF', 'CNN', 'GRU', 'AUTOENCODER'];
-      const recommendations = productRes.rows.slice(0, topK).map((p, idx) => {
-        const baseScore = Math.max(0.70, 0.96 - idx * 0.04);
-        const score = Math.min(0.999, Math.round(baseScore * 1000) / 1000);
-        const domModality = modalities[idx % modalities.length];
-        return {
-          rank: idx + 1,
-          productId: parseInt(p.id, 10),
-          slug: p.slug || '',
-          score,
-          affinityPercentage: Math.round(score * 1000) / 10,
-          dominantModality: domModality,
-          attentionWeights: {
-            ncf: domModality === 'NCF' ? 0.65 : 0.12,
-            cnn: domModality === 'CNN' ? 0.65 : 0.12,
-            gru: domModality === 'GRU' ? 0.65 : 0.12,
-            autoencoder: domModality === 'AUTOENCODER' ? 0.65 : 0.12,
-          },
-          name: p.name,
-          category: p.category_name || 'General',
-          price: parseFloat(p.price) || null,
-          finalPrice: parseFloat(p.final_price) || null,
-          mainImage: p.main_image || '',
-          brand: p.brand || 'Cartify',
-          rating: parseFloat(p.rating) || 4.5,
-          categoryId: p.category_id ? parseInt(p.category_id, 10) : null,
-        };
-      });
-
+      console.error('tryPython failed in getAttentionFusionRecommendations:', pyErr.message);
+      // Previously returned a global rating list decorated with invented
+      // per-item attention weights and a fixed aggregateAttentionWeights
+      // object, all presented as real multi-modal fusion output.
+      const degraded = await personalisedFallback({ userId, topK });
       return {
+...degraded,
         success: true,
         fallback: true,
         userId,
         interactedCount: 0,
         sessionLength: 0,
-        totalCandidates: productRes.rows.length,
-        aggregateAttentionWeights: { NCF: 0.38, CNN: 0.42, GRU: 0.10, AUTOENCODER: 0.10 },
-        explanation: 'Recommendations dynamically synthesized from verified catalogue via Multi-Modal Attention.',
+        totalCandidates: degraded.recommendations.length,
+        aggregateAttentionWeights: null,
+        attentionWeights: null,
+        explanation: null,
         modelMetadata: null,
-        recommendations,
+        recommendations: degraded.recommendations.map((r) => ({ ...r, dominantModality: null })),
       };
     }
   },

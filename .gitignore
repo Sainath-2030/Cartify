@@ -23,6 +23,7 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+*.bak
 
 # Large Datasets (>100MB)
 data/Amazon-Products.csv

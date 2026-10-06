@@ -51,7 +51,16 @@ def train():
     
     print(f"Loaded {len(interactions)} interactions.")
     
-    user_to_idx, item_to_idx = build_id_maps(interactions)
+    # Full-catalogue vocabulary so sessions containing any active product remain
+    # mappable. With an interacted-only map, unmapped products were silently
+    # dropped from a session and could empty it out entirely.
+    catalogue = pd.read_sql(
+        "SELECT id FROM products WHERE is_active = true", get_db_connection()
+    )
+    catalogue_ids = catalogue["id"].dropna().astype(int).tolist()
+    user_to_idx, item_to_idx = build_id_maps(
+        interactions, catalogue_product_ids=catalogue_ids
+    )
     os.makedirs(os.path.dirname(ID_MAP_PATH), exist_ok=True)
     save_id_maps(user_to_idx, item_to_idx, ID_MAP_PATH)
     

@@ -55,6 +55,15 @@ class NCF(nn.Module):
         nn.init.xavier_uniform_(self.output_layer.weight)
 
     def forward(self, user_idx: torch.Tensor, item_idx: torch.Tensor) -> torch.Tensor:
+        return torch.sigmoid(self.forward_logits(user_idx, item_idx))
+
+    def forward_logits(self, user_idx: torch.Tensor, item_idx: torch.Tensor) -> torch.Tensor:
+        """Raw pre-sigmoid logit.
+
+        Training uses this with BCEWithLogitsLoss for numerical stability.
+        Applying sigmoid to already-saturated outputs was collapsing the score
+        distribution into a 0.98-0.99 band.
+        """
         # GMF path
         gmf_user = self.user_embedding_gmf(user_idx)
         gmf_item = self.item_embedding_gmf(item_idx)
@@ -66,8 +75,7 @@ class NCF(nn.Module):
         mlp_out = self.mlp(torch.cat([mlp_user, mlp_item], dim=-1))
 
         fused = torch.cat([gmf_out, mlp_out], dim=-1)
-        logit = self.output_layer(fused).squeeze(-1)
-        return torch.sigmoid(logit)
+        return self.output_layer(fused).squeeze(-1)
 
     def user_embedding(self, user_idx: torch.Tensor) -> torch.Tensor:
         """Concatenated GMF+MLP user embedding, useful for the future

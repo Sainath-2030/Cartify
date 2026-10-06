@@ -4,16 +4,25 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 
-def build_id_maps(interactions: pd.DataFrame):
+def build_id_maps(interactions: pd.DataFrame, catalogue_product_ids=None):
     """
     Builds zero-indexed contiguous ID mappings for users and items.
+
+    When `catalogue_product_ids` is supplied the item index spans the whole
+    active catalogue rather than only products present in the interaction log.
+    This matters because the reconstruction output layer width equals
+    num_items, so a map covering only interacted products made the other ~15k
+    catalogue products permanently unreachable.
     """
     user_ids = sorted(interactions["user_id"].dropna().unique())
     user_to_idx = {int(uid): i for i, uid in enumerate(user_ids)}
-    
-    item_ids = sorted(interactions["product_id"].dropna().unique())
+
+    if catalogue_product_ids is not None:
+        item_ids = sorted({int(pid) for pid in catalogue_product_ids})
+    else:
+        item_ids = sorted(interactions["product_id"].dropna().unique())
     item_to_idx = {int(pid): i for i, pid in enumerate(item_ids)}
-    
+
     return user_to_idx, item_to_idx
 
 def save_id_maps(user_to_idx: dict, item_to_idx: dict, path: str):

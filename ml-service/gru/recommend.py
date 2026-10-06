@@ -206,17 +206,21 @@ def main():
             if idx == 0:
                 continue
             item_cat = cat_map.get(item_id)
+            # Small additive nudges on the logit scale. These were previously
+            # +5.0 / +2.0 / -4.0, which swamped the recurrent model's own
+            # output entirely and reduced the result to "highest rated items in
+            # the session's category".
             if dominant_cat and item_cat == dominant_cat:
-                logits[0, idx] += 5.0
+                logits[0, idx] += 0.5
             elif item_cat in session_cats:
-                logits[0, idx] += 2.0
+                logits[0, idx] += 0.2
             else:
-                logits[0, idx] -= 4.0
-                
-            # Penalize single-interaction noise outliers that have aberrant high vector norms
+                logits[0, idx] -= 0.4
+
+            # Mild dampening of items seen exactly once.
             pop = pop_map.get(item_id, 0)
             if pop <= 1:
-                logits[0, idx] -= 2.0
+                logits[0, idx] -= 0.2
         
         probs = torch.softmax(logits[0], dim=0)
         top_probs, top_indices = torch.topk(probs, args.top_k)
