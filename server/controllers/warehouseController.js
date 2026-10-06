@@ -8,6 +8,7 @@
 import { warehouseService } from '../services/warehouseService.js';
 import { aprioriService } from '../services/mining/aprioriService.js';
 import { kmeansService } from '../services/mining/kmeansService.js';
+import { churnService } from '../services/mining/churnService.js';
 
 export const warehouseController = {
   /**
@@ -27,22 +28,33 @@ export const warehouseController = {
 
   /**
    * GET /api/admin/bi/association-rules
+   *
+   * Query params:
+   *   minSupport      {number}  0.001 – 1.0   (default 0.01)
+   *   minConfidence   {number}  0 – 1.0        (default 0.2)
+   *   minLift         {number}  >= 0           (default 1.0)
+   *   maxItemsetSize  {integer} 2 – 4          (default 3)  [Section 7]
    */
   async getAssociationRules(req, res, next) {
     try {
-      const minSupport = parseFloat(req.query.minSupport) || 0.01;
-      const minConfidence = parseFloat(req.query.minConfidence) || 0.2;
-      const minLift = parseFloat(req.query.minLift) || 1.0;
-      
-      const data = await aprioriService.mineAssociationRules({
+      const minSupport    = Math.max(0.001, Math.min(1,   parseFloat(req.query.minSupport)    || 0.01));
+      const minConfidence = Math.max(0,     Math.min(1,   parseFloat(req.query.minConfidence) || 0.2));
+      const minLift       = Math.max(0,                   parseFloat(req.query.minLift)       || 1.0);
+      const maxItemsetSize = Math.max(2, Math.min(4, parseInt(req.query.maxItemsetSize, 10) || 3));
+
+      const result = await aprioriService.mineAssociationRules({
         minSupport,
         minConfidence,
-        minLift
+        minLift,
+        maxItemsetSize
       });
 
       res.status(200).json({
         success: true,
-        data
+        // Flatten for backward-compat: callers that expect an array still work,
+        // while new callers can read result.meta for higher-order metadata.
+        data: result.rules,
+        meta: result.meta
       });
     } catch (error) {
       next(error);
@@ -165,5 +177,120 @@ export const warehouseController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  /**
+   * GET /api/admin/bi/olap-cube
+   * Section 4: Multi-dimensional CUBE, ROLLUP, Slicing & Dicing
+   */
+  async getOlapCube(req, res, next) {
+    try {
+      const {
+        timeGrain,
+        categoryId,
+        priceTier,
+        activityTier,
+        year,
+        quarter,
+        month,
+        cubeMode,
+        metric
+      } = req.query;
+
+      const data = await warehouseService.getOlapCube({
+        timeGrain,
+        categoryId,
+        priceTier,
+        activityTier,
+        year,
+        quarter,
+        month,
+        cubeMode,
+        metric
+      });
+
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/admin/bi/churn-predictions
+   * Section 5: Customer Churn Classification & Predictive Forecasting
+   */
+  async getChurnPredictions(req, res, next) {
+    try {
+      const { riskLevel, limit, sortBy } = req.query;
+      const rawLimit = parseInt(limit, 10);
+      const parsedLimit = Number.isInteger(rawLimit) ? rawLimit : 50;
+      const clampedLimit = Math.max(1, Math.min(500, parsedLimit));
+
+      const data = await churnService.predictChurn({
+        riskLevelFilter: riskLevel || 'all',
+        limit: clampedLimit,
+        sortBy: sortBy || 'churnProbability'
+      });
+
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/admin/bi/data-quality
+   * Section 6: Automated Data Quality Scoring & Audit History
+   */
+  async getDataQualityReport(req, res, next) {
+    try {
+      const data = await warehouseService.getDataQualityReport();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/admin/bi/data-quality/audit
+   * Section 6: Trigger Fresh On-Demand Automated Data Quality Audit
+   */
+  async runDataQualityAudit(req, res, next) {
+    try {
+      const data = await warehouseService.runDataQualityAudit();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * GET /api/admin/bi/data-lineage
+   * Section 6: 4-Tier Architectural Data Lineage DAG Graph
+   */
+  async getDataLineage(req, res, next) {
+    try {
+      const data = await warehouseService.getDataLineage();
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };
+
+

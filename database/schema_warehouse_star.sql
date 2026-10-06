@@ -129,7 +129,7 @@ CREATE INDEX idx_fact_int_time ON fact_interaction_daily(time_id);
 CREATE INDEX idx_fact_int_product ON fact_interaction_daily(product_id);
 CREATE INDEX idx_fact_int_category ON fact_interaction_daily(category_id);
 
--- 6. ETL AUDIT & LINEAGE TABLE: etl_job_runs
+-- 6. ETL AUDIT & RUN LOG TABLE: etl_job_runs
 -- Tracks each execution of the ETL pipeline with extracted/transformed/loaded counts
 DROP TABLE IF EXISTS etl_job_runs CASCADE;
 CREATE TABLE etl_job_runs (
@@ -143,7 +143,48 @@ CREATE TABLE etl_job_runs (
     details JSONB DEFAULT '{}'::jsonb NOT NULL,
     error_message TEXT,
     started_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    completed_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 CREATE INDEX idx_etl_job_runs_name_time ON etl_job_runs(job_name, started_at DESC);
+
+-- 7. DATA LINEAGE TABLE: etl_data_lineage
+-- Tracks architectural tiers, DAG nodes, dependencies, and transformation rules
+DROP TABLE IF EXISTS etl_data_lineage CASCADE;
+CREATE TABLE etl_data_lineage (
+    lineage_id BIGSERIAL PRIMARY KEY,
+    tier VARCHAR(50) NOT NULL, -- 'OLTP_SOURCE', 'ETL_PIPELINE', 'STAR_SCHEMA', 'ANALYTICS_CONSUMER'
+    node_id VARCHAR(100) UNIQUE NOT NULL,
+    node_label VARCHAR(150) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL, -- 'TABLE', 'PROCESS', 'VIEW', 'ML_MODEL'
+    description TEXT,
+    record_count BIGINT DEFAULT 0,
+    upstream_nodes JSONB DEFAULT '[]'::jsonb,
+    downstream_nodes JSONB DEFAULT '[]'::jsonb,
+    transformation_logic TEXT,
+    last_synced_at TIMESTAMPTZ DEFAULT NOW(),
+    health_status VARCHAR(30) DEFAULT 'HEALTHY',
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX idx_data_lineage_tier ON etl_data_lineage(tier);
+
+-- 8. AUTOMATED DATA QUALITY AUDIT TABLE: data_quality_audits
+-- Persists historical data quality evaluations (Completeness, Consistency, Timeliness, DQI)
+DROP TABLE IF EXISTS data_quality_audits CASCADE;
+CREATE TABLE data_quality_audits (
+    audit_id BIGSERIAL PRIMARY KEY,
+    overall_score NUMERIC(5,2) NOT NULL,
+    completeness_score NUMERIC(5,2) NOT NULL,
+    consistency_score NUMERIC(5,2) NOT NULL,
+    timeliness_score NUMERIC(5,2) NOT NULL,
+    status VARCHAR(30) DEFAULT 'EXCELLENT' NOT NULL, -- 'EXCELLENT', 'GOOD', 'WARNING', 'CRITICAL'
+    summary JSONB DEFAULT '{}'::jsonb NOT NULL,
+    checks JSONB DEFAULT '[]'::jsonb NOT NULL,
+    table_breakdown JSONB DEFAULT '[]'::jsonb NOT NULL,
+    audited_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX idx_data_quality_audited_at ON data_quality_audits(audited_at DESC);
+

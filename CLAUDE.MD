@@ -1839,11 +1839,42 @@ STATUS: COMPLETE & DEPLOYED (Master Cross-Layer E2E Suite Verified 100%)
 
 ---
 
-# 43. CURRENT NEXT STEP
+# 43. DWM ROADMAP STATUS
 
-Phase 2 Storefront UI/UX Rebuild Track (Phases 2.4 – 2.10)
+All 7 DWM sections are COMPLETE.
+
+Section 7 — Higher-Order Association Rule Mining (Apriori L2/L3/L4)
+STATUS: COMPLETE — 2026-10-05
+
+Key files added/changed:
+- `server/services/mining/aprioriService.js` — full textbook Apriori (L1→Lk, F_{k-1}×F_{k-1} join, anti-monotonicity pruning, inverted-index support counting, rule generation from all levels).
+- `server/controllers/warehouseController.js` — extended `getAssociationRules` with `maxItemsetSize` param (clamped 2–4) and backward-compatible `{ data, meta }` response.
+- `client/src/services/adminService.js` — `getAssociationRules` now accepts and passes `maxItemsetSize`.
+- `client/src/pages/admin/AdminBIDashboard.jsx` — refactored from 3,826-line monolith to 412-line shell delegating to panel components under `client/src/pages/admin/bi/`.
+- `client/src/pages/admin/bi/biShared.js` — shared formatters and CLUSTER_CONFIG.
+- `client/src/pages/admin/bi/BiHeader.jsx`
+- `client/src/pages/admin/bi/WarehouseOverviewPanel.jsx`
+- `client/src/pages/admin/bi/AssociationRulesPanel.jsx` — upgraded with L2/L3/L4 order selector, Order badge column, Frequent Itemset Counts summary, truncation warning.
+- `client/src/pages/admin/bi/CustomerSegmentsPanel.jsx`
+- `client/src/pages/admin/bi/OlapExplorerPanel.jsx`
+- `client/src/pages/admin/bi/ChurnPanel.jsx`
+- `client/src/pages/admin/bi/DataGovernancePanel.jsx`
+- `server/scripts/test_section7_higher_order_rules.js` — 27/27 assertions passed.
+
+Live results at default thresholds: 274 L2 rules + 186 L3 rules.
+
+---
+
+# 44. CURRENT NEXT STEP
+
+DWM Section 8 or Storefront UI/UX Rebuild Track
 STATUS: READY TO PROCEED
-- With all 12 backend, database, and machine learning roadmap sections completed and locked, next steps focus on the remaining client-side visual polish modules in the Storefront Rebuild Track:
+
+DWM options for Section 8:
+  - Sales/demand forecasting (time-series: moving average, exponential smoothing, linear regression over fact_sales).
+  - Anomaly/outlier detection (IQR + Z-score over fact_sales and fact_interaction_daily).
+
+Storefront options:
   - Phase 2.4: Shopping Cart Drawer & Wishlist page visual polish.
   - Phase 2.5: 2-step frictionless Checkout & Order Confirmation modal polish.
   - Phase 2.6: User Profile & Order History tabbed account center.

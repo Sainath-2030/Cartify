@@ -1,0 +1,127 @@
+{
+  "_README": [
+    "EXAMPLE SHAPE ONLY - the numbers below are illustrative placeholders.",
+    "Run `node ../paper/dump_mining_results.js` from server/ to overwrite this",
+    "file with real values from your PostgreSQL instance.",
+    "Delete this file before submitting so no placeholder figures can be",
+    "mistaken for measured results."
+  ],
+  "generatedAt": "2026-09-28T00:00:00.000Z",
+  "note": "Instance-level outputs of the classical miners described in Section V of cartify_ieee.tex. Static configuration (thresholds, centroid coordinates, logistic coefficients, rule conditions) is documented in the paper directly from the service implementations.",
+  "apriori": {
+    "parameters": {
+      "minSupport": 0.01,
+      "minConfidence": 0.2,
+      "minLift": 1.0,
+      "maxItemsetSize": 2
+    },
+    "ruleCount": 12,
+    "topRulesByLift": [
+      {
+        "antecedent": ["Example Product A"],
+        "consequent": ["Example Product B"],
+        "support": 0.0412,
+        "confidence": 0.6833,
+        "lift": 3.2145
+      },
+      {
+        "antecedent": ["Example Product C"],
+        "consequent": ["Example Product D"],
+        "support": 0.0308,
+        "confidence": 0.5621,
+        "lift": 2.8871
+      }
+    ]
+  },
+  "kmeans": {
+    "parameters": {
+      "k": 4,
+      "maxIterations": 100,
+      "distance": "euclidean",
+      "scaling": "min-max per RFM axis",
+      "initialisation": "semantic (hand-specified centroid positions)"
+    },
+    "centroids": [
+      { "id": "champions", "label": "Champions / High-Value", "normR": 0.02, "normF": 0.97, "normM": 0.98 },
+      { "id": "loyal", "label": "Loyal Customers", "normR": 0.31, "normF": 0.52, "normM": 0.49 },
+      { "id": "at_risk", "label": "At-Risk / Potential Churn", "normR": 0.82, "normF": 0.48, "normM": 0.44 },
+      { "id": "new_inactive", "label": "New / Inactive Explorers", "normR": 0.99, "normF": 0.01, "normM": 0.02 }
+    ],
+    "clusters": [
+      {
+        "id": "champions",
+        "label": "Champions / High-Value",
+        "customerCount": 11,
+        "averageRecency": 6,
+        "averageFrequency": 4.27,
+        "averageMonetary": 612.44,
+        "averageOrderValue": 143.43
+      },
+      {
+        "id": "loyal",
+        "label": "Loyal Customers",
+        "customerCount": 18,
+        "averageRecency": 21,
+        "averageFrequency": 2.61,
+        "averageMonetary": 254.9,
+        "averageOrderValue": 97.66
+      },
+      {
+        "id": "at_risk",
+        "label": "At-Risk / Potential Churn",
+        "customerCount": 14,
+        "averageRecency": 52,
+        "averageFrequency": 2.05,
+        "averageMonetary": 198.31,
+        "averageOrderValue": 96.74
+      },
+      {
+        "id": "new_inactive",
+        "label": "New / Inactive Explorers",
+        "customerCount": 7,
+        "averageRecency": 74,
+        "averageFrequency": 0.14,
+        "averageMonetary": 8.5,
+        "averageOrderValue": 60.71
+      }
+    ]
+  },
+  "churn": {
+    "summary": {
+      "totalAnalyzed": 50,
+      "highRiskCount": 9,
+      "mediumRiskCount": 12,
+      "safeCount": 29,
+      "highRiskPercentage": 18,
+      "averageChurnProbability": 0.314,
+      "atRiskRevenue": 4021.86,
+      "portfolioHealthIndex": 69
+    },
+    "predictions": [
+      {
+        "customerId": 17,
+        "churnProbability": 0.881,
+        "riskLevel": "HIGH_RISK",
+        "matchedRuleId": "DT_R1",
+        "primaryRiskDriver": "High Cart Abandonment (92% unconverted)"
+      },
+      {
+        "customerId": 23,
+        "churnProbability": 0.094,
+        "riskLevel": "SAFE",
+        "matchedRuleId": "DT_R6",
+        "primaryRiskDriver": "Healthy Engagement"
+      }
+    ],
+    "ruleConditions": [
+      { "id": "DT_R1", "condition": "Days Inactive >= 45 AND Cart Abandonment >= 50%", "outcome": "HIGH_RISK" },
+      { "id": "DT_R2", "condition": "Negative Reviews >= 1 AND Days Inactive >= 20", "outcome": "HIGH_RISK" },
+      { "id": "DT_R3", "condition": "Days Inactive >= 60", "outcome": "HIGH_RISK" },
+      { "id": "DT_R4", "condition": "Days Inactive 25-45 AND Cart Abandonment >= 40%", "outcome": "MEDIUM_RISK" },
+      { "id": "DT_R5", "condition": "Total Orders <= 1 AND Days Inactive >= 30", "outcome": "MEDIUM_RISK" },
+      { "id": "DT_R6", "condition": "Days Inactive <= 14 AND Total Orders >= 2", "outcome": "SAFE" },
+      { "id": "DT_R7", "condition": "Days Inactive <= 7", "outcome": "SAFE" }
+    ]
+  },
+  "errors": []
+}
