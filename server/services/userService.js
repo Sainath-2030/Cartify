@@ -43,7 +43,7 @@ export const UserService = {
     try {
       const { AdminService } = await import('./adminService.js');
       const fusionRes = await AdminService.getAttentionFusionRecommendations({ userId, topK });
-      if (fusionRes && fusionRes.recommendations && fusionRes.recommendations.length > 0) {
+      if (fusionRes && !fusionRes.fallback && fusionRes.recommendations && fusionRes.recommendations.length > 0) {
         return fusionRes.recommendations.map((r) => ({
           rank: r.rank,
           productId: r.productId,
@@ -70,7 +70,7 @@ export const UserService = {
     try {
       const { AdminService } = await import('./adminService.js');
       const res = await AdminService.getNcfRecommendations({ userId, topK: topK * 2 });
-      if (res && res.recommendations && res.recommendations.length > 0) {
+      if (res && !res.fallback && res.recommendations && res.recommendations.length > 0) {
         ncfRecs = res.recommendations;
       }
     } catch (err) {

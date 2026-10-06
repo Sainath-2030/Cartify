@@ -465,6 +465,7 @@ export const AdminService = {
 
       return {
         success: true,
+        fallback: true,
         userId,
         totalCandidates: productRes.rows.length,
         recommendations,
@@ -1061,6 +1062,7 @@ export const AdminService = {
 
       return {
         success: true,
+        fallback: true,
         userId,
         interactedCount: 0,
         sessionLength: 0,

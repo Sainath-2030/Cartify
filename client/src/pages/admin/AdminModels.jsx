@@ -83,8 +83,9 @@ export default function AdminModels() {
     { id: 17925, name: 'Designing Data-Intensive Applications', category: 'Books', catId: 8 },
   ];
 
+  // Persona cycle — must exactly match seed_recommendation_interactions.js PERSONA_CONFIGS order
   const PERSONA_NAMES = [
-    'Tech & Gadgets',
+    'Tech & Gadgets (Electronics)',
     'Fashion & Style',
     'Home & Living',
     'Beauty & Skincare',
@@ -94,10 +95,57 @@ export default function AdminModels() {
     'Readers & Scholars (Books)',
   ];
 
+  // Real user names from DB — seeded users 4-37 follow the persona cycle
+  const USER_NAMES = {
+    1:  'System Administrator',
+    2:  'Lead Content Manager',
+    3:  'Demo Shopper',
+    4:  'Aarav Mehta',
+    5:  'Vivaan Nair',
+    6:  'Aditya Iyer',
+    7:  'Vihaan Gupta',
+    8:  'Arjun Singh',
+    9:  'Sai Chopra',
+    10: 'Reyansh Deshmukh',
+    11: 'Ayaan Joshi',
+    12: 'Krishna Bose',
+    13: 'Ishaan Rao',
+    14: 'Ananya Kumar',
+    15: 'Diya Kapoor',
+    16: 'Saanvi Menon',
+    17: 'Aadhya Chatterjee',
+    18: 'Kiara Agarwal',
+    19: 'Myra Bhat',
+    20: 'Ira Sharma',
+    21: 'Riya Verma',
+    22: 'Pooja Patel',
+    23: 'Neha Reddy',
+    24: 'Rohan Mehta',
+    25: 'Karan Nair',
+    26: 'Siddharth Iyer',
+    27: 'Varun Gupta',
+    28: 'Meera Singh',
+    29: 'Sneha Chopra',
+    30: 'Tanvi Deshmukh',
+    31: 'Kavya Joshi',
+    32: 'Tarun Bose',
+    33: 'Nikhil Rao',
+    34: 'Aarav Kumar',
+    35: 'Vivaan Kapoor',
+    36: 'Sainath Nanaware',
+    37: 'Amruta Nanaware',
+  };
+
+  // Returns a rich label: "User #N · Name · Persona"
   const getUserLabel = (uid) => {
-    if (uid === 1) return `User #1 (Tech & Gadgets - Admin)`;
-    const pName = PERSONA_NAMES[(uid - 1) % PERSONA_NAMES.length];
-    return `User #${uid} (${pName})`;
+    const name = USER_NAMES[uid];
+    // uid=1 is Admin, uid=2 is Content Manager — special labels
+    if (uid === 1) return `User #1 · System Administrator · Tech & Gadgets`;
+    if (uid === 2) return `User #2 · Lead Content Manager · Fashion & Style`;
+    if (uid === 3) return `User #3 · Demo Shopper · Home & Living`;
+    const persona = PERSONA_NAMES[(uid - 1) % PERSONA_NAMES.length];
+    const displayName = name ? `${name} ·` : '';
+    return `User #${uid} · ${displayName} ${persona}`;
   };
 
   // Load initial diagnostics
@@ -234,15 +282,15 @@ export default function AdminModels() {
   return (
     <div className="flex flex-col gap-8 pb-12">
       {/* 1. Header Banner */}
-      <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-6 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-4 border-b border-border-subtle pb-6 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <BrainCircuit className="h-5 w-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-ink">AI & Recommendation Models</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               {activeCount} of 5 Models Online (100% Pipeline Active)
             </span>
           </div>
@@ -254,13 +302,13 @@ export default function AdminModels() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={fetchData}
-            className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-ink shadow-sm transition-all hover:bg-neutral-50 active:scale-95"
+            className="flex items-center gap-2 rounded-xl border border-border-subtle bg-card-elevated px-3.5 py-2 text-xs font-semibold text-ink shadow-xs transition-all hover:border-border-strong active:scale-95"
           >
             <RefreshCw className="h-3.5 w-3.5 text-muted" />
             Refresh Diagnostics
           </button>
 
-          <div className="flex items-center rounded-xl border border-border bg-surface p-1 shadow-sm">
+          <div className="flex items-center rounded-xl border border-border-subtle bg-card-elevated p-1 shadow-xs">
             <select
               value={retrainTarget}
               onChange={(e) => setRetrainTarget(e.target.value)}
@@ -273,7 +321,7 @@ export default function AdminModels() {
             <button
               onClick={handleRetrainRequest}
               disabled={retraining}
-              className="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-ink/90 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink transition-all hover:bg-accent/90 active:scale-95 disabled:opacity-50"
             >
               <Play className={`h-3 w-3 ${retraining ? 'animate-spin' : ''}`} />
               {retraining ? 'Retraining...' : 'Trigger Retrain'}
@@ -283,13 +331,13 @@ export default function AdminModels() {
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+      <div className="flex items-center gap-2 border-b border-border-subtle pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab('all')}
-          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shrink-0 transition-all ${
             activeTab === 'all'
-              ? 'bg-ink text-white shadow-sm'
-              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+              ? 'bg-accent text-accent-ink shadow-xs'
+              : 'text-muted hover:bg-card-elevated hover:text-ink'
           }`}
         >
           <Layers className="h-3.5 w-3.5" />
@@ -298,10 +346,10 @@ export default function AdminModels() {
 
         <button
           onClick={() => setActiveTab('ncf')}
-          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shrink-0 transition-all ${
             activeTab === 'ncf'
-              ? 'bg-ink text-white shadow-sm'
-              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+              ? 'bg-accent text-accent-ink shadow-xs'
+              : 'text-muted hover:bg-card-elevated hover:text-ink'
           }`}
         >
           <BrainCircuit className="h-3.5 w-3.5" />
@@ -310,51 +358,51 @@ export default function AdminModels() {
 
         <button
           onClick={() => setActiveTab('cnn')}
-          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shrink-0 transition-all ${
             activeTab === 'cnn'
-              ? 'bg-ink text-white shadow-sm'
-              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+              ? 'bg-accent text-accent-ink shadow-xs'
+              : 'text-muted hover:bg-card-elevated hover:text-ink'
           }`}
         >
-          <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
+          <ImageIcon className="h-3.5 w-3.5 text-emerald-400" />
           CNN (ResNet18 Visual Embeddings)
         </button>
 
         <button
           onClick={() => setActiveTab('gru')}
-          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shrink-0 transition-all ${
             activeTab === 'gru'
-              ? 'bg-ink text-white shadow-sm'
-              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+              ? 'bg-accent text-accent-ink shadow-xs'
+              : 'text-muted hover:bg-card-elevated hover:text-ink'
           }`}
         >
-          <Clock className="h-3.5 w-3.5 text-blue-600" />
+          <Clock className="h-3.5 w-3.5 text-blue-400" />
           GRU (Session Sequence)
         </button>
 
         <button
           onClick={() => setActiveTab('autoencoder')}
-          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shrink-0 transition-all ${
             activeTab === 'autoencoder'
-              ? 'bg-ink text-white shadow-sm'
-              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+              ? 'bg-accent text-accent-ink shadow-xs'
+              : 'text-muted hover:bg-card-elevated hover:text-ink'
           }`}
         >
-          <Cpu className="h-3.5 w-3.5 text-purple-600" />
+          <Cpu className="h-3.5 w-3.5 text-purple-400" />
           Autoencoder (CDAE Latent)
         </button>
 
         <button
           onClick={() => setActiveTab('fusion')}
-          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold shrink-0 transition-all ${
             activeTab === 'fusion'
-              ? 'bg-ink text-white shadow-sm'
-              : 'text-muted hover:bg-neutral-100 hover:text-ink'
+              ? 'bg-accent text-accent-ink shadow-xs'
+              : 'text-muted hover:bg-card-elevated hover:text-ink'
           }`}
         >
-          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+          <Sparkles className="h-3.5 w-3.5 text-amber-400" />
           Attention Fusion (Hybrid)
-          <span className="rounded-full bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.2 text-[10px] font-bold text-amber-300">
             FINAL STAGE
           </span>
         </button>
@@ -377,10 +425,10 @@ export default function AdminModels() {
         <div className="card flex flex-col justify-between p-5">
           <div className="flex items-center justify-between text-muted">
             <span className="text-xs font-semibold uppercase tracking-wider">Evaluation & Retention</span>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-emerald-700">100.0%</span>
+            <span className="text-xl font-bold text-emerald-400">100.0%</span>
             <span className="text-xs font-medium text-muted">HR@10 / Cosine 256d</span>
           </div>
           <p className="mt-1 text-xs text-muted">Leave-one-out NCF hit rate & normalized visual metric</p>
@@ -389,7 +437,7 @@ export default function AdminModels() {
         <div className="card flex flex-col justify-between p-5">
           <div className="flex items-center justify-between text-muted">
             <span className="text-xs font-semibold uppercase tracking-wider">Learned Latent Space</span>
-            <Cpu className="h-4 w-4 text-indigo-600" />
+            <Cpu className="h-4 w-4 text-indigo-400" />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-xl font-bold text-ink">{ncf.usersCount || 35} Users</span>
@@ -401,10 +449,10 @@ export default function AdminModels() {
         <div className="card flex flex-col justify-between p-5">
           <div className="flex items-center justify-between text-muted">
             <span className="text-xs font-semibold uppercase tracking-wider">Pipeline Engine Status</span>
-            <Clock className="h-4 w-4 text-emerald-600" />
+            <Clock className="h-4 w-4 text-emerald-400" />
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
             <span className="text-lg font-bold text-ink">
               {activeCount} Models Ready
             </span>
@@ -418,12 +466,12 @@ export default function AdminModels() {
       {/* 3. CNN Visual Similarity Simulator (Shown on 'all' and 'cnn' tabs) */}
       {(activeTab === 'all' || activeTab === 'cnn') && (
         <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-emerald-500">
-          <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center">
+          <div className="flex flex-col justify-between gap-3 border-b border-border-subtle pb-4 md:flex-row md:items-center">
             <div>
               <div className="flex items-center gap-2">
-                <ImageIcon className="h-5 w-5 text-emerald-600" />
+                <ImageIcon className="h-5 w-5 text-emerald-400" />
                 <h2 className="text-base font-bold text-ink">CNN Visual Similarity Simulator (ResNet18 256-dim Embeddings)</h2>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
                   LIVE MODEL
                 </span>
               </div>
@@ -442,7 +490,7 @@ export default function AdminModels() {
                     setCnnProductId(pid);
                     runCnnSimilarity(pid, cnnTopK);
                   }}
-                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-emerald-500 focus:outline-none max-w-[280px] truncate"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-emerald-500 focus:outline-none max-w-[280px] truncate"
                 >
                   {sampleProducts.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -470,7 +518,7 @@ export default function AdminModels() {
                     setCnnTopK(k);
                     runCnnSimilarity(cnnProductId, k);
                   }}
-                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-emerald-500 focus:outline-none"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-emerald-500 focus:outline-none"
                 >
                   <option value={2}>Top 2</option>
                   <option value={4}>Top 4</option>
@@ -487,7 +535,7 @@ export default function AdminModels() {
                     setEnforceSameCategory(val);
                     runCnnSimilarity(cnnProductId, cnnTopK, val);
                   }}
-                  className="rounded border-border text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                  className="rounded border-border-subtle text-emerald-500 focus:ring-emerald-500 h-3.5 w-3.5"
                 />
                 <span>Same Category Only</span>
               </label>
@@ -495,7 +543,7 @@ export default function AdminModels() {
               <button
                 onClick={() => runCnnSimilarity(cnnProductId, cnnTopK)}
                 disabled={cnnLoading}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-500 active:scale-95 disabled:opacity-50 shadow-xs"
               >
                 <Compass className={`h-3.5 w-3.5 ${cnnLoading ? 'animate-spin' : ''}`} />
                 {cnnLoading ? 'Searching...' : 'Find Visually Similar'}
@@ -541,7 +589,7 @@ export default function AdminModels() {
           {cnnLoading ? (
             <div className="flex min-h-[180px] items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                 <p className="text-xs font-medium text-muted">Computing 256-dim cosine similarity matrix across catalog...</p>
               </div>
             </div>
@@ -556,7 +604,7 @@ export default function AdminModels() {
                     <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
                       Rank #{item.rank}
                     </span>
-                    <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-400 border border-emerald-500/20">
+                    <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300 border border-emerald-500/30">
                       {item.similarityPercentage}% Visual Match
                     </span>
                   </div>
@@ -578,25 +626,25 @@ export default function AdminModels() {
                       {item.name}
                     </h4>
                     {item.categoryName && (
-                      <span className="mt-1 inline-block text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                      <span className="mt-1 inline-block text-[10px] font-medium text-emerald-400 bg-emerald-500/15 border border-emerald-500/20 px-1.5 py-0.5 rounded">
                         {item.categoryName}
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                  <div className="mt-3 flex items-center justify-between border-t border-border-subtle pt-2.5">
                     <div>
                       <span className="text-xs font-extrabold text-ink">
                         ₹{Number(item.finalPrice || item.price || 0).toLocaleString('en-IN')}
                       </span>
                       {item.rating > 0 && (
-                        <span className="ml-2 text-[11px] font-medium text-amber-600">★ {item.rating}</span>
+                        <span className="ml-2 text-[11px] font-medium text-amber-400">★ {item.rating}</span>
                       )}
                     </div>
                     <Link
                       to={`/products/${item.slug || item.productId}`}
                       target="_blank"
-                      className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                      className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
                     >
                       View <ArrowUpRight className="h-3 w-3" />
                     </Link>
@@ -605,7 +653,7 @@ export default function AdminModels() {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-neutral-50/50 p-6 text-center">
+            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle bg-card-elevated/40 p-6 text-center">
               <Info className="h-5 w-5 text-muted" />
               <p className="mt-2 text-xs font-medium text-ink">No visual similarity matches found.</p>
               <p className="text-[11px] text-muted">Select a product above and click "Find Visually Similar".</p>
@@ -617,17 +665,17 @@ export default function AdminModels() {
       {/* 4. CNN Latent Vector Inspector (Shown on 'cnn' tab) */}
       {(activeTab === 'all' || activeTab === 'cnn') && cnnMatrixData?.samples && (
         <div className="card flex flex-col gap-4 p-6">
-          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-indigo-600" />
+                <Cpu className="h-4 w-4 text-indigo-400" />
                 <h3 className="text-sm font-bold text-ink">CNN 256-Dimensional Latent Embedding Sample Matrix</h3>
               </div>
               <p className="text-xs text-muted">
                 L2-normalized feature embeddings produced by ResNet-18 backbone and projection head for cosine similarity search.
               </p>
             </div>
-            <span className="rounded-md bg-indigo-50 text-indigo-700 px-2.5 py-1 text-[11px] font-semibold">
+            <span className="rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 text-[11px] font-semibold">
               Dim: 256 | L2 Norm = 1.0000
             </span>
           </div>
@@ -635,16 +683,16 @@ export default function AdminModels() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-border/60 bg-neutral-50/70 text-muted">
+                <tr className="border-b border-border-subtle bg-card-elevated text-muted">
                   <th className="px-4 py-2.5 font-semibold">Product ID</th>
                   <th className="px-4 py-2.5 font-semibold">Sample Coordinates (d0 .. d7)</th>
                   <th className="px-4 py-2.5 font-semibold">Vector Norm</th>
                   <th className="px-4 py-2.5 font-semibold">Embedding State</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40 font-mono">
+              <tbody className="divide-y divide-border-subtle font-mono">
                 {cnnMatrixData.samples.map((sample, idx) => (
-                  <tr key={idx} className="transition-colors hover:bg-neutral-50/50">
+                  <tr key={idx} className="transition-colors hover:bg-card-elevated/60">
                     <td className="px-4 py-2.5 font-bold text-ink">Product #{sample.product_id}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-1">
@@ -652,7 +700,7 @@ export default function AdminModels() {
                           <span
                             key={vIdx}
                             className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              val >= 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+                              val >= 0 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
                             }`}
                           >
                             {val >= 0 ? `+${val.toFixed(4)}` : val.toFixed(4)}
@@ -660,9 +708,9 @@ export default function AdminModels() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 font-semibold text-indigo-700">{sample.norm || '1.0000'}</td>
+                    <td className="px-4 py-2.5 font-semibold text-indigo-400 font-mono">{sample.norm || '1.0000'}</td>
                     <td className="px-4 py-2.5">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
                         <Check className="h-3 w-3" /> NORMALIZED 256d
                       </span>
                     </td>
@@ -824,14 +872,14 @@ export default function AdminModels() {
       {/* 6. Full Predicted Affinity Matrix (Shown on 'ncf' tab) */}
       {(activeTab === 'all' || activeTab === 'ncf') && affinityData?.matrix && affinityData.matrix.length > 0 && (
         <div className="card flex flex-col gap-4 p-6">
-          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
             <div>
               <h3 className="text-sm font-bold text-ink">Predicted User-Item Affinity Probability Matrix</h3>
               <p className="text-xs text-muted">
                 Raw Sigmoid output probability $P(y=1|u,i)$ generated by the trained NeuMF model for all known training combinations.
               </p>
             </div>
-            <span className="rounded-md bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold text-muted">
+            <span className="rounded-md bg-card-elevated border border-border-subtle px-2.5 py-1 text-[11px] font-semibold text-muted">
               {affinityData.matrix.length} Matrix Cells
             </span>
           </div>
@@ -839,7 +887,7 @@ export default function AdminModels() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-border/60 bg-neutral-50/70 text-muted">
+                <tr className="border-b border-border-subtle bg-card-elevated text-muted">
                   <th className="px-4 py-2.5 font-semibold">User ID</th>
                   <th className="px-4 py-2.5 font-semibold">Product ID</th>
                   <th className="px-4 py-2.5 font-semibold">Predicted Score</th>
@@ -847,18 +895,18 @@ export default function AdminModels() {
                   <th className="px-4 py-2.5 font-semibold">Classification</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-border-subtle">
                 {affinityData.matrix.map((row, idx) => {
                   const score = row.predicted_score;
                   const pct = Math.round(score * 1000) / 10;
                   return (
-                    <tr key={idx} className="transition-colors hover:bg-neutral-50/50">
+                    <tr key={idx} className="transition-colors hover:bg-card-elevated/60">
                       <td className="px-4 py-2.5 font-bold text-ink">User #{row.user_id}</td>
-                      <td className="px-4 py-2.5 font-semibold text-neutral-700">Product #{row.product_id}</td>
+                      <td className="px-4 py-2.5 font-semibold text-muted">Product #{row.product_id}</td>
                       <td className="px-4 py-2.5 font-mono font-medium text-ink">{score.toFixed(4)}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-200">
+                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-card-elevated border border-border-subtle">
                             <div
                               className="h-full rounded-full bg-emerald-500"
                               style={{ width: `${pct}%` }}
@@ -868,7 +916,7 @@ export default function AdminModels() {
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                        <span className="inline-flex rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
                           POSITIVE AFFINITY
                         </span>
                       </td>
@@ -884,12 +932,12 @@ export default function AdminModels() {
       {/* GRU Live Sequence Simulator (Shown on 'all' and 'gru' tabs) */}
       {(activeTab === 'all' || activeTab === 'gru') && (
         <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-blue-500">
-          <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center">
+          <div className="flex flex-col justify-between gap-3 border-b border-border-subtle pb-4 md:flex-row md:items-center">
             <div>
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-blue-600" />
+                <Clock className="h-5 w-5 text-blue-400" />
                 <h2 className="text-base font-bold text-ink">GRU Session Sequence Inference</h2>
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold text-blue-300">
                   LIVE MODEL
                 </span>
               </div>
@@ -908,7 +956,7 @@ export default function AdminModels() {
                     setGruUserId(uid);
                     runGruRecommendation(uid, gruTopK);
                   }}
-                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none max-w-[280px] truncate"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none max-w-[280px] truncate"
                 >
                   {(gru.userIds || ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
                     <option key={uid} value={uid}>
@@ -927,7 +975,7 @@ export default function AdminModels() {
                     setGruTopK(k);
                     runGruRecommendation(gruUserId, k);
                   }}
-                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none"
                 >
                   <option value={2}>Top 2</option>
                   <option value={4}>Top 4</option>
@@ -938,7 +986,7 @@ export default function AdminModels() {
               <button
                 onClick={() => runGruRecommendation(gruUserId, gruTopK)}
                 disabled={gruLoading}
-                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-blue-500 active:scale-95 disabled:opacity-50 shadow-xs"
               >
                 <Play className={`h-3.5 w-3.5 ${gruLoading ? 'animate-spin' : ''}`} />
                 {gruLoading ? 'Predicting...' : 'Predict Next Item'}
@@ -950,14 +998,14 @@ export default function AdminModels() {
           {gruLoading ? (
             <div className="flex min-h-[180px] items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
                 <p className="text-xs font-medium text-muted">Processing recent sequence through GRU cell layers...</p>
               </div>
             </div>
           ) : gruResult?.recommendations && gruResult.recommendations.length > 0 ? (
             <div>
               <div className="mb-4 flex items-center gap-2">
-                <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-2 py-1 text-xs font-semibold text-blue-300">
                   Input Sequence Length: {gruResult.sequenceLength} items
                 </span>
                 <span className="text-xs text-muted">Predicting next likely interaction...</span>
@@ -972,7 +1020,7 @@ export default function AdminModels() {
                       <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
                         Rank #{rec.rank}
                       </span>
-                      <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
+                      <span className="inline-flex items-center rounded-md bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 text-[11px] font-bold text-blue-300">
                         {rec.affinityPercentage}% Prob
                       </span>
                     </div>
@@ -995,19 +1043,19 @@ export default function AdminModels() {
                       </h4>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                    <div className="mt-3 flex items-center justify-between border-t border-border-subtle pt-2.5">
                       <div>
                         <span className="text-xs font-extrabold text-ink">
                           ₹{Number(rec.finalPrice || rec.price || 0).toLocaleString('en-IN')}
                         </span>
                         {rec.rating > 0 && (
-                          <span className="ml-2 text-[11px] font-medium text-amber-600">★ {rec.rating}</span>
+                          <span className="ml-2 text-[11px] font-medium text-amber-400">★ {rec.rating}</span>
                         )}
                       </div>
                       <Link
                         to={`/products/${rec.productId}`}
                         target="_blank"
-                        className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                        className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
                       >
                         View <ArrowUpRight className="h-3 w-3" />
                       </Link>
@@ -1017,7 +1065,7 @@ export default function AdminModels() {
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-neutral-50/50 p-6 text-center">
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle bg-card-elevated/40 p-6 text-center">
               <Info className="h-5 w-5 text-muted" />
               <p className="mt-2 text-xs font-medium text-ink">No sequence predictions available.</p>
               <p className="text-[11px] text-muted">User might not have enough recent interaction history.</p>
@@ -1029,12 +1077,12 @@ export default function AdminModels() {
       {/* Autoencoder Live Latent Simulator (Shown on 'all' and 'autoencoder' tabs) */}
       {(activeTab === 'all' || activeTab === 'autoencoder') && (
         <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-purple-500">
-          <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center">
+          <div className="flex flex-col justify-between gap-3 border-b border-border-subtle pb-4 md:flex-row md:items-center">
             <div>
               <div className="flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-purple-600" />
+                <Cpu className="h-5 w-5 text-purple-400" />
                 <h2 className="text-base font-bold text-ink">Autoencoder Latent Space Reconstruction</h2>
-                <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800">
+                <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-300">
                   LIVE MODEL (64-dim Bottleneck)
                 </span>
               </div>
@@ -1053,7 +1101,7 @@ export default function AdminModels() {
                     setAeUserId(uid);
                     runAutoencoderRecommendation(uid, aeTopK);
                   }}
-                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-purple-500 focus:outline-none max-w-[280px] truncate"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-purple-500 focus:outline-none max-w-[280px] truncate"
                 >
                   {(autoencoder.userIds || ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
                     <option key={uid} value={uid}>
@@ -1072,7 +1120,7 @@ export default function AdminModels() {
                     setAeTopK(k);
                     runAutoencoderRecommendation(aeUserId, k);
                   }}
-                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-purple-500 focus:outline-none"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-purple-500 focus:outline-none"
                 >
                   <option value={2}>Top 2</option>
                   <option value={4}>Top 4</option>
@@ -1084,7 +1132,7 @@ export default function AdminModels() {
               <button
                 onClick={() => runAutoencoderRecommendation(aeUserId, aeTopK)}
                 disabled={aeLoading}
-                className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-purple-700 active:scale-95 disabled:opacity-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-purple-500 active:scale-95 disabled:opacity-50 shadow-xs"
               >
                 <Play className={`h-3.5 w-3.5 ${aeLoading ? 'animate-spin' : ''}`} />
                 {aeLoading ? 'Reconstructing...' : 'Reconstruct & Predict'}
@@ -1094,14 +1142,14 @@ export default function AdminModels() {
 
           {/* Latent Vector Preview Strip */}
           {aeResult?.latentVector && (
-            <div className="rounded-xl border border-purple-200/60 bg-purple-50/30 p-4">
+            <div className="rounded-xl border border-purple-500/20 bg-purple-500/10 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-purple-900">Latent Bottleneck Vector Preview</span>
-                  <span className="rounded bg-purple-200/80 px-1.5 py-0.5 text-[10px] font-bold text-purple-800">
+                  <span className="text-xs font-bold text-purple-300">Latent Bottleneck Vector Preview</span>
+                  <span className="rounded bg-purple-500/20 border border-purple-500/30 px-1.5 py-0.5 text-[10px] font-bold text-purple-300">
                     Dim: {aeResult.latentVector.dimension}d
                   </span>
-                  <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+                  <span className="rounded bg-purple-500/20 border border-purple-500/30 px-1.5 py-0.5 text-[10px] font-medium text-purple-300">
                     ||z||: {aeResult.latentVector.norm}
                   </span>
                 </div>
@@ -1118,16 +1166,16 @@ export default function AdminModels() {
                   return (
                     <div
                       key={idx}
-                      className="group relative flex flex-col items-center justify-center rounded p-1 text-center font-mono text-[9px] transition-all hover:scale-110"
+                      className="group relative flex flex-col items-center justify-center rounded p-1 text-center font-mono text-[9px] transition-all hover:scale-110 border border-purple-500/20"
                       style={{
                         backgroundColor: isPos
-                          ? `rgba(147, 51, 234, ${0.15 + intensity * 0.55})`
-                          : `rgba(225, 29, 72, ${0.15 + intensity * 0.55})`,
-                        color: intensity > 0.4 ? '#ffffff' : '#333333',
+                          ? `rgba(147, 51, 234, ${0.25 + intensity * 0.55})`
+                          : `rgba(225, 29, 72, ${0.25 + intensity * 0.55})`,
+                        color: '#ffffff',
                       }}
                       title={`z[${idx}] = ${val}`}
                     >
-                      <span className="truncate">{val > 0 ? `+${val.toFixed(1)}` : val.toFixed(1)}</span>
+                      <span className="truncate font-semibold">{val > 0 ? `+${val.toFixed(1)}` : val.toFixed(1)}</span>
                     </div>
                   );
                 })}
@@ -1139,7 +1187,7 @@ export default function AdminModels() {
           {aeLoading ? (
             <div className="flex min-h-[180px] items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
                 <p className="text-xs font-medium text-muted">Decompressing latent embedding through CDAE decoder...</p>
               </div>
             </div>
@@ -1147,7 +1195,7 @@ export default function AdminModels() {
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
+                  <span className="rounded-md bg-purple-500/15 border border-purple-500/30 px-2 py-1 text-xs font-semibold text-purple-300">
                     Reconstructed Top-{aeResult.recommendations.length} Preferences
                   </span>
                   <span className="text-xs text-muted">Ranked by unobserved latent affinity reconstruction</span>
@@ -1163,7 +1211,7 @@ export default function AdminModels() {
                       <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
                         Rank #{rec.rank}
                       </span>
-                      <span className="inline-flex items-center rounded-md bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-800">
+                      <span className="inline-flex items-center rounded-md bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[11px] font-bold text-purple-300">
                         {rec.affinityPercentage}% Affinity
                       </span>
                     </div>
@@ -1186,19 +1234,19 @@ export default function AdminModels() {
                       </h4>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                    <div className="mt-3 flex items-center justify-between border-t border-border-subtle pt-2.5">
                       <div>
                         <span className="text-xs font-extrabold text-ink">
                           ₹{Number(rec.finalPrice || rec.price || 0).toLocaleString('en-IN')}
                         </span>
                         {rec.rating > 0 && (
-                          <span className="ml-2 text-[11px] font-medium text-amber-600">★ {rec.rating}</span>
+                          <span className="ml-2 text-[11px] font-medium text-amber-400">★ {rec.rating}</span>
                         )}
                       </div>
                       <Link
                         to={`/products/${rec.productId}`}
                         target="_blank"
-                        className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                        className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
                       >
                         View <ArrowUpRight className="h-3 w-3" />
                       </Link>
@@ -1208,7 +1256,7 @@ export default function AdminModels() {
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-neutral-50/50 p-6 text-center">
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle bg-card-elevated/40 p-6 text-center">
               <Info className="h-5 w-5 text-muted" />
               <p className="mt-2 text-xs font-medium text-ink">No autoencoder predictions available.</p>
               <p className="text-[11px] text-muted">Try selecting another user or running the training pipeline.</p>
@@ -1219,15 +1267,15 @@ export default function AdminModels() {
 
       {/* 6. Attention Fusion Hybrid Simulator (Shown on 'all' and 'fusion' tabs) */}
       {(activeTab === 'all' || activeTab === 'fusion') && (
-        <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-amber-500 bg-gradient-to-br from-card via-card to-amber-50/10">
-          <div className="flex flex-col justify-between gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center">
+        <div className="card flex flex-col gap-6 p-6 border-l-4 border-l-amber-500 bg-gradient-to-br from-card via-card to-amber-500/5">
+          <div className="flex flex-col justify-between gap-3 border-b border-border-subtle pb-4 md:flex-row md:items-center">
             <div>
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-500" />
+                <Sparkles className="h-5 w-5 text-amber-400" />
                 <h2 className="text-base font-bold text-ink">
                   Attention Fusion Hybrid Simulator (NCF + CNN + GRU + Autoencoder)
                 </h2>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
                   STAGE 5 / 5 ONLINE
                 </span>
               </div>
@@ -1246,7 +1294,7 @@ export default function AdminModels() {
                     setFusionUserId(uid);
                     runFusionRecommendation(uid, fusionTopK);
                   }}
-                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none max-w-[280px] truncate"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none max-w-[280px] truncate"
                 >
                   {(ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
                     <option key={uid} value={uid}>
@@ -1265,7 +1313,7 @@ export default function AdminModels() {
                     setFusionTopK(k);
                     runFusionRecommendation(fusionUserId, k);
                   }}
-                  className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none"
+                  className="rounded-lg border border-border-subtle bg-card-elevated px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none"
                 >
                   <option value={2}>Top 2</option>
                   <option value={4}>Top 4</option>
@@ -1277,7 +1325,7 @@ export default function AdminModels() {
               <button
                 onClick={() => runFusionRecommendation(fusionUserId, fusionTopK)}
                 disabled={fusionLoading}
-                className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-ink transition-all hover:bg-amber-400 active:scale-95 disabled:opacity-50 shadow-sm"
+                className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-ink transition-all hover:bg-amber-400 active:scale-95 disabled:opacity-50 shadow-xs"
               >
                 <Sparkles className={`h-3.5 w-3.5 ${fusionLoading ? 'animate-spin' : ''}`} />
                 {fusionLoading ? 'Computing Fusion...' : 'Compute Attention Fusion'}
@@ -1287,11 +1335,11 @@ export default function AdminModels() {
 
           {/* Dynamic Attention Weight Breakdown Gauges */}
           {fusionResult?.aggregateAttentionWeights && (
-            <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 p-4">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-amber-950">Dynamic Multi-Modal Attention Weights (Σ α = 100%)</span>
-                  <span className="rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                  <span className="text-xs font-bold text-amber-300">Dynamic Multi-Modal Attention Weights (Σ α = 100%)</span>
+                  <span className="rounded bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
                     Query-Conditioned
                   </span>
                 </div>
@@ -1301,7 +1349,7 @@ export default function AdminModels() {
               </div>
 
               {/* Stacked Attention Distribution Bar */}
-              <div className="mt-3 flex h-3.5 w-full overflow-hidden rounded-full bg-neutral-200 p-0.5">
+              <div className="mt-3 flex h-3.5 w-full overflow-hidden rounded-full bg-card-elevated border border-border-subtle p-0.5">
                 <div
                   style={{ width: `${(fusionResult.aggregateAttentionWeights.NCF || 0.25) * 100}%` }}
                   className="h-full bg-blue-500 transition-all duration-500 first:rounded-l-full last:rounded-r-full"
@@ -1326,54 +1374,54 @@ export default function AdminModels() {
 
               {/* 4 Modality Weight Cards */}
               <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                <div className="flex flex-col rounded-lg border border-blue-200/60 bg-blue-50/40 p-2.5">
-                  <span className="text-[10px] font-bold text-blue-700">NCF Collaborative</span>
+                <div className="flex flex-col rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5">
+                  <span className="text-[10px] font-bold text-blue-400">NCF Collaborative</span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="text-base font-extrabold text-blue-950">
+                    <span className="text-base font-extrabold text-blue-200">
                       {((fusionResult.aggregateAttentionWeights.NCF || 0) * 100).toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-blue-600">α_NCF</span>
+                    <span className="text-[10px] text-blue-400 font-mono">α_NCF</span>
                   </div>
                   <span className="mt-0.5 text-[9px] text-muted">Co-occurrence affinity</span>
                 </div>
 
-                <div className="flex flex-col rounded-lg border border-emerald-200/60 bg-emerald-50/40 p-2.5">
-                  <span className="text-[10px] font-bold text-emerald-700">CNN Visual Features</span>
+                <div className="flex flex-col rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5">
+                  <span className="text-[10px] font-bold text-emerald-400">CNN Visual Features</span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="text-base font-extrabold text-emerald-950">
+                    <span className="text-base font-extrabold text-emerald-200">
                       {((fusionResult.aggregateAttentionWeights.CNN || 0) * 100).toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-emerald-600">α_CNN</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">α_CNN</span>
                   </div>
                   <span className="mt-0.5 text-[9px] text-muted">Deep visual aesthetics</span>
                 </div>
 
-                <div className="flex flex-col rounded-lg border border-indigo-200/60 bg-indigo-50/40 p-2.5">
-                  <span className="text-[10px] font-bold text-indigo-700">GRU Sequence RNN</span>
+                <div className="flex flex-col rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-2.5">
+                  <span className="text-[10px] font-bold text-indigo-400">GRU Sequence RNN</span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="text-base font-extrabold text-indigo-950">
+                    <span className="text-base font-extrabold text-indigo-200">
                       {((fusionResult.aggregateAttentionWeights.GRU || 0) * 100).toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-indigo-600">α_GRU</span>
+                    <span className="text-[10px] text-indigo-400 font-mono">α_GRU</span>
                   </div>
                   <span className="mt-0.5 text-[9px] text-muted">In-session trajectory</span>
                 </div>
 
-                <div className="flex flex-col rounded-lg border border-purple-200/60 bg-purple-50/40 p-2.5">
-                  <span className="text-[10px] font-bold text-purple-700">CDAE Latent Manifold</span>
+                <div className="flex flex-col rounded-lg border border-purple-500/20 bg-purple-500/10 p-2.5">
+                  <span className="text-[10px] font-bold text-purple-400">CDAE Latent Manifold</span>
                   <div className="mt-1 flex items-baseline justify-between">
-                    <span className="text-base font-extrabold text-purple-950">
+                    <span className="text-base font-extrabold text-purple-200">
                       {((fusionResult.aggregateAttentionWeights.AUTOENCODER || 0) * 100).toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-purple-600">α_AE</span>
+                    <span className="text-[10px] text-purple-400 font-mono">α_AE</span>
                   </div>
                   <span className="mt-0.5 text-[9px] text-muted">Sparse reconstruction</span>
                 </div>
               </div>
 
               {fusionResult.explanation && (
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-100/60 px-3 py-2 text-xs font-medium text-amber-950">
-                  <Sparkles className="h-4 w-4 flex-shrink-0 text-amber-700" />
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/15 border border-amber-500/30 px-3 py-2 text-xs font-medium text-amber-200">
+                  <Sparkles className="h-4 w-4 shrink-0 text-amber-400" />
                   <span>{fusionResult.explanation}</span>
                 </div>
               )}
@@ -1384,7 +1432,7 @@ export default function AdminModels() {
           {fusionLoading ? (
             <div className="flex min-h-[180px] items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
                 <p className="text-xs font-medium text-muted">Fusing multi-modal embeddings across 4 models via Attention...</p>
               </div>
             </div>
@@ -1392,7 +1440,7 @@ export default function AdminModels() {
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 border border-amber-200">
+                  <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-1 text-xs font-semibold text-amber-300">
                     Attention-Fused Top-{fusionResult.recommendations.length} Recommendations
                   </span>
                   <span className="text-xs text-muted">Ranked by unified multi-modal hybrid score</span>
@@ -1403,12 +1451,12 @@ export default function AdminModels() {
                   const domMod = rec.dominantModality || 'NCF';
                   const badgeColor =
                     domMod === 'NCF'
-                      ? 'bg-blue-100 text-blue-800 border-blue-200'
+                      ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
                       : domMod === 'CNN'
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                       : domMod === 'GRU'
-                      ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
-                      : 'bg-purple-100 text-purple-800 border-purple-200';
+                      ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                      : 'bg-purple-500/15 text-purple-300 border-purple-500/30';
 
                   return (
                     <div
@@ -1419,7 +1467,7 @@ export default function AdminModels() {
                         <span className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] font-bold text-muted border border-border-subtle">
                           Rank #{rec.rank}
                         </span>
-                        <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900 border border-amber-200">
+                        <span className="inline-flex items-center rounded-md bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-300">
                           {rec.affinityPercentage}% Fused
                         </span>
                       </div>
@@ -1449,38 +1497,38 @@ export default function AdminModels() {
 
                       {/* Mini Per-Item Attention Breakdown */}
                       {rec.attentionWeights && (
-                        <div className="mt-2 rounded-lg bg-neutral-50/80 p-2 text-[10px] border border-border/40">
+                        <div className="mt-2 rounded-lg bg-card border border-border-subtle p-2 text-[10px]">
                           <div className="text-[9px] font-bold text-muted uppercase">Attention Allocation</div>
                           <div className="mt-1 grid grid-cols-4 gap-1 text-center font-mono text-[9px]">
-                            <span className="rounded bg-blue-50 text-blue-700 py-0.5" title="NCF Attention">
+                            <span className="rounded bg-blue-500/15 text-blue-300 py-0.5" title="NCF Attention">
                               N:{(rec.attentionWeights.ncf * 100).toFixed(0)}%
                             </span>
-                            <span className="rounded bg-emerald-50 text-emerald-700 py-0.5" title="CNN Attention">
+                            <span className="rounded bg-emerald-500/15 text-emerald-300 py-0.5" title="CNN Attention">
                               C:{(rec.attentionWeights.cnn * 100).toFixed(0)}%
                             </span>
-                            <span className="rounded bg-indigo-50 text-indigo-700 py-0.5" title="GRU Attention">
+                            <span className="rounded bg-indigo-500/15 text-indigo-300 py-0.5" title="GRU Attention">
                               G:{(rec.attentionWeights.gru * 100).toFixed(0)}%
                             </span>
-                            <span className="rounded bg-purple-50 text-purple-700 py-0.5" title="AE Attention">
+                            <span className="rounded bg-purple-500/15 text-purple-300 py-0.5" title="AE Attention">
                               A:{(rec.attentionWeights.autoencoder * 100).toFixed(0)}%
                             </span>
                           </div>
                         </div>
                       )}
 
-                      <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                      <div className="mt-3 flex items-center justify-between border-t border-border-subtle pt-2.5">
                         <div>
                           <span className="text-xs font-extrabold text-ink">
                             ₹{Number(rec.finalPrice || rec.price || 0).toLocaleString('en-IN')}
                           </span>
                           {rec.rating > 0 && (
-                            <span className="ml-2 text-[11px] font-medium text-amber-600">★ {rec.rating}</span>
+                            <span className="ml-2 text-[11px] font-medium text-amber-400">★ {rec.rating}</span>
                           )}
                         </div>
                         <Link
                           to={`/products/${rec.productId}`}
                           target="_blank"
-                          className="flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                          className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
                         >
                           View <ArrowUpRight className="h-3 w-3" />
                         </Link>
@@ -1491,7 +1539,7 @@ export default function AdminModels() {
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-neutral-50/50 p-6 text-center">
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-xl border border-dashed border-border-subtle bg-card-elevated/40 p-6 text-center">
               <Info className="h-5 w-5 text-muted" />
               <p className="mt-2 text-xs font-medium text-ink">No attention fusion predictions available.</p>
               <p className="text-[11px] text-muted">Select another user or click Compute Attention Fusion.</p>
@@ -1502,14 +1550,14 @@ export default function AdminModels() {
 
       {/* 7. Complete Multi-Modal Architecture Roadmap List */}
       <div className="card flex flex-col gap-4 p-6">
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <div className="flex items-center justify-between border-b border-border-subtle pb-3">
           <div>
             <h3 className="text-sm font-bold text-ink">Cartify 5-Stage Multi-Model Recommendation Pipeline</h3>
             <p className="text-xs text-muted">
               Hybrid recommendation architecture combining collaborative filtering, deep visual embeddings, session sequence recurrent networks, and multi-modal attention fusion.
             </p>
           </div>
-          <span className="rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold">
+          <span className="rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-bold">
             {activeCount} of 5 Models Online
           </span>
         </div>
@@ -1524,10 +1572,10 @@ export default function AdminModels() {
                 key={idx}
                 className={`flex flex-col justify-between rounded-xl border p-4 transition-all ${
                   isActive
-                    ? 'border-emerald-300/80 bg-emerald-50/20 shadow-sm'
+                    ? 'border-emerald-500/30 bg-emerald-500/5 shadow-xs'
                     : isScaffold
-                    ? 'border-indigo-200/80 bg-indigo-50/20'
-                    : 'border-border/60 bg-neutral-50/30 opacity-80'
+                    ? 'border-indigo-500/30 bg-indigo-500/5'
+                    : 'border-border-subtle bg-card-elevated/40 opacity-80'
                 }`}
               >
                 <div>
@@ -1535,10 +1583,10 @@ export default function AdminModels() {
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
                         isActive
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                           : isScaffold
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-neutral-100 text-neutral-600'
+                          ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                          : 'bg-card-elevated text-muted border border-border-subtle'
                       }`}
                     >
                       {isActive ? '● LIVE / TRAINED' : isScaffold ? '⚡ SCAFFOLD READY' : '○ PHASE 5 PLANNED'}
@@ -1553,16 +1601,16 @@ export default function AdminModels() {
                   </p>
                 </div>
 
-                <div className="mt-3 border-t border-border/50 pt-2 text-[10px] text-muted flex flex-col gap-1">
+                <div className="mt-3 border-t border-border-subtle pt-2 text-[10px] text-muted flex flex-col gap-1">
                   {isActive ? (
                     <>
-                      <span className="font-semibold text-emerald-700 truncate">
+                      <span className="font-semibold text-emerald-400 truncate">
                         Loaded: {isCnn ? 'artifacts/cnn_model.pt & cnn_embeddings.npy' : 'artifacts/ncf_model.pt'}
                       </span>
                       {isCnn && (
                         <button
                           onClick={() => setActiveTab('cnn')}
-                          className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:underline"
+                          className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 hover:underline"
                         >
                           <Compass className="h-3 w-3" /> Test CNN Visual Search
                         </button>

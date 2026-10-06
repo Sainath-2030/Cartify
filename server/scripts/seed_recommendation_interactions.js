@@ -19,7 +19,7 @@ const PERSONA_CONFIGS = [
   { name: 'Sports & Active', primaryCat: ['Sports'], secondaryCat: ['Electronics'] },
   { name: 'Gourmet & Daily Needs', primaryCat: ['Grocery'], secondaryCat: ['Home & Kitchen'] },
   { name: 'Hardcore Gaming', primaryCat: ['Gaming'], secondaryCat: ['Electronics'] },
-  { name: 'Readers & Scholars', primaryCat: ['Books'], secondaryCat: ['Books'] },
+  { name: 'Readers & Scholars (Books)', primaryCat: ['Books'], secondaryCat: ['Books'] },
 ];
 
 const FIRST_NAMES = [
@@ -171,8 +171,8 @@ async function seedData() {
 
     await client.query('BEGIN');
     try {
-      console.log('🧹 Clearing previous synthetic interactions (source = synthetic_simulation)...');
-      await client.query("DELETE FROM interactions WHERE metadata->>'source' = 'synthetic_simulation'");
+      console.log('🧹 Clearing previous interactions to remove legacy noise and stale personas...');
+      await client.query("DELETE FROM interactions");
 
       // Insert in chunks of 500
       const chunkSize = 500;
