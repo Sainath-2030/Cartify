@@ -21,7 +21,8 @@ import {
   Tooltip,
   Cell
 } from 'recharts';
-import { formatCurrency, formatNumber, grainLabels } from './biShared.js';
+import { useTheme } from '../../../hooks/useTheme.js';
+import { formatCurrency, formatNumber, grainLabels, getChartTheme, axisTick, tooltipStyle } from './biShared.js';
 
 /**
  * Section 4: Interactive multi-dimensional OLAP slice, dice, drill-down and roll-up.
@@ -51,35 +52,40 @@ export default function OlapExplorerPanel({
   setHoveredOlapCell,
   showSqlPreview,
   setShowSqlPreview,
-  fetchOlapCube
+  fetchOlapCube,
+  olapErrorMessage
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const chart = getChartTheme(isDark);
+
   return (
     <>
 {/* SECTION 4: Interactive Multi-Dimensional OLAP Slice & Dice (CUBE & ROLLUP) */}
-<div className="bg-white border border-stone-200/90 rounded-xl p-6 shadow-xs mt-8 space-y-6">
+<div className="bg-card border border-border-subtle rounded-xl p-6 shadow-xs mt-8 space-y-6">
   {/* Section Header */}
-  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-100 pb-5">
+  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border-subtle pb-5">
     <div>
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/70">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30">
           <Box className="w-3.5 h-3.5 text-amber-600" />
           PostgreSQL GROUP BY CUBE & ROLLUP
         </span>
-        <span className="text-xs text-stone-400">•</span>
-        <span className="text-xs text-stone-500 font-mono">DWM Section 4 Engine</span>
+        <span className="text-xs text-muted">•</span>
+        <span className="text-xs text-muted font-mono">DWM Section 4 Engine</span>
       </div>
-      <h3 className="text-xl font-bold text-stone-900 tracking-tight font-display flex items-center gap-2">
+      <h3 className="text-xl font-bold text-ink tracking-tight font-display flex items-center gap-2">
         Multi-Dimensional OLAP Analytics (Slice, Dice, Roll-Up & Drill-Down)
       </h3>
-      <p className="text-xs text-stone-600 mt-1 max-w-3xl">
-        Execute dynamic multi-dimensional queries across Star Schema facts (<code className="text-stone-800 font-mono">fact_sales</code>) and dimensions (<code className="text-stone-800 font-mono">dim_time</code>, <code className="text-stone-800 font-mono">dim_product</code>, <code className="text-stone-800 font-mono">dim_customer</code>). Drill down through temporal hierarchies, slice by single dimensions, or dice across multiple coordinate criteria simultaneously.
+      <p className="text-xs text-muted mt-1 max-w-3xl">
+        Execute dynamic multi-dimensional queries across Star Schema facts (<code className="text-ink font-mono">fact_sales</code>) and dimensions (<code className="text-ink font-mono">dim_time</code>, <code className="text-ink font-mono">dim_product</code>, <code className="text-ink font-mono">dim_customer</code>). Drill down through temporal hierarchies, slice by single dimensions, or dice across multiple coordinate criteria simultaneously.
       </p>
     </div>
 
     <div className="flex flex-wrap items-center gap-2.5">
       <button
         onClick={() => setShowSqlPreview(!showSqlPreview)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-medium text-stone-700 hover:bg-stone-50 transition shadow-xs"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle text-xs font-medium text-muted hover:bg-card-elevated transition shadow-xs"
       >
         <Code2 className="w-3.5 h-3.5 text-indigo-600" />
         <span>{showSqlPreview ? 'Hide OLAP SQL' : 'View OLAP SQL & Theory'}</span>
@@ -87,7 +93,7 @@ export default function OlapExplorerPanel({
       <button
         onClick={fetchOlapCube}
         disabled={olapLoading}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 text-white text-xs font-medium hover:bg-stone-800 disabled:opacity-50 transition shadow-xs"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-ink text-xs font-medium hover:bg-accent-hover disabled:opacity-50 transition shadow-xs"
       >
         <RefreshCw className={`w-3.5 h-3.5 ${olapLoading ? 'animate-spin' : ''}`} />
         <span>{olapLoading ? 'Computing Cube...' : 'Execute OLAP'}</span>
@@ -97,33 +103,33 @@ export default function OlapExplorerPanel({
 
   {/* Collapsible SQL Query & Academic OLAP Theory Inspector */}
   {showSqlPreview && (
-    <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/70 via-stone-50 to-purple-50/50 p-5 text-xs text-stone-700 space-y-4 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between border-b border-indigo-200/60 pb-3">
+    <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 via-card-elevated to-purple-500/10 p-5 text-xs text-muted space-y-4 animate-in fade-in duration-300">
+      <div className="flex items-center justify-between border-b border-indigo-500/30 pb-3">
         <div className="flex items-center gap-2">
           <Code2 className="w-4 h-4 text-indigo-600" />
-          <span className="font-semibold text-stone-900 font-display">Academic Concept: Multi-Dimensional OLAP Operations</span>
+          <span className="font-semibold text-ink font-display">Academic Concept: Multi-Dimensional OLAP Operations</span>
         </div>
-        <span className="font-mono text-[11px] text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded">
+        <span className="font-mono text-[11px] text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded">
           Mode: {olapCubeMode.toUpperCase()} | Grain: {olapTimeGrain.toUpperCase()}
         </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
-        <div className="bg-white/90 p-3 rounded-lg border border-stone-200/70">
-          <span className="font-bold text-stone-900 block mb-1">1. CUBE Operation (2ⁿ Subsets)</span>
-          <p className="text-stone-600 leading-relaxed">
+        <div className="bg-card p-3 rounded-lg border border-border-subtle">
+          <span className="font-bold text-ink block mb-1">1. CUBE Operation (2ⁿ Subsets)</span>
+          <p className="text-muted leading-relaxed">
             Computes all 2ⁿ possible groupings of the specified n dimensions. Generates simultaneous cross-tabular aggregations, sub-totals, and grand totals tagged via PostgreSQL <code className="text-indigo-600 font-mono">GROUPING()</code> bitmasks.
           </p>
         </div>
-        <div className="bg-white/90 p-3 rounded-lg border border-stone-200/70">
-          <span className="font-bold text-stone-900 block mb-1">2. ROLLUP Operation (n+1 Levels)</span>
-          <p className="text-stone-600 leading-relaxed">
+        <div className="bg-card p-3 rounded-lg border border-border-subtle">
+          <span className="font-bold text-ink block mb-1">2. ROLLUP Operation (n+1 Levels)</span>
+          <p className="text-muted leading-relaxed">
             Generates hierarchical aggregations along a directed path: <code className="text-indigo-600 font-mono">Year ➔ Quarter ➔ Month ➔ Total</code>. Enables strategic executives to zoom in (drill-down) or zoom out (roll-up).
           </p>
         </div>
-        <div className="bg-white/90 p-3 rounded-lg border border-stone-200/70">
-          <span className="font-bold text-stone-900 block mb-1">3. Slicing vs. Dicing</span>
-          <p className="text-stone-600 leading-relaxed">
+        <div className="bg-card p-3 rounded-lg border border-border-subtle">
+          <span className="font-bold text-ink block mb-1">3. Slicing vs. Dicing</span>
+          <p className="text-muted leading-relaxed">
             <strong>Slice:</strong> Fixing 1 dimension (e.g. <code className="text-indigo-600 font-mono">Category = Electronics</code>).<br />
             <strong>Dice:</strong> Extracting a sub-cube across 2+ dimensions simultaneously (e.g. <code className="text-indigo-600 font-mono">Category = Electronics AND Quarter = Q3 AND PriceTier = LUXURY</code>).
           </p>
@@ -184,7 +190,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
             onClick={() => setOlapTimeGrain(grain.key)}
             className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
               olapTimeGrain === grain.key
-                ? 'bg-accent text-stone-900 shadow-xs font-bold'
+                ? 'bg-accent text-ink shadow-xs font-bold'
                 : 'bg-card border border-border-subtle text-muted hover:bg-card-elevated hover:text-ink'
             }`}
             title={grain.desc}
@@ -212,7 +218,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
               onClick={() => setOlapCubeMode(mode.key)}
               className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                 olapCubeMode === mode.key
-                  ? 'bg-amber-500 text-stone-900 font-bold shadow-xs'
+                  ? 'bg-amber-500 text-neutral-900 font-bold shadow-xs'
                   : 'text-muted hover:text-ink hover:bg-card-elevated'
               }`}
               title={mode.desc}
@@ -445,19 +451,19 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
   {olapData && (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Sliced Time-Series Trend SVG Chart */}
-      <div className="lg:col-span-2 bg-stone-50/60 border border-stone-200/80 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+      <div className="lg:col-span-2 bg-card-elevated border border-border-subtle rounded-xl p-5 shadow-xs flex flex-col h-full">
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h4 className="text-sm font-semibold text-stone-900 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-ink flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-amber-500" />
                 Diced Temporal Trend ({grainLabels[olapTimeGrain] || olapTimeGrain})
               </h4>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Visualizing metric: <strong className="text-stone-700 font-mono">{olapMetric.replace('_', ' ').toUpperCase()}</strong> over time hierarchy
+              <p className="text-xs text-muted mt-0.5">
+                Visualizing metric: <strong className="text-muted font-mono">{olapMetric.replace('_', ' ').toUpperCase()}</strong> over time hierarchy
               </p>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded bg-white border border-stone-200 font-mono text-stone-600">
+            <span className="text-xs px-2 py-0.5 rounded bg-card border border-border-subtle font-mono text-muted">
               {olapData.timeSeries?.length || 0} Periods
             </span>
           </div>
@@ -465,7 +471,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
           {/* SVG Bar Chart for Sliced TimeSeries */}
           <div className="py-4">
             {(!olapData.timeSeries || olapData.timeSeries.length === 0) ? (
-              <p className="text-xs text-stone-400 text-center py-8">No time-series records for this coordinate selection.</p>
+              <p className="text-xs text-muted text-center py-8">No time-series records for this coordinate selection.</p>
             ) : (
               (() => {
                 const getMetricVal = (row) => {
@@ -481,7 +487,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
 
                 return (
                   <div className="space-y-2">
-                    <div className="h-44 flex items-end gap-2 overflow-x-auto pb-6 pt-2 px-2 border-b border-stone-200">
+                    <div className="h-44 flex items-end gap-2 overflow-x-auto pb-6 pt-2 px-2 border-b border-border-subtle">
                       {olapData.timeSeries.map((row, idx) => {
                         const val = getMetricVal(row);
                         const heightPct = Math.max(6, Math.round((val / maxVal) * 100));
@@ -504,18 +510,18 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                               style={{ height: `${heightPct}%` }}
                             />
                             {/* X Label */}
-                            <span className="text-[10px] text-stone-500 truncate w-full text-center mt-1.5 font-mono select-none">
+                            <span className="text-[10px] text-muted truncate w-full text-center mt-1.5 font-mono select-none">
                               {row.label?.split(' ')[0] || row.periodKey}
                             </span>
 
                             {/* Hover Tooltip */}
                             {isHovered && (
-                              <div className="absolute bottom-full mb-2 z-20 bg-stone-900 text-white rounded-md p-2 text-[10px] shadow-lg border border-stone-700 whitespace-nowrap pointer-events-none">
-                                <p className="font-semibold text-amber-300">{row.label}</p>
-                                <p className="font-mono text-stone-200 mt-0.5">
+                              <div className="absolute bottom-full mb-2 z-20 bg-accent text-accent-ink rounded-md p-2 text-[10px] shadow-lg border border-border-strong whitespace-nowrap pointer-events-none">
+                                <p className="font-semibold text-accent-ink">{row.label}</p>
+                                <p className="font-mono text-muted mt-0.5">
                                   Net: {formatCurrency(row.netRevenue)}
                                 </p>
-                                <p className="font-mono text-stone-400">
+                                <p className="font-mono text-muted">
                                   {row.unitsSold} units • {row.orderCount} orders
                                 </p>
                               </div>
@@ -524,9 +530,9 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                         );
                       })}
                     </div>
-                    <div className="flex justify-between items-center text-[11px] text-stone-400 pt-1">
+                    <div className="flex justify-between items-center text-[11px] text-muted pt-1">
                       <span>Drill level: <code>dim_time.{olapTimeGrain}</code></span>
-                      <span className="font-mono text-stone-600 font-medium">
+                      <span className="font-mono text-muted font-medium">
                         Peak: {olapMetric.includes('revenue') ? formatCurrency(maxVal) : formatNumber(maxVal)}
                       </span>
                     </div>
@@ -539,7 +545,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
       </div>
 
       {/* Sliced Product & Category Contribution */}
-      <div className="bg-card-elevated border border-border-subtle rounded-xl p-5 shadow-xs flex flex-col justify-between">
+      <div className="bg-card-elevated border border-border-subtle rounded-xl p-5 shadow-xs flex flex-col h-full">
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -605,79 +611,92 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
     </div>
   )}
 
-  {/* Recharts Heatmap: Category × Quarter Revenue */}
+  {/* Recharts Heatmap: Category × Price Tier Revenue */}
   {olapData?.cubeCells?.length > 0 && !olapLoading && olapCubeMode === 'cube' && (
-    <div className="mb-6 card border-border-subtle p-4 shadow-xs">
-      <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-amber-500" />
-        Category x Quarter Revenue Heatmap (Top 8 Categories)
-      </h4>
-      <div className="h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            layout="vertical"
-            data={(() => {
-              const topCategories = [...new Set(olapData.cubeCells.map(c => c.categoryName).filter(Boolean))]
-                .slice(0, 8);
-              const quarters = [...new Set(olapData.cubeCells.map(c => c.quarterShortName).filter(Boolean))]
-                .sort();
-              return topCategories.map(cat => {
-                const row = { category: cat };
-                quarters.forEach(q => {
-                  const cell = olapData.cubeCells.find(c => c.categoryName === cat && c.quarterShortName === q);
-                  row[q] = cell?.netRevenue || 0;
-                });
-                return row;
-              });
-            })()}
-            margin={{ top: 5, right: 10, left: 100, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatCurrency} />
-            <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#9ca3af' }} width={120} />
-            <Tooltip
-              formatter={value => formatCurrency(value)}
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-            />
-            <Bar dataKey="Q1" fill="#fef3c7" maxBarSize={20} stackId="a">
-              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#fde047' : '#facc15'} />)}
-            </Bar>
-            <Bar dataKey="Q2" fill="#fef3c7" maxBarSize={20} stackId="a">
-              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#fbbf24' : '#f59e0b'} />)}
-            </Bar>
-            <Bar dataKey="Q3" fill="#fef3c7" maxBarSize={20} stackId="a">
-              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#f97316' : '#fb923c'} />)}
-            </Bar>
-            <Bar dataKey="Q4" fill="#fef3c7" maxBarSize={20} stackId="a">
-              {cells => cells.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#dc2626' : '#ef4444'} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+    (() => {
+      // cubeCells expose dim1 (category) / dim2 (price tier) for the Product
+      // CUBE mode. Subtotal/grand-total rows are excluded from the heatmap.
+      const detailCells = olapData.cubeCells.filter(c => !c.isSubtotal && !c.isGrandTotal);
+      const columns = [...new Set(detailCells.map(c => c.dim2).filter(Boolean))].sort();
+      const categories = [...new Set(detailCells.map(c => c.dim1).filter(Boolean))]
+        .map(name => ({
+          name,
+          total: detailCells
+            .filter(c => c.dim1 === name)
+            .reduce((s, c) => s + (c.netRevenue || 0), 0)
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 8);
+
+      const heatmapRows = categories.map(cat => {
+        const row = { category: cat.name };
+        columns.forEach(col => {
+          const cell = detailCells.find(c => c.dim1 === cat.name && c.dim2 === col);
+          row[col] = cell?.netRevenue || 0;
+        });
+        return row;
+      });
+
+      if (!categories.length || !columns.length) return null;
+
+      // Sequential amber ramp: lighter for smaller slices, deeper for larger.
+      const ramp = ['#fde68a', '#fcd34d', '#fbbf24', '#f59e0b', '#d97706', '#b45309'];
+      const stackCells = (base) =>
+        heatmapRows.map((row, i) => (
+          <Cell key={i} fill={ramp[(base + i) % ramp.length]} />
+        ));
+
+      return (
+      <div className="mb-6 card border-border-subtle p-4 shadow-xs">
+        <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          Category × Price Tier Revenue Heatmap (Top {categories.length} Categories)
+        </h4>
+        <div className="h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              layout="vertical"
+              data={heatmapRows}
+              margin={{ top: 5, right: 10, left: 100, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+              <XAxis type="number" tick={axisTick(isDark)} tickFormatter={formatCurrency} />
+              <YAxis type="category" dataKey="category" tick={axisTick(isDark)} width={120} />
+              <Tooltip
+                formatter={value => formatCurrency(value)}
+                contentStyle={tooltipStyle(isDark)}
+              />
+              {columns.map((col, ci) => (
+                <Bar key={col} dataKey={col} maxBarSize={20} stackId="a">
+                  {stackCells(ci)}
+                </Bar>
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-      <p className="text-xs text-muted mt-2 text-center">
-        Stacked bars = Quarterly revenue per category. Hover for exact values.
-      </p>
-    </div>
+      );
+    })()
   )}
 
   {/* Interactive OLAP Cross-Tabulation Matrix / Heatmap */}
-  <div className="border border-stone-200/90 rounded-xl overflow-hidden shadow-xs">
-    <div className="bg-stone-50 px-5 py-3.5 border-b border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+  <div className="border border-border-subtle rounded-xl overflow-hidden shadow-xs">
+    <div className="bg-card-elevated px-5 py-3.5 border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
       <div>
-        <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+        <h4 className="text-sm font-bold text-ink flex items-center gap-2">
           <Table className="w-4 h-4 text-amber-600" />
           OLAP Cross-Tabulation Matrix (Heatmap Pivot Grid)
         </h4>
-        <p className="text-xs text-stone-500 mt-0.5">
+        <p className="text-xs text-muted mt-0.5">
           Click any coordinate cell to slice the cube directly. Shading indicates relative metric magnitude.
         </p>
       </div>
       <div className="flex items-center gap-2 text-xs">
-        <span className="flex items-center gap-1 text-stone-500">
-          <span className="w-2.5 h-2.5 rounded bg-amber-50 border border-stone-200" /> Lowest
+        <span className="flex items-center gap-1 text-muted">
+          <span className="w-2.5 h-2.5 rounded bg-amber-500/10 border border-border-subtle" /> Lowest
         </span>
-        <span className="text-stone-300">➔</span>
-        <span className="flex items-center gap-1 text-stone-500">
+        <span className="text-muted">➔</span>
+        <span className="flex items-center gap-1 text-muted">
           <span className="w-2.5 h-2.5 rounded bg-amber-500" /> Highest
         </span>
       </div>
@@ -686,18 +705,32 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
     {/* Matrix Content */}
     <div className="overflow-x-auto">
       {olapLoading ? (
-        <div className="py-12 text-center text-stone-500 text-xs flex items-center justify-center gap-2">
+        <div className="py-12 text-center text-muted text-xs flex items-center justify-center gap-2">
           <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
           Aggregating OLAP Cube with SQL CUBE/ROLLUP...
         </div>
       ) : olapError ? (
-        <div className="py-8 text-center text-red-600 text-xs">
-          Failed to compute OLAP cube data. Please verify database connectivity.
+        <div className="py-8 px-4 text-center">
+          <p className="text-red-500 text-xs font-semibold">
+            Failed to compute OLAP cube data.
+          </p>
+          {olapErrorMessage && (
+            <p className="text-muted text-[11px] mt-1.5 font-mono break-words">
+              {olapErrorMessage}
+            </p>
+          )}
+          <button
+            onClick={fetchOlapCube}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-subtle bg-card-elevated text-xs font-medium text-ink hover:border-border-strong transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry Cube Computation
+          </button>
         </div>
       ) : olapCubeMode === 'rollup' ? (
         /* Temporal ROLLUP Hierarchical View */
         <table className="w-full text-left text-xs whitespace-nowrap">
-          <thead className="bg-stone-100/80 text-stone-700 uppercase tracking-wider font-semibold border-b border-stone-200 font-mono text-[11px]">
+          <thead className="bg-card-elevated text-muted uppercase tracking-wider font-semibold border-b border-border-subtle font-mono text-[11px]">
             <tr>
               <th className="px-4 py-3">Hierarchy Path (Year ➔ Quarter ➔ Month)</th>
               <th className="px-4 py-3 text-center">Aggregation Level</th>
@@ -708,7 +741,7 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
               <th className="px-4 py-3 text-right">Buyers</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100 bg-white">
+          <tbody className="divide-y divide-border-subtle bg-card">
             {(olapData?.cubeCells || []).map((cell, idx) => {
               const isGrand = cell.isGrandTotal;
               const isSub = cell.isSubtotal;
@@ -717,10 +750,10 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                   key={idx}
                   className={`transition-colors ${
                     isGrand
-                      ? 'bg-amber-100/60 font-bold text-stone-900 border-t-2 border-amber-300'
+                      ? 'bg-amber-500/15 font-bold text-ink border-t-2 border-amber-500/40'
                       : isSub
-                      ? 'bg-stone-50/80 font-semibold text-stone-800'
-                      : 'hover:bg-amber-50/30 text-stone-700'
+                      ? 'bg-card-elevated font-semibold text-ink'
+                      : 'hover:bg-amber-500/10/30 text-muted'
                   }`}
                 >
                   <td className="px-4 py-2.5 font-medium flex items-center gap-2">
@@ -729,35 +762,35 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                       style={{ marginLeft: `${(3 - cell.aggregationLevel) * 16}px` }}
                     />
                     {isGrand ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-stone-900">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-neutral-900">
                         ★ GRAND TOTAL
                       </span>
                     ) : isSub ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-stone-200 text-stone-800">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-card-elevated text-ink">
                         ↳ Subtotal: {cell.dim1} {cell.dim2 || ''}
                       </span>
                     ) : (
-                      <span className="font-mono text-stone-800">
+                      <span className="font-mono text-ink">
                         {cell.dim1} • {cell.dim2} • {cell.dim3}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-center font-mono text-[11px] text-stone-500">
+                  <td className="px-4 py-2.5 text-center font-mono text-[11px] text-muted">
                     Level {cell.aggregationLevel}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-stone-900">
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-ink">
                     {formatCurrency(cell.netRevenue)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-stone-600">
+                  <td className="px-4 py-2.5 text-right font-mono text-muted">
                     {formatCurrency(cell.grossRevenue)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-indigo-700">
+                  <td className="px-4 py-2.5 text-right font-mono text-indigo-300">
                     {formatNumber(cell.unitsSold)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-stone-700">
+                  <td className="px-4 py-2.5 text-right font-mono text-muted">
                     {formatNumber(cell.orderCount)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-stone-500">
+                  <td className="px-4 py-2.5 text-right font-mono text-muted">
                     {formatNumber(cell.customerCount)}
                   </td>
                 </tr>
@@ -853,21 +886,22 @@ GROUP BY ${olapCubeMode === 'rollup' ? 'ROLLUP(dt.year, dt.quarter_name, dt.mont
                           const val = getCellValue(cellItem);
                           const intensity = val > 0 ? Math.min(100, Math.round((val / maxVal) * 100)) : 0;
 
-                          // Heatmap background color styling
+                          // Heatmap shading. Deep amber fills need dark ink for
+                          // contrast; the faint tiers keep theme-aware text.
                           let cellBg = '';
                           let cellText = 'text-muted';
                           if (val > 0) {
                             if (intensity >= 75) {
-                              cellBg = 'bg-amber-500 text-stone-950 font-bold';
-                              cellText = 'text-stone-950';
+                              cellBg = 'bg-amber-500';
+                              cellText = 'text-neutral-900 font-bold';
                             } else if (intensity >= 40) {
-                              cellBg = 'bg-amber-400/80 text-stone-950 font-semibold';
-                              cellText = 'text-stone-950';
+                              cellBg = 'bg-amber-400';
+                              cellText = 'text-neutral-900 font-semibold';
                             } else if (intensity >= 15) {
-                              cellBg = 'bg-amber-500/25 text-ink';
+                              cellBg = 'bg-amber-500/25';
                               cellText = 'text-ink';
                             } else {
-                              cellBg = 'bg-amber-500/10 text-muted';
+                              cellBg = 'bg-amber-500/10';
                               cellText = 'text-muted';
                             }
                           }

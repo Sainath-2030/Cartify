@@ -6,8 +6,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Cell
 } from 'recharts';
+import { useTheme } from '../../../hooks/useTheme.js';
+import { getChartTheme, axisTick, tooltipStyle } from './biShared.js';
 
 /**
  * Section 2 & Section 7: Market Basket Analysis - Higher-Order Apriori
@@ -28,6 +31,10 @@ export default function AssociationRulesPanel({
   maxItemsetSize,
   setMaxItemsetSize
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const chart = getChartTheme(isDark);
+
   const meta = associationRulesMeta || {};
   const frequentCounts = meta.frequentItemsetCounts || {};
   const isTruncated = meta.isTruncated || false;
@@ -36,12 +43,16 @@ export default function AssociationRulesPanel({
     ? associationRules
     : associationRules.slice(0, rulesLimit);
 
-  // Itemset size badge colors
+  // Itemset size badge colors (Tailwind classes for chips/table)
   const itemsetSizeColors = {
     2: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
     3: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     4: 'bg-violet-500/15 text-violet-400 border-violet-500/30'
   };
+
+  // Matching raw hex values for Recharts SVG fills, which cannot use class strings.
+  const itemsetSizeHex = { 2: '#38bdf8', 3: '#fbbf24', 4: '#a78bfa' };
+  const itemsetHex = (size) => itemsetSizeHex[size] || '#22d3ee';
 
   return (
     <>
@@ -201,16 +212,16 @@ export default function AssociationRulesPanel({
               itemsetSize: r.itemsetSize,
               antecedent: r.antecedentNames.join(', '),
               consequent: r.consequentNames.join(', '),
-              color: itemsetSizeColors[r.itemsetSize]?.replace('bg-', '').replace('/15 text-', '').replace(' border-', '') || '#22d3ee',
+              color: itemsetHex(r.itemsetSize),
               size: r.itemsetSize * 6
             }))}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
             <XAxis
               type="number"
               dataKey="confidence"
               name="Confidence"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={axisTick(isDark)}
               tickFormatter={v => (v * 100).toFixed(0) + '%'}
               domain={[0, 1]}
             />
@@ -218,7 +229,7 @@ export default function AssociationRulesPanel({
               type="number"
               dataKey="lift"
               name="Lift"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={axisTick(isDark)}
               tickFormatter={v => v.toFixed(2) + 'x'}
               domain={[0, 'dataMax']}
             />
@@ -227,7 +238,7 @@ export default function AssociationRulesPanel({
                 name === 'lift' ? value.toFixed(2) + 'x' : (value * 100).toFixed(1) + '%',
                 name === 'lift' ? 'Lift' : 'Confidence'
               ]}
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+              contentStyle={tooltipStyle(isDark)}
               labelFormatter={(_, payload) => {
                 const item = payload?.[0]?.payload;
                 return item ? `${item.antecedent} → ${item.consequent}` : '';
@@ -236,21 +247,16 @@ export default function AssociationRulesPanel({
             <Scatter
               name="Rules"
               dataKey="lift"
-              data={displayedRules.map(r => ({
-                confidence: r.confidence,
-                lift: r.lift,
-                itemsetSize: r.itemsetSize,
-                antecedent: r.antecedentNames.join(', '),
-                consequent: r.consequentNames.join(', '),
-                color: itemsetSizeColors[r.itemsetSize]?.replace('bg-', '').replace('/15 text-', '').replace(' border-', '') || '#22d3ee',
-                size: r.itemsetSize * 6
-              }))}
               fill="#22d3ee"
-              stroke="#06b6d4"
               shape="circle"
             >
               {displayedRules.map((rule, i) => (
-                <Cell key={i} fill={itemsetSizeColors[rule.itemsetSize]?.replace('bg-', '').replace('/15 text-', '').replace(' border-', '') || '#22d3ee'} />
+                <Cell
+                  key={i}
+                  fill={itemsetHex(rule.itemsetSize)}
+                  stroke={chart.axis}
+                  strokeWidth={0.5}
+                />
               ))}
             </Scatter>
           </ScatterChart>

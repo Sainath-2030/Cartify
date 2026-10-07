@@ -11,6 +11,7 @@ import CustomerSegmentsPanel from './bi/CustomerSegmentsPanel.jsx';
 import OlapExplorerPanel from './bi/OlapExplorerPanel.jsx';
 import ChurnPanel from './bi/ChurnPanel.jsx';
 import DataGovernancePanel from './bi/DataGovernancePanel.jsx';
+import PanelErrorBoundary from '../../components/dashboard/PanelErrorBoundary.jsx';
 import { grainLabels } from './bi/biShared.js';
 
 const SECTIONS = [
@@ -106,6 +107,7 @@ export default function AdminBIDashboard() {
   const [olapLoading, setOlapLoading] = useState(false);
   const [olapData, setOlapData] = useState(null);
   const [olapError, setOlapError] = useState(false);
+  const [olapErrorMessage, setOlapErrorMessage] = useState('');
   const [olapTimeGrain, setOlapTimeGrain] = useState('month');
   const [olapCubeMode, setOlapCubeMode] = useState('cube');
   const [olapMetric, setOlapMetric] = useState('net_revenue');
@@ -128,6 +130,8 @@ export default function AdminBIDashboard() {
   const [outreachSentMap, setOutreachSentMap] = useState({});
   const churnRequestIdRef = useRef(0);
   const requestIdRef = useRef(0);
+  const olapRequestIdRef = useRef(0);
+  const associationRequestIdRef = useRef(0);
 
   // ── Section 6 state ────────────────────────────────────────────────────────
   const [dataQualityLoading, setDataQualityLoading] = useState(false);
@@ -237,8 +241,10 @@ export default function AdminBIDashboard() {
   useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
 
   const fetchAssociationRules = useCallback(async () => {
+    const currentRequestId = ++associationRequestIdRef.current;
     try {
       const res = await adminService.getAssociationRules(minSupport, minConfidence, 1.0, maxItemsetSize);
+      if (currentRequestId !== associationRequestIdRef.current) return;
       if (Array.isArray(res)) {
         setAssociationRules(res);
         setAssociationRulesMeta(res.meta || null);
@@ -250,9 +256,13 @@ export default function AdminBIDashboard() {
         setAssociationRulesMeta(null);
       }
     } catch (err) {
+      if (currentRequestId !== associationRequestIdRef.current) return;
       console.error('Failed to load association rules:', err);
+      setAssociationRules([]);
+      setAssociationRulesMeta(null);
+      showToast(err.message || 'Failed to load association rules.', 'error');
     }
-  }, [minSupport, minConfidence, maxItemsetSize]);
+  }, [minSupport, minConfidence, maxItemsetSize, showToast]);
 
   useEffect(() => { fetchAssociationRules(); }, [fetchAssociationRules]);
 
@@ -260,10 +270,11 @@ export default function AdminBIDashboard() {
     setCustomerSegmentsError(false);
     try {
       const res = await adminService.getCustomerSegments();
-      if (res?.clusters) setCustomerSegments(res);
-      else if (res?.data?.clusters) setCustomerSegments(res.data);
+      const payload = res?.clusters ? res : res?.data?.clusters ? res.data : null;
+      setCustomerSegments(payload);
     } catch (err) {
       console.error('Failed to load customer segments:', err);
+      setCustomerSegments(null);
       setCustomerSegmentsError(true);
     }
   }, []);
@@ -271,8 +282,10 @@ export default function AdminBIDashboard() {
   useEffect(() => { fetchCustomerSegments(); }, [fetchCustomerSegments]);
 
   const fetchOlapCube = useCallback(async () => {
+    const currentRequestId = ++olapRequestIdRef.current;
     setOlapLoading(true);
     setOlapError(false);
+    setOlapErrorMessage('');
     try {
       const res = await adminService.getOlapCube({
         timeGrain: olapTimeGrain, cubeMode: olapCubeMode, metric: olapMetric,
@@ -281,12 +294,23 @@ export default function AdminBIDashboard() {
         priceTier: olapPriceTier !== 'all' ? olapPriceTier : undefined,
         activityTier: olapActivityTier !== 'all' ? olapActivityTier : undefined
       });
+      // Ignore responses superseded by a newer request so a late failure from an
+      // aborted/stale request cannot leave the error flag stuck on.
+      if (currentRequestId !== olapRequestIdRef.current) return;
       setOlapData(res?.data || res);
     } catch (err) {
-      console.error('Failed to load OLAP cube data:', err);
-      setOlapError(true);
+      if (currentRequestId === olapRequestIdRef.current) {
+        console.error('Failed to load OLAP cube data:', err);
+        setOlapData(null);
+        setOlapError(true);
+        setOlapErrorMessage(
+          err?.status
+            ? `${err.message} (HTTP ${err.status})`
+            : err?.message || 'Network request failed.'
+        );
+      }
     } finally {
-      setOlapLoading(false);
+      if (currentRequestId === olapRequestIdRef.current) setOlapLoading(false);
     }
   }, [olapTimeGrain, olapCubeMode, olapMetric, olapCategoryId, olapQuarter, olapPriceTier, olapActivityTier]);
 
@@ -452,114 +476,127 @@ export default function AdminBIDashboard() {
       <div className="space-y-6">
 
         {activeSection === 'warehouse' && (
-          <WarehouseOverviewPanel
-            loading={loading}
-            timeGrain={timeGrain}
-            salesTrend={salesTrend}
-            kpis={kpis}
-            categoryShare={categoryShare}
-            customerTiers={customerTiers}
-            priceTiers={priceTiers}
-          />
+          <PanelErrorBoundary label="Star Schema">
+            <WarehouseOverviewPanel
+              loading={loading}
+              timeGrain={timeGrain}
+              salesTrend={salesTrend}
+              kpis={kpis}
+              categoryShare={categoryShare}
+              customerTiers={customerTiers}
+              priceTiers={priceTiers}
+            />
+          </PanelErrorBoundary>
         )}
 
         {activeSection === 'association' && (
-          <AssociationRulesPanel
-            associationRules={associationRules}
-            associationRulesMeta={associationRulesMeta}
-            minSupport={minSupport}
-            setMinSupport={setMinSupport}
-            minConfidence={minConfidence}
-            setMinConfidence={setMinConfidence}
-            rulesLimit={rulesLimit}
-            setRulesLimit={setRulesLimit}
-            maxItemsetSize={maxItemsetSize}
-            setMaxItemsetSize={setMaxItemsetSize}
-          />
+          <PanelErrorBoundary label="Association Rules">
+            <AssociationRulesPanel
+              associationRules={associationRules}
+              associationRulesMeta={associationRulesMeta}
+              minSupport={minSupport}
+              setMinSupport={setMinSupport}
+              minConfidence={minConfidence}
+              setMinConfidence={setMinConfidence}
+              rulesLimit={rulesLimit}
+              setRulesLimit={setRulesLimit}
+              maxItemsetSize={maxItemsetSize}
+              setMaxItemsetSize={setMaxItemsetSize}
+            />
+          </PanelErrorBoundary>
         )}
 
         {activeSection === 'segments' && (
-          <CustomerSegmentsPanel
-            customerSegments={customerSegments}
-            customerSegmentsError={customerSegmentsError}
-            fetchCustomerSegments={fetchCustomerSegments}
-            selectedClusterFilter={selectedClusterFilter}
-            setSelectedClusterFilter={setSelectedClusterFilter}
-            hoveredCustomerPoint={hoveredCustomerPoint}
-            setHoveredCustomerPoint={setHoveredCustomerPoint}
-          />
+          <PanelErrorBoundary label="RFM Clustering">
+            <CustomerSegmentsPanel
+              customerSegments={customerSegments}
+              customerSegmentsError={customerSegmentsError}
+              fetchCustomerSegments={fetchCustomerSegments}
+              selectedClusterFilter={selectedClusterFilter}
+              setSelectedClusterFilter={setSelectedClusterFilter}
+              hoveredCustomerPoint={hoveredCustomerPoint}
+              setHoveredCustomerPoint={setHoveredCustomerPoint}
+            />
+          </PanelErrorBoundary>
         )}
 
         {activeSection === 'olap' && (
-          <OlapExplorerPanel
-            olapLoading={olapLoading}
-            olapData={olapData}
-            olapError={olapError}
-            olapTimeGrain={olapTimeGrain}
-            setOlapTimeGrain={setOlapTimeGrain}
-            olapCubeMode={olapCubeMode}
-            setOlapCubeMode={setOlapCubeMode}
-            olapMetric={olapMetric}
-            setOlapMetric={setOlapMetric}
-            olapCategoryId={olapCategoryId}
-            setOlapCategoryId={setOlapCategoryId}
-            olapQuarter={olapQuarter}
-            setOlapQuarter={setOlapQuarter}
-            olapPriceTier={olapPriceTier}
-            setOlapPriceTier={setOlapPriceTier}
-            olapActivityTier={olapActivityTier}
-            setOlapActivityTier={setOlapActivityTier}
-            hoveredOlapCell={hoveredOlapCell}
-            setHoveredOlapCell={setHoveredOlapCell}
-            showSqlPreview={showSqlPreview}
-            setShowSqlPreview={setShowSqlPreview}
-            fetchOlapCube={fetchOlapCube}
-          />
+          <PanelErrorBoundary label="OLAP Explorer">
+            <OlapExplorerPanel
+              olapLoading={olapLoading}
+              olapData={olapData}
+              olapError={olapError}
+              olapErrorMessage={olapErrorMessage}
+              olapTimeGrain={olapTimeGrain}
+              setOlapTimeGrain={setOlapTimeGrain}
+              olapCubeMode={olapCubeMode}
+              setOlapCubeMode={setOlapCubeMode}
+              olapMetric={olapMetric}
+              setOlapMetric={setOlapMetric}
+              olapCategoryId={olapCategoryId}
+              setOlapCategoryId={setOlapCategoryId}
+              olapQuarter={olapQuarter}
+              setOlapQuarter={setOlapQuarter}
+              olapPriceTier={olapPriceTier}
+              setOlapPriceTier={setOlapPriceTier}
+              olapActivityTier={olapActivityTier}
+              setOlapActivityTier={setOlapActivityTier}
+              hoveredOlapCell={hoveredOlapCell}
+              setHoveredOlapCell={setHoveredOlapCell}
+              showSqlPreview={showSqlPreview}
+              setShowSqlPreview={setShowSqlPreview}
+              fetchOlapCube={fetchOlapCube}
+            />
+          </PanelErrorBoundary>
         )}
 
         {activeSection === 'churn' && (
-          <ChurnPanel
-            churnLoading={churnLoading}
-            churnData={churnData}
-            churnError={churnError}
-            churnRiskFilter={churnRiskFilter}
-            setChurnRiskFilter={setChurnRiskFilter}
-            churnSortBy={churnSortBy}
-            setChurnSortBy={setChurnSortBy}
-            churnSearchQuery={churnSearchQuery}
-            setChurnSearchQuery={setChurnSearchQuery}
-            selectedChurnCustomer={selectedChurnCustomer}
-            setSelectedChurnCustomer={setSelectedChurnCustomer}
-            showDecisionTreeModal={showDecisionTreeModal}
-            setShowDecisionTreeModal={setShowDecisionTreeModal}
-            outreachSentMap={outreachSentMap}
-            handleTriggerOutreach={handleTriggerOutreach}
-            fetchChurnPredictions={fetchChurnPredictions}
-          />
+          <PanelErrorBoundary label="Churn Prediction">
+            <ChurnPanel
+              churnLoading={churnLoading}
+              churnData={churnData}
+              churnError={churnError}
+              churnRiskFilter={churnRiskFilter}
+              setChurnRiskFilter={setChurnRiskFilter}
+              churnSortBy={churnSortBy}
+              setChurnSortBy={setChurnSortBy}
+              churnSearchQuery={churnSearchQuery}
+              setChurnSearchQuery={setChurnSearchQuery}
+              selectedChurnCustomer={selectedChurnCustomer}
+              setSelectedChurnCustomer={setSelectedChurnCustomer}
+              showDecisionTreeModal={showDecisionTreeModal}
+              setShowDecisionTreeModal={setShowDecisionTreeModal}
+              outreachSentMap={outreachSentMap}
+              handleTriggerOutreach={handleTriggerOutreach}
+              fetchChurnPredictions={fetchChurnPredictions}
+            />
+          </PanelErrorBoundary>
         )}
 
         {activeSection === 'governance' && (
-          <DataGovernancePanel
-            etlRefreshing={etlRefreshing}
-            dataQualityLoading={dataQualityLoading}
-            dataQualityData={dataQualityData}
-            dataQualityAuditRunning={dataQualityAuditRunning}
-            dataLineageData={dataLineageData}
-            qualityActiveTab={qualityActiveTab}
-            setQualityActiveTab={setQualityActiveTab}
-            selectedLineageTier={selectedLineageTier}
-            setSelectedLineageTier={setSelectedLineageTier}
-            selectedLineageNodeId={selectedLineageNodeId}
-            setSelectedLineageNodeId={setSelectedLineageNodeId}
-            showLineageDetailModal={showLineageDetailModal}
-            setShowLineageDetailModal={setShowLineageDetailModal}
-            expandedTableRows={expandedTableRows}
-            setExpandedTableRows={setExpandedTableRows}
-            expandedEtlRuns={expandedEtlRuns}
-            setExpandedEtlRuns={setExpandedEtlRuns}
-            handleTriggerETL={handleTriggerETL}
-            handleRunQualityAudit={handleRunQualityAudit}
-          />
+          <PanelErrorBoundary label="Data Governance">
+            <DataGovernancePanel
+              etlRefreshing={etlRefreshing}
+              dataQualityLoading={dataQualityLoading}
+              dataQualityData={dataQualityData}
+              dataQualityAuditRunning={dataQualityAuditRunning}
+              dataLineageData={dataLineageData}
+              qualityActiveTab={qualityActiveTab}
+              setQualityActiveTab={setQualityActiveTab}
+              selectedLineageTier={selectedLineageTier}
+              setSelectedLineageTier={setSelectedLineageTier}
+              selectedLineageNodeId={selectedLineageNodeId}
+              setSelectedLineageNodeId={setSelectedLineageNodeId}
+              showLineageDetailModal={showLineageDetailModal}
+              setShowLineageDetailModal={setShowLineageDetailModal}
+              expandedTableRows={expandedTableRows}
+              setExpandedTableRows={setExpandedTableRows}
+              expandedEtlRuns={expandedEtlRuns}
+              setExpandedEtlRuns={setExpandedEtlRuns}
+              handleTriggerETL={handleTriggerETL}
+              handleRunQualityAudit={handleRunQualityAudit}
+            />
+          </PanelErrorBoundary>
         )}
 
       </div>

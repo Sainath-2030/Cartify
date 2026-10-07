@@ -15,6 +15,52 @@ export const formatCurrency = (val) =>
 export const formatNumber = (val) =>
   new Intl.NumberFormat('en-US').format(val || 0);
 
+/**
+ * Recharts cannot consume Tailwind/CSS-variable color strings for SVG fills in a
+ * predictable way across browsers, so chart chrome needs concrete hex values that
+ * swap with the theme. These mirror the CSS custom properties in index.css.
+ */
+export const getChartTheme = (isDark) =>
+  isDark
+    ? {
+        grid: '#2A2A2E',
+        axis: '#3A3A40',
+        tick: '#9A9AA1',
+        tooltipBg: '#202024',
+        tooltipBorder: '#3A3A40',
+        tooltipText: '#F5F5F7',
+        labelText: '#E4E4E7',
+        emptyText: '#9A9AA1'
+      }
+    : {
+        grid: '#E2E8F0',
+        axis: '#CBD5E1',
+        tick: '#64748B',
+        tooltipBg: '#FFFFFF',
+        tooltipBorder: '#CBD5E1',
+        tooltipText: '#0F172A',
+        labelText: '#334155',
+        emptyText: '#64748B'
+      };
+
+/** Shared Recharts Tooltip styling that stays readable in both themes. */
+export const tooltipStyle = (isDark) => {
+  const t = getChartTheme(isDark);
+  return {
+    backgroundColor: t.tooltipBg,
+    border: `1px solid ${t.tooltipBorder}`,
+    borderRadius: '8px',
+    color: t.tooltipText,
+    fontSize: '12px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.18)'
+  };
+};
+
+export const axisTick = (isDark) => ({ fontSize: 11, fill: getChartTheme(isDark).tick });
+
+/** Palette shared by the warehouse category donut and legend swatches. */
+export const CATEGORY_COLORS = ['#22d3ee', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444'];
+
 export const CLUSTER_CONFIG = {
   champions: {
     label: 'Champions / High-Value',

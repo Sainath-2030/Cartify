@@ -31,7 +31,8 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { formatCurrency } from './biShared.js';
+import { useTheme } from '../../../hooks/useTheme.js';
+import { formatCurrency, getChartTheme, axisTick, tooltipStyle } from './biShared.js';
 
 /**
  * Section 5: Customer churn classification, decision-tree rules, and retention actions.
@@ -57,6 +58,56 @@ export default function ChurnPanel({
   handleTriggerOutreach,
   fetchChurnPredictions
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const chart = getChartTheme(isDark);
+  const tip = tooltipStyle(isDark);
+  const tick = axisTick(isDark);
+
+  // Churn risk thresholds: bins at/above 60% are high risk, 30-60% medium, below 30% low.
+  const binFill = (index) => (index >= 6 ? '#f43f5e' : index >= 3 ? '#f59e0b' : '#22c55e');
+
+  // Probability histogram bins, hoisted out of JSX so <Bar> receives real <Cell>
+  // elements (Recharts ignores function children, which left bars unfilled).
+  const churnBins = (() => {
+    if (!churnData?.predictions?.length) return [];
+    const bins = Array.from({ length: 10 }, (_, i) => ({
+      range: `${i * 10}%–${(i + 1) * 10}%`,
+      count: churnData.predictions.filter(
+        (p) => p.churnProbability >= i * 0.1 && p.churnProbability < (i + 1) * 0.1
+      ).length
+    }));
+    // Final bin is inclusive of a probability of exactly 1.0
+    bins[9].count += churnData.predictions.filter((p) => p.churnProbability === 1.0).length;
+    return bins;
+  })();
+
+  // Cumulative lift / rate by decile, ordered highest probability first.
+  const decileData = (() => {
+    const preds = churnData?.predictions;
+    if (!preds?.length) return [];
+    const sorted = [...preds].sort((a, b) => b.churnProbability - a.churnProbability);
+    const n = sorted.length;
+    const decileSize = Math.ceil(n / 10);
+    const overallChurnRate = sorted.reduce((s, p) => s + p.churnProbability, 0) / n;
+    return Array.from({ length: 10 }, (_, i) => {
+      const slice = sorted.slice(i * decileSize, (i + 1) * decileSize);
+      const decileChurnRate = slice.length
+        ? slice.reduce((s, p) => s + p.churnProbability, 0) / slice.length
+        : 0;
+      const cumSlice = sorted.slice(0, (i + 1) * decileSize);
+      const cumChurnRate = cumSlice.length
+        ? cumSlice.reduce((s, p) => s + p.churnProbability, 0) / cumSlice.length
+        : 0;
+      return {
+        decile: `D${i + 1}`,
+        decileRate: decileChurnRate,
+        cumRate: cumChurnRate,
+        lift: overallChurnRate > 0 ? cumChurnRate / overallChurnRate : 1
+      };
+    });
+  })();
+
   return (
     <>
 {/* ========================================================================= */}
@@ -449,31 +500,21 @@ export default function ChurnPanel({
             <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={(() => {
-                    const bins = Array.from({ length: 10 }, (_, i) => ({
-                      range: `${(i * 10)}%–${((i + 1) * 10)}%`,
-                      low: i * 0.1,
-                      high: (i + 1) * 0.1,
-                      count: churnData.predictions.filter(p =>
-                        p.churnProbability >= i * 0.1 && p.churnProbability < (i + 1) * 0.1
-                      ).length
-                    }));
-                    // Last bin includes 1.0
-                    bins[9].count += churnData.predictions.filter(p => p.churnProbability === 1.0).length;
-                    return bins;
-                  })()}
+                  data={churnBins}
                   layout="vertical"
                   margin={{ top: 5, right: 10, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                  <YAxis type="category" dataKey="range" tick={{ fontSize: 11, fill: '#9ca3af' }} width={80} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                  <XAxis type="number" tick={tick} allowDecimals={false} />
+                  <YAxis type="category" dataKey="range" tick={tick} width={80} />
                   <Tooltip
                     formatter={value => value.toLocaleString()}
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                    contentStyle={tip}
                   />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={30}>
-                    {bins => bins.map((_, i) => <Cell key={i} fill={i >= 6 ? '#f43f5e' : i >= 3 ? '#f59e0b' : '#22c55e'} />)}
+                    {churnBins.map((_, i) => (
+                      <Cell key={i} fill={binFill(i)} />
+                    ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -492,24 +533,7 @@ export default function ChurnPanel({
             <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={(() => {
-                    const sorted = [...churnData.predictions].sort((a, b) => b.churnProbability - a.churnProbability);
-                    const n = sorted.length;
-                    const decileSize = Math.ceil(n / 10);
-                    const overallChurnRate = sorted.reduce((s, p) => s + p.churnProbability, 0) / n;
-                    return Array.from({ length: 10 }, (_, i) => {
-                      const slice = sorted.slice(i * decileSize, (i + 1) * decileSize);
-                      const decileChurnRate = slice.length ? slice.reduce((s, p) => s + p.churnProbability, 0) / slice.length : 0;
-                      const cumSlice = sorted.slice(0, (i + 1) * decileSize);
-                      const cumChurnRate = cumSlice.length ? cumSlice.reduce((s, p) => s + p.churnProbability, 0) / cumSlice.length : 0;
-                      return {
-                        decile: `D${i + 1}`,
-                        decileRate: decileChurnRate,
-                        cumRate: cumChurnRate,
-                        lift: overallChurnRate > 0 ? cumChurnRate / overallChurnRate : 1
-                      };
-                    });
-                  })()}
+                  data={decileData}
                   margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
                   <defs>
@@ -518,10 +542,10 @@ export default function ChurnPanel({
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="decile" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                  <XAxis dataKey="decile" tick={tick} />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={tick}
                     tickFormatter={v => v.toFixed(1) + 'x'}
                     domain={[0.5, 'dataMax']}
                   />
@@ -530,7 +554,7 @@ export default function ChurnPanel({
                       name === 'lift' ? value.toFixed(2) + 'x' : (value * 100).toFixed(1) + '%',
                       name === 'lift' ? 'Lift' : 'Churn Rate'
                     ]}
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                    contentStyle={tip}
                   />
                   <Area
                     type="monotone"

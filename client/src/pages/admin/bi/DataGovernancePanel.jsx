@@ -27,7 +27,8 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
-import { formatNumber } from './biShared.js';
+import { useTheme } from '../../../hooks/useTheme.js';
+import { formatNumber, getChartTheme, axisTick, tooltipStyle } from './biShared.js';
 
 /**
  * Section 6: ETL run monitoring, 4-tier data lineage DAG, and automated data quality audits.
@@ -56,6 +57,11 @@ export default function DataGovernancePanel({
   handleTriggerETL,
   handleRunQualityAudit
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const chart = getChartTheme(isDark);
+  const tick = axisTick(isDark);
+
   return (
     <>
 {/* ========================================================================= */}
@@ -854,22 +860,22 @@ export default function DataGovernancePanel({
                   ))}
                   margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                   <XAxis
                     dataKey="audited_at"
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={tick}
                     tickFormatter={v => new Date(v).toLocaleDateString()}
                     interval="preserveStartEnd"
                   />
                   <YAxis
                     type="number"
                     domain={[0, 100]}
-                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tick={tick}
                     tickFormatter={v => v + '%'}
                   />
                   <Tooltip
                     formatter={value => value + '%'}
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                    contentStyle={tooltipStyle(isDark)}
                   />
                   <Line
                     type="monotone"
@@ -991,7 +997,7 @@ export default function DataGovernancePanel({
           {(dataLineageData?.tiers || []).map(tierName => {
             const nodes = (dataLineageData?.nodes || []).filter(n => n.tier === tierName);
             return (
-              <div key={tierName} className="p-4 rounded-xl bg-card-elevated border border-border-subtle space-y-3">
+              <div key={`tier-${tierName}`} className="p-4 rounded-xl bg-card-elevated border border-border-subtle space-y-3">
                 <span className="text-xs font-bold text-ink uppercase tracking-wider">{tierName}</span>
                 <div className="space-y-2">
                   {nodes.map(n => (

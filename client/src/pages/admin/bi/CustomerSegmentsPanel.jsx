@@ -9,9 +9,11 @@ import {
   PieChart as RePieChart,
   Pie,
   Cell,
+  Tooltip,
   ResponsiveContainer
 } from 'recharts';
-import { formatCurrency, CLUSTER_CONFIG } from './biShared.js';
+import { useTheme } from '../../../hooks/useTheme.js';
+import { formatCurrency, CLUSTER_CONFIG, getChartTheme, tooltipStyle } from './biShared.js';
 
 /**
  * Section 3: RFM K-Means customer segmentation with interactive behavioural cohort map.
@@ -28,6 +30,8 @@ export default function CustomerSegmentsPanel({
   hoveredCustomerPoint,
   setHoveredCustomerPoint
 }) {
+  const { resolvedTheme } = useTheme();
+
   return (
     <>
 {/* Customer Segmentation & RFM Clustering (K-Means Engine) */}
@@ -196,13 +200,17 @@ export default function CustomerSegmentsPanel({
                         data={customerSegments.clusters}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
+                        innerRadius={48}
+                        outerRadius={78}
                         paddingAngle={3}
                         dataKey="customerCount"
                         nameKey="label"
-                        label={({ label, percent }) => `${label} ${(percent * 100).toFixed(1)}%`}
+                        // Percentage kept inside the ring; the long cluster
+                        // labels live in the adjacent legend list, so they can
+                        // never overflow the chart bounds.
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                         labelLine={false}
+                        style={{ fontSize: 10, fill: getChartTheme(resolvedTheme === 'dark').labelText }}
                       >
                         {customerSegments.clusters.map((_, i) => (
                           <Cell
@@ -213,7 +221,7 @@ export default function CustomerSegmentsPanel({
                       </Pie>
                       <Tooltip
                         formatter={value => value.toLocaleString()}
-                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        contentStyle={tooltipStyle(resolvedTheme === 'dark')}
                       />
                     </RePieChart>
                   </ResponsiveContainer>
