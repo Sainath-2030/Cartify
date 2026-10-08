@@ -6,6 +6,7 @@
  */
 
 import { warehouseModel } from '../models/warehouseModel.js';
+import { settleLimit } from '../config/db.js';
 import { runETLPipeline } from '../scripts/etl_populate_warehouse.js';
 import { dataQualityService } from './mining/dataQualityService.js';
 
@@ -17,28 +18,28 @@ export const warehouseService = {
    */
   async getExecutiveOverview() {
     let summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory;
+
+    // Six warehouse aggregations back the Star Schema panel. Issuing all six at
+    // once (plus the OLAP cube and governance calls the dashboard fires in
+    // parallel) exhausted the managed Postgres client cap, so run them two at
+    // a time. `runOverviewQueries` also re-runs after self-healing below.
+    const runOverviewQueries = () => settleLimit([
+      () => warehouseModel.getWarehouseSummary(),
+      () => warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
+      () => warehouseModel.getSalesByCategory(),
+      () => warehouseModel.getSalesByPriceTier(),
+      () => warehouseModel.getSalesByCustomerActivityTier(),
+      () => warehouseModel.getEtlHistory({ limit: 5 })
+    ], 2);
+
     try {
-      [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await Promise.all([
-        warehouseModel.getWarehouseSummary(),
-        warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
-        warehouseModel.getSalesByCategory(),
-        warehouseModel.getSalesByPriceTier(),
-        warehouseModel.getSalesByCustomerActivityTier(),
-        warehouseModel.getEtlHistory({ limit: 5 })
-      ]);
+      [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await runOverviewQueries();
     } catch (err) {
       // Match only SQLSTATE 42P01 (undefined_table)
       if (err.code === '42P01') {
         console.log('[Warehouse] Star schema tables missing in database (42P01), restoring via triggerEtlRefresh without synthetic seeding...');
         await this.triggerEtlRefresh({ seedTransactions: false });
-        [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await Promise.all([
-          warehouseModel.getWarehouseSummary(),
-          warehouseModel.getSalesByTimeGrain({ timeGrain: 'month' }),
-          warehouseModel.getSalesByCategory(),
-          warehouseModel.getSalesByPriceTier(),
-          warehouseModel.getSalesByCustomerActivityTier(),
-          warehouseModel.getEtlHistory({ limit: 5 })
-        ]);
+        [summary, monthlyTrend, categoryShare, priceTiers, customerTiers, etlHistory] = await runOverviewQueries();
       } else {
         throw err;
       }

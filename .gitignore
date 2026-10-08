@@ -28,6 +28,10 @@ Thumbs.db
 # Large Datasets (>100MB)
 data/Amazon-Products.csv
 
+# Local transaction snapshot written by seed_market_baskets.mjs (rollback state,
+# not source). Machine-specific and must never be committed.
+server/.basket_seed_backup.json
+
 # Python / ML Service
 ml-service/venv/
 ml-service/.env

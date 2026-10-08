@@ -1,4 +1,4 @@
-import { query } from '../../config/db.js';
+import { query, settleLimit } from '../../config/db.js';
 
 /**
  * Section 6: Data Quality Auditing, Governance & Lineage Engine
@@ -426,19 +426,28 @@ export const dataQualityService = {
     `);
 
     // Recent ETL Job runs
-    const etlRunsRes = await query(`
-      SELECT 
-        job_id, job_name, records_extracted, records_transformed, records_loaded,
-        execution_time_ms, status, details, error_message, started_at, completed_at
-      FROM etl_job_runs
-      ORDER BY started_at DESC
-      LIMIT 10;
-    `);
+    // Wrapped defensively: if the audit table is missing or briefly unavailable,
+    // the caller should still receive the quality report and simply see an
+    // empty audit list rather than the whole governance panel failing.
+    let recentEtlRuns = [];
+    try {
+      const etlRunsRes = await query(`
+        SELECT 
+          job_id, job_name, records_extracted, records_transformed, records_loaded,
+          execution_time_ms, status, details, error_message, started_at, completed_at
+        FROM etl_job_runs
+        ORDER BY started_at DESC
+        LIMIT 10;
+      `);
+      recentEtlRuns = etlRunsRes.rows;
+    } catch (err) {
+      console.warn('[DataQuality] Failed to read ETL job runs:', err.message);
+    }
 
     return {
       ...report,
       auditHistory: historyRes.rows.reverse(),
-      recentEtlRuns: etlRunsRes.rows
+      recentEtlRuns
     };
   },
 
@@ -462,19 +471,22 @@ export const dataQualityService = {
       dimCustRes,
       factSalesRes,
       factIntRes
-    ] = await Promise.all([
-      query(`SELECT count(*) FROM users;`),
-      query(`SELECT count(*) FROM products;`),
-      query(`SELECT count(*) FROM orders;`),
-      query(`SELECT count(*) FROM order_items;`),
-      query(`SELECT count(*) FROM interactions;`),
-      query(`SELECT count(*) FROM reviews;`),
-      query(`SELECT count(*) FROM dim_time;`),
-      query(`SELECT count(*) FROM dim_product;`),
-      query(`SELECT count(*) FROM dim_customer;`),
-      query(`SELECT count(*) FROM fact_sales;`),
-      query(`SELECT count(*) FROM fact_interaction_daily;`)
-    ]);
+    // Eleven row-count scans. Firing all of them concurrently is what pushed the
+    // database past its connection cap when the governance tab loaded alongside
+    // the other panels, so they run three at a time.
+    ] = await settleLimit([
+      () => query(`SELECT count(*) FROM users;`),
+      () => query(`SELECT count(*) FROM products;`),
+      () => query(`SELECT count(*) FROM orders;`),
+      () => query(`SELECT count(*) FROM order_items;`),
+      () => query(`SELECT count(*) FROM interactions;`),
+      () => query(`SELECT count(*) FROM reviews;`),
+      () => query(`SELECT count(*) FROM dim_time;`),
+      () => query(`SELECT count(*) FROM dim_product;`),
+      () => query(`SELECT count(*) FROM dim_customer;`),
+      () => query(`SELECT count(*) FROM fact_sales;`),
+      () => query(`SELECT count(*) FROM fact_interaction_daily;`)
+    ], 3);
 
     const counts = {
       users: parseInt(usersRes.rows[0].count, 10),

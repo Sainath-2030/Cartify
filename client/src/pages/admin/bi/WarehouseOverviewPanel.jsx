@@ -52,6 +52,13 @@ export default function WarehouseOverviewPanel({
   const tip = tooltipStyle(isDark);
   const tick = axisTick(isDark);
 
+  // Show the top 6 slices by revenue, plus anything that rounds to a whole
+  // percentage of at least 1% — the categories a reader actually cares about,
+  // without letting a long tail push the donut out of its box.
+  const visibleCategories = categoryShare
+    .filter((cat, i) => i < 6 || (cat.revenueSharePct ?? 0) >= 1)
+    .slice(0, 8);
+
   return (
     <>
 {/* Executive KPI Cards */}
@@ -112,9 +119,13 @@ export default function WarehouseOverviewPanel({
 </div>
 
 {/* Main Multi-Dimensional Visual Workspace */}
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+{/* 5/3 split at xl: the previous 3-column grid (2 + 1) squeezed the donut
+      card narrow enough that its legend and the pie itself competed for
+      space, pushing the chart to the right and clipping the small-slice
+      labels. Stacking happens below xl. */}
+<div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
   {/* Time-Series OLAP Trend Chart */}
-  <div className="lg:col-span-2 card border-border-subtle p-6 shadow-xs flex flex-col">
+  <div className="xl:col-span-3 card border-border-subtle p-6 shadow-xs flex flex-col">
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -169,7 +180,7 @@ export default function WarehouseOverviewPanel({
   </div>
 
   {/* Category Share Breakdown (Slicing) */}
-  <div className="card border-border-subtle p-6 shadow-xs flex flex-col h-full">
+  <div className="xl:col-span-2 card border-border-subtle p-6 shadow-xs flex flex-col">
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -183,32 +194,35 @@ export default function WarehouseOverviewPanel({
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 my-4 items-start">
-        {/* Pie Chart — kept inside its own fixed square so the donut never
-            overflows the card. Labels are rendered inside the ring so they
-            cannot be clipped by the ResponsiveContainer bounds. */}
-        <div className="w-full lg:w-[240px] lg:flex-none">
-          <div className="h-[240px] w-full">
+      {/* Side-by-side only once there is genuinely room for both (2xl). At smaller
+          widths the donut and legend stack so neither gets squeezed. */}
+      <div className="flex flex-col 2xl:flex-row gap-5 my-4 items-center 2xl:items-start">
+        {/* Pie Chart — fixed square so the donut never overflows the card.
+            Small slices are intentionally left unlabelled: their percentage
+            text overlapped the ring and the neighbouring legend column. Exact
+            values remain available in the legend and on hover. */}
+        <div className="w-full 2xl:w-[230px] 2xl:flex-none">
+          <div className="h-[230px] w-full">
             {categoryShare.length === 0 ? (
               <p className="text-xs text-muted text-center py-12">No category data.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <RePieChart>
+                <RePieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                   <Pie
-                    data={categoryShare.slice(0, 6)}
+                    data={visibleCategories}
                     cx="50%"
                     cy="50%"
-                    innerRadius={48}
-                    outerRadius={88}
+                    innerRadius="52%"
+                    outerRadius="84%"
                     paddingAngle={2}
                     dataKey="netRevenue"
                     nameKey="categoryName"
-                    label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                    label={({ percent }) => (percent >= 0.05 ? `${(percent * 100).toFixed(0)}%` : '')}
                     labelLine={false}
                     style={{ fontSize: 10, fill: chart.labelText }}
                   >
-                    {categoryShare.slice(0, 6).map((_, i) => (
-                      <Cell key={i} fill={CATEGORY_COLORS[i % 6]} />
+                    {visibleCategories.map((_, i) => (
+                      <Cell key={i} fill={CATEGORY_COLORS[i % 6]} stroke={chart.tooltipBg} strokeWidth={1} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -223,13 +237,13 @@ export default function WarehouseOverviewPanel({
         </div>
 
         {/* Legend / Details */}
-        <div className="flex-1 min-w-0 space-y-2 overflow-y-auto max-h-[240px] pr-1">
+        <div className="w-full 2xl:flex-1 2xl:min-w-0 space-y-2 2xl:overflow-y-auto 2xl:max-h-[230px] 2xl:pr-1">
           {categoryShare.length === 0 ? (
             <p className="text-xs text-muted text-center py-12">No category data.</p>
           ) : (
-            categoryShare.slice(0, 6).map((cat, i) => (
-              <div key={i} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 min-w-0 pr-2">
+            visibleCategories.map((cat, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
                   <span
                     className="w-3 h-3 rounded flex-shrink-0"
                     style={{ backgroundColor: CATEGORY_COLORS[i % 6] }}
@@ -244,6 +258,11 @@ export default function WarehouseOverviewPanel({
                 </div>
               </div>
             ))
+          )}
+          {categoryShare.length > visibleCategories.length && (
+            <p className="text-[11px] text-muted pt-1">
+              + {categoryShare.length - visibleCategories.length} more categories not shown
+            </p>
           )}
         </div>
       </div>

@@ -48,7 +48,38 @@ export const aprioriService = {
       HAVING COUNT(oi.product_id) > 1
     `;
     const res = await query(text);
-    return res.rows;
+    const rows = res.rows;
+    const multiItemBaskets = rows.length;
+    console.log(`[Apriori] Extracted ${multiItemBaskets} multi-item baskets from order_items.`);
+    return rows;
+  },
+
+  /**
+   * Count all baskets (including single-item orders) and report how many are
+   * eligible. The UI uses this to distinguish "no transactions at all" from
+   * "transactions exist but none contain two or more products", which are very
+   * different problems for a user trying to debug an empty chart.
+   */
+  async getTransactionStats() {
+    const res = await query(`
+      SELECT
+        COUNT(DISTINCT o.id)                                   AS total_orders,
+        COUNT(DISTINCT oi.order_id)                            AS baskets_with_items,
+        COUNT(*) FILTER (WHERE oi.cnt > 1)                      AS multi_item_baskets
+      FROM orders o
+      LEFT JOIN (
+        SELECT order_id, COUNT(product_id) AS cnt
+        FROM order_items
+        GROUP BY order_id
+      ) oi ON oi.order_id = o.id;
+    `);
+
+    const row = res.rows[0] || {};
+    return {
+      totalOrders: parseInt(row.total_orders, 10) || 0,
+      basketsWithItems: parseInt(row.baskets_with_items, 10) || 0,
+      multiItemBaskets: parseInt(row.multi_item_baskets, 10) || 0
+    };
   },
 
   // -------------------------------------------------------------------------
@@ -226,9 +257,31 @@ export const aprioriService = {
     const totalTransactions = transactions.length;
 
     if (totalTransactions === 0) {
+      // Distinguish "no data" from "no co-occurring products" so the UI can
+      // give the user an actionable message instead of a blank chart.
+      let stats = { totalOrders: 0, basketsWithItems: 0, multiItemBaskets: 0 };
+      try {
+        stats = await this.getTransactionStats();
+      } catch (err) {
+        console.warn('[Apriori] Could not compute transaction stats:', err.message);
+      }
+
+      console.warn(
+        `[Apriori] No multi-item baskets found ` +
+        `(orders=${stats.totalOrders}, baskets_with_items=${stats.basketsWithItems}). ` +
+        `No rules can be mined.`
+      );
+
       return {
         rules: [],
-        meta: { totalTransactions: 0, frequentItemsetCounts: {}, isTruncated: false, maxItemsetSize: effectiveMaxK, effectiveMinSupport }
+        meta: {
+          totalTransactions: 0,
+          frequentItemsetCounts: {},
+          isTruncated: false,
+          maxItemsetSize: effectiveMaxK,
+          effectiveMinSupport,
+          transactionStats: stats
+        }
       };
     }
 
@@ -357,6 +410,12 @@ export const aprioriService = {
       b.lift - a.lift ||
       b.confidence - a.confidence ||
       b.itemsetSize - a.itemsetSize
+    );
+
+    console.log(
+      `[Apriori] Mined ${rules.length} rules from ${totalTransactions} baskets ` +
+      `(minSupport=${effectiveMinSupport}, minConfidence=${minConfidence}, maxK=${effectiveMaxK}). ` +
+      `Frequent itemsets by level: ${JSON.stringify(frequentItemsetCounts)}`
     );
 
     return {

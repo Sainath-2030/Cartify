@@ -6,7 +6,7 @@
  * Dimensions: dim_time, dim_product, dim_customer
  */
 
-import { query } from '../config/db.js';
+import { query, settleLimit } from '../config/db.js';
 
 export const warehouseModel = {
   /**
@@ -325,14 +325,19 @@ export const warehouseModel = {
    * Returns available dimensions and discrete domain members for interactive Slice & Dice
    */
   async getOlapMetadata() {
-    const [yearsRes, quartersRes, monthsRes, categoriesRes, priceTiersRes, custTiersRes] = await Promise.all([
-      query(`SELECT DISTINCT year FROM dim_time ORDER BY year`),
-      query(`SELECT DISTINCT quarter, quarter_name FROM dim_time ORDER BY quarter`),
-      query(`SELECT DISTINCT month, month_short_name FROM dim_time ORDER BY month`),
-      query(`SELECT category_id, category_name, COUNT(*) AS product_count FROM dim_product GROUP BY category_id, category_name ORDER BY category_name`),
-      query(`SELECT DISTINCT price_tier FROM dim_product WHERE price_tier IS NOT NULL ORDER BY price_tier`),
-      query(`SELECT DISTINCT activity_tier FROM dim_customer WHERE activity_tier IS NOT NULL ORDER BY activity_tier`)
-    ]);
+    // These six lookups all read small dimension tables and are cheap; running
+    // them two-at-a-time keeps the dashboard under the provider's client cap.
+    const [yearsRes, quartersRes, monthsRes, categoriesRes, priceTiersRes, custTiersRes] = await settleLimit(
+      [
+        () => query(`SELECT DISTINCT year FROM dim_time ORDER BY year`),
+        () => query(`SELECT DISTINCT quarter, quarter_name FROM dim_time ORDER BY quarter`),
+        () => query(`SELECT DISTINCT month, month_short_name FROM dim_time ORDER BY month`),
+        () => query(`SELECT category_id, category_name, COUNT(*) AS product_count FROM dim_product GROUP BY category_id, category_name ORDER BY category_name`),
+        () => query(`SELECT DISTINCT price_tier FROM dim_product WHERE price_tier IS NOT NULL ORDER BY price_tier`),
+        () => query(`SELECT DISTINCT activity_tier FROM dim_customer WHERE activity_tier IS NOT NULL ORDER BY activity_tier`)
+      ],
+      2
+    );
 
     return {
       years: yearsRes.rows.map(r => r.year),
@@ -592,12 +597,18 @@ export const warehouseModel = {
       ORDER BY 1, 2;
     `;
 
-    const [summaryRes, timeSeriesRes, cubeRes, pivotRes] = await Promise.all([
-      query(summaryQuery, params),
-      query(timeSeriesQuery, params),
-      query(cubeQuery, params),
-      query(pivotQuery, params)
-    ]);
+    // These four aggregations all scan fact_sales and are the most expensive
+    // queries in the dashboard. Bounding them to two at a time avoids a
+    // connection-exhaustion burst when the OLAP Explorer tab mounts.
+    const [summaryRes, timeSeriesRes, cubeRes, pivotRes] = await settleLimit(
+      [
+        () => query(summaryQuery, params),
+        () => query(timeSeriesQuery, params),
+        () => query(cubeQuery, params),
+        () => query(pivotQuery, params)
+      ],
+      2
+    );
 
     return {
       summary: summaryRes.rows[0] || {},

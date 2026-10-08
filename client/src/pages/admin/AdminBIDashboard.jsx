@@ -96,6 +96,8 @@ export default function AdminBIDashboard() {
   const [minConfidence, setMinConfidence] = useState(0.20);
   const [rulesLimit, setRulesLimit] = useState(10);
   const [maxItemsetSize, setMaxItemsetSize] = useState(3);
+  const [associationError, setAssociationError] = useState('');
+  const [associationLoading, setAssociationLoading] = useState(false);
 
   // ── Section 3 state ────────────────────────────────────────────────────────
   const [customerSegments, setCustomerSegments] = useState(null);
@@ -177,17 +179,45 @@ export default function AdminBIDashboard() {
     }
   }, []);
 
+  /**
+   * Each section is fetched only once it has been opened.
+   *
+   * Every fetch here maps to a burst of DB work on the server, so loading all
+   * six sections on mount used to open ~7 parallel requests against a Postgres
+   * instance capped at a handful of clients — producing a wall of
+   * "max clients reached" toasts and blank panels. Fetching on demand keeps
+   * concurrent pressure to the sections actually on screen.
+   */
+  const fetchedSectionsRef = useRef(new Set());
+  const markFetched = useCallback((...keys) => {
+    keys.forEach(k => fetchedSectionsRef.current.add(k));
+  }, []);
+  const needsFetch = useCallback((...keys) => keys.some(k => !fetchedSectionsRef.current.has(k)), []);
+
   useEffect(() => {
-    fetchDataQuality();
-    fetchDataLineage();
-  }, [fetchDataQuality, fetchDataLineage]);
+    if (activeSection !== 'governance' || needsFetch('quality', 'lineage')) return;
+    // Sequential: the quality report runs a heavy multi-table audit.
+    let cancelled = false;
+    (async () => {
+      await fetchDataQuality();
+      if (cancelled) return;
+      await fetchDataLineage();
+      markFetched('quality', 'lineage');
+    })();
+    return () => { cancelled = true; };
+  }, [activeSection, fetchDataQuality, fetchDataLineage, needsFetch, markFetched]);
+
+  
 
   const handleRunQualityAudit = async () => {
     setDataQualityAuditRunning(true);
     try {
       await adminService.runDataQualityAudit();
       showToast('Data Quality Audit executed and logged successfully!', 'success');
-      await Promise.all([fetchDataQuality(), fetchDataLineage()]);
+      // Sequential: both endpoints run heavy warehouse scans and this only
+      // happens on explicit user action, so serializing costs nothing.
+      await fetchDataQuality();
+      await fetchDataLineage();
     } catch (err) {
       showToast(err.message || 'Failed to execute Data Quality Audit.', 'error');
     } finally {
@@ -199,14 +229,39 @@ export default function AdminBIDashboard() {
     const currentRequestId = ++requestIdRef.current;
     setLoading(true);
     try {
+      // `getWarehouseOverview` already returns the monthly trend, so derive the
+      // chart from it rather than issuing a second, near-identical aggregate
+      // query. This drops three parallel warehouse requests down to two.
       const results = await Promise.allSettled([
         adminService.getWarehouseOverview(),
-        adminService.getWarehouseSalesTrend(timeGrain),
         adminService.getWarehouseTopProducts(5)
       ]);
       if (currentRequestId !== requestIdRef.current) return;
 
-      const [overviewResult, trendResult, topResult] = results;
+      const [overviewResult, topResult] = results;
+
+      // Trend falls back to the overview payload, then to the dedicated
+      // endpoint only if that is genuinely missing.
+      let trendResult;
+      if (overviewResult.status === 'fulfilled') {
+        const overview = overviewResult.value?.data || overviewResult.value;
+        const embedded = Array.isArray(overview?.monthlyTrend) ? overview.monthlyTrend : null;
+        if (embedded && embedded.length > 0) {
+          trendResult = { status: 'fulfilled', value: embedded };
+        } else {
+          trendResult = await Promise
+            .resolve()
+            .then(() => adminService.getWarehouseSalesTrend(timeGrain))
+            .then(value => ({ status: 'fulfilled', value }))
+            .catch(reason => ({ status: 'rejected', reason }));
+        }
+      } else {
+        trendResult = await Promise
+          .resolve()
+          .then(() => adminService.getWarehouseSalesTrend(timeGrain))
+          .then(value => ({ status: 'fulfilled', value }))
+          .catch(reason => ({ status: 'rejected', reason }));
+      }
 
       if (overviewResult.status === 'fulfilled') {
         const overview = overviewResult.value?.data || overviewResult.value;
@@ -242,6 +297,7 @@ export default function AdminBIDashboard() {
 
   const fetchAssociationRules = useCallback(async () => {
     const currentRequestId = ++associationRequestIdRef.current;
+    setAssociationError('');
     try {
       const res = await adminService.getAssociationRules(minSupport, minConfidence, 1.0, maxItemsetSize);
       if (currentRequestId !== associationRequestIdRef.current) return;
@@ -255,16 +311,25 @@ export default function AdminBIDashboard() {
         setAssociationRules([]);
         setAssociationRulesMeta(null);
       }
+      setAssociationLoading(false);
     } catch (err) {
       if (currentRequestId !== associationRequestIdRef.current) return;
       console.error('Failed to load association rules:', err);
       setAssociationRules([]);
       setAssociationRulesMeta(null);
-      showToast(err.message || 'Failed to load association rules.', 'error');
+      setAssociationLoading(false);
+      // Surface in-panel instead of relying only on a toast, so an empty
+      // chart always has an explanation next to it.
+      setAssociationError(err.message || 'Failed to load association rules.');
     }
-  }, [minSupport, minConfidence, maxItemsetSize, showToast]);
+  }, [minSupport, minConfidence, maxItemsetSize]);
 
-  useEffect(() => { fetchAssociationRules(); }, [fetchAssociationRules]);
+  // Only mine rules once this tab has been visited; threshold changes re-run it.
+  useEffect(() => {
+    if (activeSection !== 'association') return;
+    setAssociationLoading(true);
+    fetchAssociationRules();
+  }, [activeSection, fetchAssociationRules]);
 
   const fetchCustomerSegments = useCallback(async () => {
     setCustomerSegmentsError(false);
@@ -279,7 +344,10 @@ export default function AdminBIDashboard() {
     }
   }, []);
 
-  useEffect(() => { fetchCustomerSegments(); }, [fetchCustomerSegments]);
+  useEffect(() => {
+    if (activeSection !== 'segments') return;
+    fetchCustomerSegments();
+  }, [activeSection, fetchCustomerSegments]);
 
   const fetchOlapCube = useCallback(async () => {
     const currentRequestId = ++olapRequestIdRef.current;
@@ -314,7 +382,10 @@ export default function AdminBIDashboard() {
     }
   }, [olapTimeGrain, olapCubeMode, olapMetric, olapCategoryId, olapQuarter, olapPriceTier, olapActivityTier]);
 
-  useEffect(() => { fetchOlapCube(); }, [fetchOlapCube]);
+  useEffect(() => {
+    if (activeSection !== 'olap') return;
+    fetchOlapCube();
+  }, [activeSection, fetchOlapCube]);
 
   const fetchChurnPredictions = useCallback(async () => {
     const currentRequestId = ++churnRequestIdRef.current;
@@ -334,7 +405,10 @@ export default function AdminBIDashboard() {
     }
   }, [churnRiskFilter, churnSortBy]);
 
-  useEffect(() => { fetchChurnPredictions(); }, [fetchChurnPredictions]);
+  useEffect(() => {
+    if (activeSection !== 'churn') return;
+    fetchChurnPredictions();
+  }, [activeSection, fetchChurnPredictions]);
 
   const handleTriggerOutreach = (customer) => {
     setOutreachSentMap(prev => ({ ...prev, [customer.customerId]: true }));
@@ -346,7 +420,15 @@ export default function AdminBIDashboard() {
     try {
       const res = await adminService.triggerWarehouseEtl();
       showToast(res.message || 'ETL Warehouse refresh completed!', 'success');
-      await Promise.all([fetchDashboardData(), fetchOlapCube(), fetchChurnPredictions(), fetchDataQuality(), fetchDataLineage()]);
+      // Refreshing the warehouse invalidates every panel, but running all five
+      // refetches at once is exactly the burst that exhausted the DB client
+      // cap in the first place. Sequential here keeps a manual ETL refresh
+      // from reproducing the "max clients reached" wall of toasts.
+      await fetchDashboardData();
+      await fetchOlapCube();
+      await fetchChurnPredictions();
+      await fetchDataQuality();
+      await fetchDataLineage();
     } catch (err) {
       showToast(err.message || 'Failed to trigger ETL refresh.', 'error');
     } finally {
@@ -502,6 +584,9 @@ export default function AdminBIDashboard() {
               setRulesLimit={setRulesLimit}
               maxItemsetSize={maxItemsetSize}
               setMaxItemsetSize={setMaxItemsetSize}
+              error={associationError}
+              loading={associationLoading}
+              refetch={fetchAssociationRules}
             />
           </PanelErrorBoundary>
         )}

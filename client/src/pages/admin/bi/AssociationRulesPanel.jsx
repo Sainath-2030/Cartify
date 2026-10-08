@@ -1,4 +1,5 @@
-import { Network, Settings2, Table, Layers } from 'lucide-react';
+import { useMemo } from 'react';
+import { Network, Settings2, Table, Layers, AlertTriangle, RefreshCw } from 'lucide-react';
 import {
   ScatterChart,
   Scatter,
@@ -11,6 +12,22 @@ import {
 } from 'recharts';
 import { useTheme } from '../../../hooks/useTheme.js';
 import { getChartTheme, axisTick, tooltipStyle } from './biShared.js';
+
+/**
+ * Round a lift value up to a readable axis ceiling (1, 1.5, 2, 2.5, 3, 4, 5,
+ * 7.5, 10 ... 100) so Y-axis ticks render as whole multiples rather than
+ * arbitrary decimals.
+ */
+const niceCeil = (value) => {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  const exp = Math.floor(Math.log10(value));
+  const magnitude = Math.pow(10, exp);
+  const normalized = value / magnitude;
+  const step = normalized <= 1 ? 1 : normalized <= 1.5 ? 1.5 : normalized <= 2 ? 2
+    : normalized <= 2.5 ? 2.5 : normalized <= 3 ? 3 : normalized <= 4 ? 4
+      : normalized <= 5 ? 5 : normalized <= 7.5 ? 7.5 : 10;
+  return step * magnitude;
+};
 
 /**
  * Section 2 & Section 7: Market Basket Analysis - Higher-Order Apriori
@@ -29,7 +46,10 @@ export default function AssociationRulesPanel({
   rulesLimit,
   setRulesLimit,
   maxItemsetSize,
-  setMaxItemsetSize
+  setMaxItemsetSize,
+  error = '',
+  loading = false,
+  refetch
 }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -42,6 +62,25 @@ export default function AssociationRulesPanel({
   const displayedRules = rulesLimit === 'all'
     ? associationRules
     : associationRules.slice(0, rulesLimit);
+
+  const totalTransactions = meta.totalTransactions ?? 0;
+
+  /**
+   * Pad the scatter domains so a point is never drawn flush against the plot
+   * edge (where a label or the point itself gets clipped), and so a chart with
+   * a single rule still renders a readable axis instead of a lone dot pinned
+   * to the top-right corner.
+   */
+  const { xDomain, yDomain } = useMemo(() => {
+    const lifts = displayedRules.map(r => Number(r.lift) || 0);
+    const maxLift = lifts.length > 0 ? Math.max(...lifts) : 1;
+    return {
+      xDomain: [0, 1],
+      // Round the lift ceiling up to a friendly step so ticks land on
+      // readable values rather than odd numbers like 81.0375x.
+      yDomain: [0, niceCeil(maxLift * 1.15)]
+    };
+  }, [displayedRules]);
 
   // Itemset size badge colors (Tailwind classes for chips/table)
   const itemsetSizeColors = {
@@ -67,7 +106,40 @@ export default function AssociationRulesPanel({
         </span>
         <span className="text-xs text-muted">•</span>
         <span className="text-xs text-muted font-mono">Apriori L{maxItemsetSize} Mining</span>
+        {loading && (
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted font-mono">
+            <RefreshCw className="w-3 h-3 animate-spin" /> Mining…
+          </span>
+        )}
       </div>
+
+      {/* Request failure — surfaced here because the scatter below simply
+          collapses when no rules are returned, which otherwise looks like an
+          empty white panel with no explanation. */}
+      {error && (
+        <div
+          role="alert"
+          className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3"
+        >
+          <div className="flex items-start gap-2 text-xs text-rose-300">
+            <AlertTriangle className="w-4 h-4 mt-px shrink-0" />
+            <div>
+              <p className="font-semibold text-rose-200">Could not load association rules</p>
+              <p className="mt-0.5 opacity-90 break-words">{error}</p>
+            </div>
+          </div>
+          {refetch && (
+            <button
+              onClick={refetch}
+              disabled={loading}
+              className="btn btn-primary text-xs shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Retry
+            </button>
+          )}
+        </div>
+      )}
       <h3 className="text-lg font-semibold text-ink flex items-center gap-2 font-display">
         <Network className="w-5 h-5 text-accent" />
         Market Basket Analysis (Apriori Association Rules)
@@ -194,28 +266,18 @@ export default function AssociationRulesPanel({
     </div>
   )}
 
-  {/* Lift vs Confidence Scatter Plot */}
-  {associationRules.length > 0 && (
+  {/* Lift vs Confidence Scatter Plot.
+      The card stays mounted even with zero rules so the section has consistent
+      height and a clear explanation, instead of collapsing to blank space. */}
+  {associationRules.length > 0 ? (
     <div className="mb-6 card border-border-subtle p-4 shadow-xs">
       <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-accent" />
         Rule Quality Scatter: Lift vs Confidence
       </h4>
-      <div className="h-[280px]">
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart
-            margin={{ top: 10, right: 30, left: 50, bottom: 10 }}
-            data={displayedRules.map(r => ({
-              confidence: r.confidence,
-              lift: r.lift,
-              support: r.support,
-              itemsetSize: r.itemsetSize,
-              antecedent: r.antecedentNames.join(', '),
-              consequent: r.consequentNames.join(', '),
-              color: itemsetHex(r.itemsetSize),
-              size: r.itemsetSize * 6
-            }))}
-          >
+          <ScatterChart margin={{ top: 16, right: 24, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
             <XAxis
               type="number"
@@ -223,15 +285,17 @@ export default function AssociationRulesPanel({
               name="Confidence"
               tick={axisTick(isDark)}
               tickFormatter={v => (v * 100).toFixed(0) + '%'}
-              domain={[0, 1]}
+              domain={xDomain}
+              allowDecimals={false}
             />
             <YAxis
               type="number"
               dataKey="lift"
               name="Lift"
               tick={axisTick(isDark)}
-              tickFormatter={v => v.toFixed(2) + 'x'}
-              domain={[0, 'dataMax']}
+              tickFormatter={v => `${Number(v).toFixed(v % 1 === 0 ? 0 : 1)}x`}
+              domain={yDomain}
+              width={52}
             />
             <Tooltip
               formatter={(value, name) => [
@@ -244,18 +308,38 @@ export default function AssociationRulesPanel({
                 return item ? `${item.antecedent} → ${item.consequent}` : '';
               }}
             />
+            {/* Data belongs on <Scatter>, not <ScatterChart>: passing it to the
+                chart makes Recharts treat the rows as additional chart series
+                rather than as the scatter series' points. */}
+            {/* Opacity is reduced because strongly-correlated baskets produce rules that
+                land on very few distinct (confidence, lift) coordinates. Some
+                overlap is expected; the tooltip and table disambiguate. */}
             <Scatter
               name="Rules"
               dataKey="lift"
               fill="#22d3ee"
               shape="circle"
+              isAnimationActive={false}
+              data={displayedRules.map(r => ({
+                confidence: r.confidence,
+                lift: r.lift,
+                support: r.support,
+                itemsetSize: r.itemsetSize,
+                antecedent: r.antecedentNames.join(', '),
+                consequent: r.consequentNames.join(', '),
+                color: itemsetHex(r.itemsetSize)
+              }))}
             >
+              {/* A single rule would otherwise be clipped by the plot edge and
+                  be hard to click; a radius floor keeps it visible. */}
               {displayedRules.map((rule, i) => (
                 <Cell
                   key={i}
                   fill={itemsetHex(rule.itemsetSize)}
+                  fillOpacity={displayedRules.length > 40 ? 0.6 : 0.85}
                   stroke={chart.axis}
-                  strokeWidth={0.5}
+                  strokeWidth={1}
+                  r={displayedRules.length === 1 ? 9 : 4 + (rule.itemsetSize || 2)}
                 />
               ))}
             </Scatter>
@@ -266,11 +350,53 @@ export default function AssociationRulesPanel({
         Each dot = one rule. Size/color = itemset order (L2/L3/L4). Hover for details. Top-right quadrant = high confidence + high lift.
       </p>
     </div>
+  ) : (
+    <div className="mb-6 card border-border-subtle p-4 shadow-xs">
+      <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-accent" />
+        Rule Quality Scatter: Lift vs Confidence
+      </h4>
+      <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-center">
+        {loading ? (
+          <>
+            <RefreshCw className="w-5 h-5 text-muted animate-spin" />
+            <p className="text-xs text-muted">Mining transactions for frequent itemsets…</p>
+          </>
+        ) : error ? (
+          <>
+            <AlertTriangle className="w-5 h-5 text-rose-400" />
+            <p className="text-xs text-muted">Rules could not be loaded. Retry above to try again.</p>
+          </>
+        ) : totalTransactions === 0 ? (
+          <>
+            <Table className="w-5 h-5 text-muted" />
+            <p className="text-xs text-muted font-medium text-ink">No multi-item transactions found</p>
+            <p className="text-[11px] text-muted max-w-sm">
+              Apriori needs baskets containing two or more products. Run an ETL refresh to
+              build <code>order_items</code> history, then try again.
+            </p>
+          </>
+        ) : (
+          <>
+            <Table className="w-5 h-5 text-muted" />
+            <p className="text-xs text-muted font-medium text-ink">
+              No rules pass the current thresholds
+            </p>
+            <p className="text-[11px] text-muted max-w-sm">
+              Analyzed <strong className="font-mono">{totalTransactions.toLocaleString()}</strong>{' '}
+              transactions at min support {(minSupport * 100).toFixed(1)}% and min confidence{' '}
+              {(minConfidence * 100).toFixed(0)}%. Lower the thresholds or raise max itemset
+              size to discover rules.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
   )}
 
   {/* Rules Table */}
   <div className="overflow-x-auto rounded-lg border border-border-subtle">
-    <table className="w-full text-left text-sm whitespace-nowrap">
+      <table className="w-full text-left text-sm whitespace-nowrap min-w-[640px]">
       <thead className="bg-card-elevated text-muted text-xs uppercase tracking-wider font-semibold border-b border-border-subtle">
         <tr>
           <th className="px-4 py-3">Antecedent (If bought...)</th>

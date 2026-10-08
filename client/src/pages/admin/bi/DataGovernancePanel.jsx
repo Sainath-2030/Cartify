@@ -761,8 +761,8 @@ export default function DataGovernancePanel({
           </button>
         </div>
 
-        <div className="border border-border-subtle rounded-xl overflow-hidden bg-card">
-          <table className="w-full text-left text-xs">
+        <div className="border border-border-subtle rounded-xl overflow-x-auto bg-card">
+          <table className="w-full text-left text-xs min-w-[880px]">
             <thead>
               <tr className="border-b border-border-subtle bg-card-elevated text-muted">
                 <th className="p-3 font-semibold">Job ID</th>
@@ -777,6 +777,42 @@ export default function DataGovernancePanel({
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
+              {/* Loading skeleton — the table used to render header-only while
+                  the request was in flight, which read as "no history exists". */}
+              {dataQualityLoading && (dataQualityData?.recentEtlRuns || []).length === 0 && (
+                <tr>
+                  <td colSpan="9" className="p-6 text-center">
+                    <span className="inline-flex items-center gap-2 text-xs text-muted">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Loading ETL run history…
+                    </span>
+                  </td>
+                </tr>
+              )}
+
+              {!dataQualityLoading && (dataQualityData?.recentEtlRuns || []).length === 0 && (
+                <tr>
+                  <td colSpan="9" className="p-10 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Database className="w-6 h-6 text-muted" />
+                      <p className="text-sm font-semibold text-ink">No ETL runs recorded yet</p>
+                      <p className="text-xs text-muted max-w-md">
+                        The <code>etl_job_runs</code> audit table is empty. Run a refresh to
+                        populate the warehouse and create the first audit entry.
+                      </p>
+                      <button
+                        onClick={handleTriggerETL}
+                        disabled={etlRefreshing}
+                        className="mt-2 px-3.5 py-1.5 text-xs font-bold text-stone-900 bg-accent hover:opacity-90 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${etlRefreshing ? 'animate-spin' : ''}`} />
+                        {etlRefreshing ? 'Running ETL…' : 'Run New ETL Refresh'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
               {(dataQualityData?.recentEtlRuns || []).map(run => {
                 const isExpanded = !!expandedEtlRuns[run.job_id];
                 return (
@@ -815,6 +851,18 @@ export default function DataGovernancePanel({
           if (!expandedEtlRuns[jobId]) return null;
           const run = (dataQualityData?.recentEtlRuns || []).find(r => r.job_id.toString() === jobId.toString());
           if (!run) return null;
+
+          // `details` is a jsonb column but can arrive as a string depending on
+          // the driver, and could be malformed — parsing it unguarded threw and
+          // blanked the whole panel when the user expanded a run.
+          let prettyDetails;
+          try {
+            const parsed = typeof run.details === 'string' ? JSON.parse(run.details) : run.details;
+            prettyDetails = JSON.stringify(parsed, null, 2);
+          } catch {
+            prettyDetails = String(run.details ?? 'No details recorded.');
+          }
+
           return (
             <div key={jobId} className="bg-surface-subtle p-4 rounded-xl border border-border-subtle space-y-2">
               <div className="flex items-center justify-between">
@@ -827,7 +875,7 @@ export default function DataGovernancePanel({
                 </button>
               </div>
               <pre className="p-3 bg-card rounded-lg border border-border-subtle text-[11px] font-mono text-ink overflow-x-auto">
-                {JSON.stringify(typeof run.details === 'string' ? JSON.parse(run.details) : run.details, null, 2)}
+                {prettyDetails}
               </pre>
             </div>
           );

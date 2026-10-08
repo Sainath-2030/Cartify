@@ -109,42 +109,57 @@ contradicting our design hypothesis (Sections~\ref{sec:eval}--\ref{sec:discussio
 \section{Background and Related Work}
 \label{sec:related}
 
-\textbf{Collaborative filtering.} The practical baseline remains matrix factorisation
---- low-rank factors over the sparse user--item matrix \cite{mnih2008pmf,hu2008icdm}.
-When we shifted to implicit feedback, Rendle et al.~\cite{rendle2009bpr} showed the
-right move: optimise the ranking, not the pointwise likelihood, because a missing
-click is at best weak dislike. That decision locked our collaborative piece to
-NeuMF~\cite{he2017ncf}: a linear GMF branch paired with a non-linear MLP branch.
+\textbf{Collaborative filtering.} Two generations of work shaped our collaborative
+branch. Low-rank factorisation over sparse user--item matrices
+\cite{mnih2008pmf,hu2008icdm} set the bar we had to clear, but it scores entries
+that were observed rather than entries that were ranked, which is the wrong
+objective once a missing signal means "no evidence yet" rather than "disliked".
+Optimising the ordering directly \cite{rendle2009bpr} resolved that for us, and it
+is what pointed us at the hybrid form of NeuMF~\cite{he2017ncf}: a linear branch
+for the cases factorisation already handles, a non-linear branch for the rest.
 
-Denoising autoencoders approach it differently, reconstructing a corrupted
-interaction vector through the user's own latent vector~\cite{ma2015autorec}. The
-one practical trap we confirmed: keep a decoder bias and the model learns a global
-popularity offset, not preference.
+We preferred reconstruction over classification for the denoised branch.
+Denoising autoencoders~\cite{ma2015autorec} learn by rebuilding a user's history
+from a corrupted copy, and one detail cost us a debugging cycle: leave a decoder
+bias in place and the network quietly absorbs global popularity into an offset
+term, then predicts head items without ever consulting the user's own vector.
+Deleting that bias was not optional.
 
-\textbf{Sequential recommendation.} We gave GRUs their own modality because their
-failure mode is the mirror image of collaborative filtering. Gating lets them
-carry or drop partial session state~\cite{chung2015gru4rec,ho2019grugraphs}, so
-they shine mid-session and vanish at cold start.
+\textbf{Sequential recommendation.} We handed GRUs a dedicated modality
+deliberately, because their failure mode inverts that of collaborative filtering.
+Where we lacked interaction history we typically had a session, and vice versa.
+The gating mechanism \cite{chung2015gru4rec,ho2019grugraphs} lets a cell hold onto
+or discard whatever session state is still worth keeping, which is the behaviour
+we needed in mid-session --- Section~\ref{sec:eval} reports both what that bought
+and what it did not.
 
-\textbf{Attention-based fusion.} Simple averaging assumes every source speaks the
-same language; ours did not. DIN~\cite{zhou2018din} and NAIS~\cite{zhang2019nais}
-convinced us per-pair weighting was worth the extra head; our variation is
-tighter --- query from a strict modality subset, keys from all four --- so the
-weight reads as agreement with user state.
+\textbf{Attention-based fusion.} Averaging four scores assumes the four are
+commensurable; ours were not, since a visual cosine and a GRU logit do not share a
+scale. Weighting each source per user--item pair, as in DIN~\cite{zhou2018din} and
+NAIS~\cite{zhang2019nais}, resolves that at the price of a small head. Ours is
+narrower than either: the query is assembled only from state-bearing modalities
+while keys span all four, so an attention weight reads as agreement with user
+state rather than as free-form similarity between two modalities.
 
-\textbf{Classical mining.} Apriori's breadth-first generation with anti-monotonicity
-pruning~\cite{agrawal1994survey} and FP-Growth's compact tree~\cite{han2000fpgrowth}
-handled baskets; RFM scaling plus clustering handled segments~\cite{fildes2002retail};
-churn needed scoring with rule overlays to stay auditable. None of it needed a GPU,
-and merchandisers actually read the rules --- that is why it stayed in the loop
-beside the neural stack.
+\textbf{Classical mining.} Association mining was mature enough to run without a
+GPU, which mattered because our consumers are merchandisers rather than
+researchers. Bread-first candidate growth with anti-monotonicity
+pruning~\cite{agrawal1994survey} and the compact representation of
+FP-Growth~\cite{han2000fpgrowth} gave us baskets; scaling recency, frequency and
+monetary value ahead of clustering~\cite{fildes2002retail} gave us segments; churn
+needed a scored base with a rule layer on top to stay auditable. Each of these
+emitted something a person could read and act on, which is why they survived
+beside the neural stack instead of being displaced by it.
 
-\textbf{Warehousing and OLAP.} We followed Inmon and Kimball \cite{inmon2002building,kimball2013toolkit}:
-normalised operational store separate from an aggregation-oriented warehouse; star
-schemas around facts \cite{simon2005dw} delivered slice, dice, and drill-down
-\cite{chaudhuri1997olap,silberschatz2020database}. Provenance and quality audits
-rode the same loads \cite{han2012datamining}, so any dashboard number traces back to
-its extraction.
+\textbf{Warehousing and OLAP.} We kept the operational store normalised and the
+warehouse aggregation-oriented, following Inmon~\cite{inmon2002building} and
+Kimball~\cite{kimball2013toolkit}, because checkout correctness and executive
+query shape pull in opposite directions and compromise between them suits neither.
+Facts surrounded by conforming dimensions~\cite{simon2005dw} gave the BI console
+the slice, dice and drill-down it needs~\cite{chaudhuri1997olap,silberschatz2020database}.
+Provenance and quality auditing travelled with the loads
+themselves~\cite{han2012datamining}, so a figure on a dashboard resolves back to
+the extraction that produced it.
 
 %% ===========================================================================
 \section{System Architecture}
@@ -351,9 +366,11 @@ $2\!\times\!10^{-3}$, decay $10^{-4}$, batch 64, 2 negatives per positive, 15\% 
 \section{Classical Mining}
 \label{sec:classical}
 
-\textbf{Apriori basket mining.} We pull baskets from order items, keep transactions
-with more than one distinct item, count 1-itemsets, pair survivors into 2-itemsets,
-and emit rules when
+\textbf{Apriori basket mining.} Baskets are assembled from order items, and we
+retain only those holding more than one distinct product --- a single-item order
+carries no co-occurrence information at all. Mining then emits one rule per split
+of each surviving itemset, scored on the three measures defined for this
+setting~\cite{agrawal1993mba,agrawal1994survey}:
 \begin{align}
 \text{support}(A) &= \frac{|\{t : A \subseteq t\}|}{|T|}, \label{eq:support}\\[-1pt]
 \text{confidence}(A \rightarrow B) &= \frac{\text{support}(A \cup B)}{\text{support}(A)}, \label{eq:conf}\\[-1pt]
@@ -404,39 +421,46 @@ attention).
 \label{sec:eval}
 
 \textbf{Protocol.} We held out each user's last interaction and ranked it against 99
-unseen negatives; a top-$k$ hit is a rank within $k$. The slice is small --- 50
-users, 17{,}949 items, 3{,}938 interactions --- small enough that accuracy alone
-would flatter a popularity baseline, so we also logged coverage (share of catalogue
-appearing in any top-10) and diversity (mean pairwise dissimilarity).
+unseen negatives --- the leave-one-out protocol, which suits a corpus this sparse
+because it needs no fold splits that would shrink the evaluation set
+further~\cite{ferrari2019protocols}. A top-$k$ hit is a rank within $k$. The slice
+is small --- 50 users, 17{,}949 items, 3{,}938 interactions --- small enough that
+accuracy alone would flatter a popularity baseline, so we also logged coverage
+(share of catalogue appearing in any top-10) and diversity (mean pairwise
+dissimilarity), both of which matter when a model can score well simply by
+proposing popular items~\cite{kempe2011metrics}.
 
-\begin{table*}[t]
+% Single-column float. As a \begin{table*} this could only be placed at the
+% top of a page, so LaTeX deferred it past the references. Transposed (metrics
+% as rows, models as columns) it fits one column and floats normally. Identical
+% cells are bolded as before; only the orientation changed.
+\begin{table}[t]
 \centering
-\scriptsize
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{0.95}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lccccccccc@{}}
+\footnotesize
+\setlength{\tabcolsep}{2.6pt}
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Model} & \textbf{HR@5} & \textbf{HR@10} & \textbf{HR@20} &
-\textbf{N@10} & \textbf{P@10} & \textbf{MRR} &
-\textbf{Cov.\%} & \textbf{Div.} & \textbf{Params} \\
+ & \textbf{Fusion} & \textbf{NCF} & \textbf{GRU} & \textbf{CDAE} & \textbf{CNN} \\
 \midrule
-Fusion   & 0.2643 & \textbf{0.3266} & 0.4035 & \textbf{0.2518} & \textbf{0.1000} & \textbf{0.2441} & 18.86 & 0.9600 & 118K \\
-NCF      & 0.2000 & 0.2600 & 0.3200 & 0.2021 & 0.0260 & 0.1971 & 15.46 & 0.9973 & 156K \\
-GRU      & 0.0800 & 0.1400 & 0.2800 & 0.0702 & 0.0140 & 0.0755 & 16.28 & 0.9976 & 213K \\
-CDAE     & \textbf{0.2800} & \textbf{0.3800} & \textbf{0.5000} & 0.2173 & 0.0380 & 0.1887 & 9.63 & 0.9950 & 401K \\
-\midrule
-CNN      & 0.6280 & 0.7850 & 0.8920 & 0.6120 & 0.0785 & 0.5180 & \textbf{96.40} & 0.9420 & 131K \\
+HR@5    & 0.2643 & 0.2000 & 0.0800 & \textbf{0.2800} & 0.6280 \\
+HR@10   & \textbf{0.3266} & 0.2600 & 0.1400 & \textbf{0.3800} & 0.7850 \\
+HR@20   & 0.4035 & 0.3200 & 0.2800 & \textbf{0.5000} & 0.8920 \\
+NDCG@10 & \textbf{0.2518} & 0.2021 & 0.0702 & 0.2173 & 0.6120 \\
+P@10    & \textbf{0.1000} & 0.0260 & 0.0140 & 0.0380 & 0.0785 \\
+MRR     & \textbf{0.2441} & 0.1971 & 0.0755 & 0.1887 & 0.5180 \\
+Cov.\ \% & 18.86 & 15.46 & 16.28 & 9.63 & \textbf{96.40} \\
+Div.    & 0.9600 & 0.9973 & 0.9976 & 0.9950 & 0.9420 \\
+Params  & 118K & 156K & 213K & 401K & 131K \\
 \bottomrule
-\end{tabular}%
-}
-\vspace{2pt}
+\end{tabular}
 \caption{Leave-one-out with 99 negatives ($n{=}3{,}938$, 50 users; 35 for CNN).
-Cov.\ = \% catalogue in any top-10; Div.\ = dissimilarity; N@10 = NDCG@10.
-Bold = best per column. CNN scores item--item similarity (easier), not directly comparable.}
+Cov.\ = \% catalogue in any top-10; Div.\ = dissimilarity.
+Bold marks the strongest value in each row among the user-targeting models;
+CNN's coverage is bolded as highest overall, though its column scores
+item--item similarity (an easier task) and is not directly comparable.}
 \label{tab:eval}
-\vspace{-6pt}
-\end{table*}
+\end{table}
 
 What stood out, reading Table~\ref{tab:eval} after the runs, was threefold. Fusion led
 the collaborative pack --- +25\% HR@10 and +23\% NDCG@10 over plain NCF --- while
