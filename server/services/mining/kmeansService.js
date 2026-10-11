@@ -5,6 +5,10 @@ export const kmeansService = {
    * Generates RFM (Recency, Frequency, Monetary) metrics for all users.
    */
   async extractRFM() {
+    // Every non-cancelled order counts toward RFM. This previously filtered to
+    // ('DELIVERED','SHIPPED') only, so a warehouse whose orders are still
+    // PENDING/PROCESSING produced frequency=0 and monetary=0 for every single
+    // customer - which collapsed the whole cohort map onto the origin.
     const text = `
       SELECT 
         u.id AS customer_id,
@@ -16,7 +20,9 @@ export const kmeansService = {
         COUNT(o.id) AS frequency,
         COALESCE(SUM(o.total_amount), 0) AS monetary
       FROM users u
-      LEFT JOIN orders o ON u.id = o.user_id AND o.status IN ('DELIVERED', 'SHIPPED')
+      LEFT JOIN orders o
+        ON u.id = o.user_id
+       AND o.status IN ('DELIVERED', 'SHIPPED', 'PROCESSING', 'PENDING')
       GROUP BY u.id, u.full_name
     `;
     const res = await query(text);
@@ -165,6 +171,43 @@ export const kmeansService = {
           centroids[k].m = sums[k].m / sums[k].count;
         }
       }
+
+      // Re-seed any centroid that ended up owning zero points.
+      //
+      // Without this, an unclaimed centroid is frozen at its initial position
+      // forever: it keeps losing every assignment race, so `sums[k].count`
+      // stays 0 and the "update" step is skipped. The cluster is then reported
+      // as a real, named segment with `customerCount: 0`, which is exactly the
+      // kind of empty cohort that makes the segmentation meaningless.
+      //
+      // We move the most badly-served point (the one furthest from the
+      // centroid it was actually assigned to) into the empty centroid, which
+      // is the standard k-means++ style recovery for a collapsed cluster.
+      for (let k = 0; k < centroids.length; k++) {
+        if (sums[k].count > 0) continue;
+
+        let worstIndex = -1;
+        let worstDistance = -1;
+        for (let i = 0; i < points.length; i++) {
+          if (assignments[i] === k) continue;
+          const d = this.distance(points[i].norm, centroids[assignments[i]]);
+          if (d > worstDistance) {
+            worstDistance = d;
+            worstIndex = i;
+          }
+        }
+
+        if (worstIndex === -1) continue;
+
+        assignments[worstIndex] = k;
+        centroids[k] = {
+          ...centroids[k],
+          r: points[worstIndex].norm.r,
+          f: points[worstIndex].norm.f,
+          m: points[worstIndex].norm.m
+        };
+        changed = true;
+      }
     }
 
     // 4. Format Results
@@ -174,6 +217,8 @@ export const kmeansService = {
       const avgR = clusterPoints.length ? clusterPoints.reduce((acc, p) => acc + p.recency, 0) / clusterPoints.length : 0;
       const avgF = clusterPoints.length ? clusterPoints.reduce((acc, p) => acc + p.frequency, 0) / clusterPoints.length : 0;
       const avgM = clusterPoints.length ? clusterPoints.reduce((acc, p) => acc + p.monetary, 0) / clusterPoints.length : 0;
+      const totalM = clusterPoints.reduce((acc, p) => acc + p.monetary, 0);
+      const totalOrders = clusterPoints.reduce((acc, p) => acc + p.frequency, 0);
       const aov = avgF > 0 ? parseFloat((avgM / avgF).toFixed(2)) : 0;
       
       return {
@@ -185,6 +230,12 @@ export const kmeansService = {
         averageFrequency: parseFloat(avgF.toFixed(2)),
         averageMonetary: parseFloat(avgM.toFixed(2)),
         averageOrderValue: aov,
+        // Aggregate figures for the segment list. These were missing entirely,
+        // so the panel's `cluster.totalRevenue` read `undefined` and every
+        // cohort row rendered a hard "₹0" regardless of the real data.
+        totalRevenue: parseFloat(totalM.toFixed(2)),
+        totalOrders,
+        totalUnitsOrdered: totalOrders,
         customers: clusterPoints.map(p => ({
           id: p.customer_id,
           name: p.full_name || `Customer #${p.customer_id}`,

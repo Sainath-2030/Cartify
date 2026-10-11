@@ -210,7 +210,11 @@ export default function CustomerSegmentsPanel({
                         // never overflow the chart bounds.
                         label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                         labelLine={false}
-                        style={{ fontSize: 10, fill: getChartTheme(resolvedTheme === 'dark').labelText }}
+                        // `fill` must stay out of `style` - see the matching note
+                        // in WarehouseOverviewPanel. It overrode every <Cell>
+                        // colour, flattening this donut to a single colour too.
+                        style={{ fontSize: 10 }}
+                        labelStyle={{ fontSize: 10, fill: getChartTheme(resolvedTheme === 'dark').labelText }}
                       >
                         {customerSegments.clusters.map((_, i) => (
                           <Cell
@@ -238,6 +242,24 @@ export default function CustomerSegmentsPanel({
                 };
                 const total = customerSegments.clusters.reduce((s, c) => s + c.customerCount, 0);
                 const pct = total > 0 ? ((cluster.customerCount / total) * 100).toFixed(1) : '0.0';
+
+                // Prefer the server's aggregate, but derive it from the customer
+                // rows when it is absent. `|| 0` used to silently render "₹0"
+                // for every cohort whenever the field was missing.
+                const revenueFromRows = (cluster.customers || []).reduce(
+                  (sum, c) => sum + (Number(c.monetary) || 0),
+                  0
+                );
+                const totalRevenue = Number.isFinite(cluster.totalRevenue)
+                  ? cluster.totalRevenue
+                  : revenueFromRows;
+                const avgOrderValue = Number.isFinite(cluster.averageOrderValue) && cluster.averageOrderValue > 0
+                  ? cluster.averageOrderValue
+                  : (cluster.customers || []).length
+                    ? totalRevenue /
+                      ((cluster.customers || []).reduce((s, c) => s + (Number(c.frequency) || 0), 0) || 1)
+                    : 0;
+
                 return (
                   <div key={cluster.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${config.border} ${config.bg}`}>
                     <div className="flex items-center gap-3">
@@ -248,8 +270,8 @@ export default function CustomerSegmentsPanel({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-ink font-mono">{formatCurrency(cluster.totalRevenue || 0)}</p>
-                      <p className="text-xs text-muted">Avg {formatCurrency(cluster.averageOrderValue || 0)}/order</p>
+                      <p className="font-semibold text-ink font-mono">{formatCurrency(totalRevenue)}</p>
+                      <p className="text-xs text-muted">Avg {formatCurrency(avgOrderValue)}/order</p>
                     </div>
                   </div>
                 );

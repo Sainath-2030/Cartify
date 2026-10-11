@@ -215,11 +215,22 @@ export default function WarehouseOverviewPanel({
                     innerRadius="52%"
                     outerRadius="84%"
                     paddingAngle={2}
+                    // Long-tail categories are well under 1% and collapse to
+                    // hairline slivers at this radius, which made the donut read
+                    // as a single solid wedge. A small floor keeps every segment
+                    // visible without distorting the leader.
+                    minAngle={3}
                     dataKey="netRevenue"
                     nameKey="categoryName"
                     label={({ percent }) => (percent >= 0.05 ? `${(percent * 100).toFixed(0)}%` : '')}
                     labelLine={false}
-                    style={{ fontSize: 10, fill: chart.labelText }}
+                    // NOTE: `fill` must NOT be set here. `style` is forwarded to
+                    // every sector as an inline CSS declaration, and CSS beats
+                    // the SVG `fill` presentation attribute that <Cell> sets -
+                    // so a fill in this object silently overrode all per-slice
+                    // colours and the whole donut rendered one flat colour.
+                    style={{ fontSize: 10 }}
+                    labelStyle={{ fontSize: 10, fill: chart.labelText }}
                   >
                     {visibleCategories.map((_, i) => (
                       <Cell key={i} fill={CATEGORY_COLORS[i % 6]} stroke={chart.tooltipBg} strokeWidth={1} />

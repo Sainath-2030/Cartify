@@ -149,6 +149,22 @@ export default function AdminModels() {
     return `User #${uid} · ${displayName} ${persona}`;
   };
 
+  /**
+   * Resolve the list of selectable user IDs for a simulator dropdown.
+   *
+   * The naive `ncf.userIds || FALLBACK` is a trap: an empty array is truthy, so
+   * when the model reports NOT_TRAINED (`userIds: []`) the dropdown rendered
+   * zero options and rendered as an empty, unusable control. This checks for a
+   * usable array and otherwise falls back to the full seeded user range, so the
+   * picker always offers real profiles even when no artifacts are loaded.
+   */
+  const resolveUserOptions = (...sources) => {
+    for (const source of sources) {
+      if (Array.isArray(source) && source.length > 0) return source;
+    }
+    return Array.from({ length: 50 }, (_, i) => i + 1);
+  };
+
   // Load initial diagnostics
   const fetchData = async () => {
     try {
@@ -165,7 +181,14 @@ export default function AdminModels() {
       if (matrixRes.status === 'fulfilled') setAffinityData(matrixRes.value);
       if (cnnMatrixRes.status === 'fulfilled') setCnnMatrixData(cnnMatrixRes.value);
 
-      // Auto-run baseline inferences
+      // Auto-run baseline inferences.
+      //
+      // Each of these spawns a separate Python process that imports torch
+      // (~4s) before doing any work. Firing all five at once on every page
+      // load saturates the box and, when any of them degrades, stacked five
+      // near-identical "Model inference unavailable" toasts that buried the
+      // panel. Each simulator already surfaces its own inline DEGRADED badge,
+      // so toasts here are reserved for outright failures.
       runRecommendation(1, 4);
       runCnnSimilarity(3129, 4, true);
       runGruRecommendation(1, 4);
@@ -187,8 +210,10 @@ export default function AdminModels() {
       setSimLoading(true);
       const res = await adminService.getNcfRecommendations(userId, topK);
       setSimResult(res);
-      if (res?.degraded) {
-        showToast(res.fallbackReason || 'Model inference unavailable - showing catalogue fallback.', 'error');
+      // Degraded results render an inline DEGRADED badge next to the output, so
+      // only a hard failure is worth interrupting the admin with a toast.
+      if (!res?.recommendations?.length) {
+        showToast(res?.fallbackReason || 'NCF returned no recommendations.', 'error');
       }
     } catch (err) {
       showToast(err.message || 'NCF recommendation inference failed.', 'error');
@@ -214,8 +239,8 @@ export default function AdminModels() {
       setGruLoading(true);
       const res = await adminService.getGruRecommendations(userId, topK);
       setGruResult(res);
-      if (res?.degraded) {
-        showToast(res.fallbackReason || 'GRU inference unavailable - showing catalogue fallback.', 'error');
+      if (!res?.recommendations?.length) {
+        showToast(res?.fallbackReason || 'GRU returned no recommendations.', 'error');
       }
     } catch (err) {
       showToast(err.message || 'GRU sequence inference failed.', 'error');
@@ -229,8 +254,8 @@ export default function AdminModels() {
       setAeLoading(true);
       const res = await adminService.getAutoencoderRecommendations(userId, topK);
       setAeResult(res);
-      if (res?.degraded) {
-        showToast(res.fallbackReason || 'Autoencoder inference unavailable - showing catalogue fallback.', 'error');
+      if (!res?.recommendations?.length) {
+        showToast(res?.fallbackReason || 'Autoencoder returned no recommendations.', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Autoencoder inference failed.', 'error');
@@ -244,8 +269,8 @@ export default function AdminModels() {
       setFusionLoading(true);
       const res = await adminService.getAttentionFusionRecommendations(userId, topK);
       setFusionResult(res);
-      if (res?.degraded) {
-        showToast(res.fallbackReason || 'Attention Fusion unavailable - showing catalogue fallback.', 'error');
+      if (!res?.recommendations?.length) {
+        showToast(res?.fallbackReason || 'Attention Fusion returned no recommendations.', 'error');
       }
     } catch (err) {
       showToast(err.message || 'Attention Fusion inference failed.', 'error');
@@ -290,7 +315,8 @@ export default function AdminModels() {
   const isGruActive = gru.status === 'ACTIVE';
   const isAutoencoderActive = autoencoder.status === 'ACTIVE';
   const isFusionActive = fusion.status === 'ACTIVE';
-  const activeCount = modelStatus?.activeModelCount || (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0) + (isGruActive ? 1 : 0) + (isAutoencoderActive ? 1 : 0) + (isFusionActive ? 1 : 0);
+  const activeCount = modelStatus?.activeModelCount ?? (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0) + (isGruActive ? 1 : 0) + (isAutoencoderActive ? 1 : 0) + (isFusionActive ? 1 : 0);
+  const totalModelCount = modelStatus?.totalModels || 5;
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -302,9 +328,22 @@ export default function AdminModels() {
               <BrainCircuit className="h-5 w-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-ink">AI & Recommendation Models</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              {activeCount} of 5 Models Online (100% Pipeline Active)
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                activeCount === totalModelCount
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                  : activeCount > 0
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                  : 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  activeCount > 0 ? 'animate-pulse' : ''
+                } ${activeCount === totalModelCount ? 'bg-emerald-400' : activeCount > 0 ? 'bg-amber-400' : 'bg-rose-400'}`}
+              />
+              {activeCount} of {totalModelCount} Models Online
+              {activeCount === totalModelCount ? ' (100% Pipeline Active)' : activeCount === 0 ? ' — Artifacts Not Found' : ' — Partial'}
             </span>
           </div>
           <p className="mt-1.5 text-sm text-muted">
@@ -453,10 +492,19 @@ export default function AdminModels() {
             <Cpu className="h-4 w-4 text-indigo-400" />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-ink">{ncf.usersCount || 35} Users</span>
-            <span className="text-xs font-medium text-muted">• {cnn.itemsCount || 999} Visual Vectors</span>
+            <span className="text-xl font-bold text-ink">
+              {ncf.usersCount || 0} {ncf.usersCount === 1 ? 'User' : 'Users'}
+            </span>
+            <span className="text-xs font-medium text-muted">
+              • {cnn.itemsCount || 0} Visual Vectors
+            </span>
           </div>
           <p className="mt-1 text-xs text-muted">32d NCF Latent + 256d ResNet18 Projection</p>
+          {!ncf.usersCount && (
+            <p className="mt-1 text-[11px] text-amber-400">
+              No trained artifacts loaded — counts reflect the live database only.
+            </p>
+          )}
         </div>
 
         <div className="card flex flex-col justify-between p-5">
@@ -761,7 +809,7 @@ export default function AdminModels() {
                   }}
                   className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none max-w-[280px] truncate"
                 >
-                  {(ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
+                  {resolveUserOptions(ncf.userIds).map((uid) => (
                     <option key={uid} value={uid}>
                       {getUserLabel(uid)}
                     </option>
@@ -1000,7 +1048,7 @@ export default function AdminModels() {
                   }}
                   className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-blue-500 focus:outline-none max-w-[280px] truncate"
                 >
-                  {(gru.userIds || ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
+                  {resolveUserOptions(gru.userIds, ncf.userIds).map((uid) => (
                     <option key={uid} value={uid}>
                       {getUserLabel(uid)}
                     </option>
@@ -1145,7 +1193,7 @@ export default function AdminModels() {
                   }}
                   className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-purple-500 focus:outline-none max-w-[280px] truncate"
                 >
-                  {(autoencoder.userIds || ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
+                  {resolveUserOptions(autoencoder.userIds, ncf.userIds).map((uid) => (
                     <option key={uid} value={uid}>
                       {getUserLabel(uid)}
                     </option>
@@ -1338,7 +1386,7 @@ export default function AdminModels() {
                   }}
                   className="rounded-lg border border-border-subtle bg-card-elevated px-3 py-1.5 text-xs font-semibold text-ink focus:border-amber-500 focus:outline-none max-w-[280px] truncate"
                 >
-                  {(ncf.userIds || Array.from({ length: 50 }, (_, i) => i + 1)).map((uid) => (
+                  {resolveUserOptions(ncf.userIds).map((uid) => (
                     <option key={uid} value={uid}>
                       {getUserLabel(uid)}
                     </option>

@@ -154,6 +154,53 @@ async function personalisedFallback({ userId, topK = 5, excludeProductIds = [] }
 }
 
 /**
+ * Extract and parse the JSON payload from a Python script's stdout.
+ *
+ * The inference scripts print either a JSON object (`{...}`) or a JSON array
+ * (`[{...}, {...}]`), and libraries may emit warnings or progress lines before
+ * it. Scanning for the first `{` therefore breaks on array output: it slices
+ * from the first inner brace, leaving a fragment like
+ * `{"a":1}, {"a":2}]`, which JSON.parse rejects with "unexpected non-whitespace
+ * character after JSON". That failure was silent - the CNN visual search simply
+ * fell through to its category-rating fallback while the UI still reported
+ * results, so the model looked "live" but never ran.
+ *
+ * Anchoring on whichever bracket appears first handles both shapes, and
+ * returning the whole trimmed remainder tolerates trailing newlines.
+ */
+function parsePythonJson(stdout) {
+  if (typeof stdout !== 'string') throw new Error('No JSON output found');
+
+  const objectStart = stdout.indexOf('{');
+  const arrayStart = stdout.indexOf('[');
+
+  let start;
+  if (objectStart === -1 && arrayStart === -1) throw new Error('No JSON output found');
+  if (objectStart === -1) start = arrayStart;
+  else if (arrayStart === -1) start = objectStart;
+  else start = Math.min(objectStart, arrayStart);
+
+  const payload = stdout.slice(start).trim();
+  try {
+    return JSON.parse(payload);
+  } catch (err) {
+    // Trailing noise after the JSON (rare, but pandas/torch can print warnings
+    // on exit). Retry by trimming back to the last closing bracket.
+    const lastBrace = payload.lastIndexOf('}');
+    const lastBracket = payload.lastIndexOf(']');
+    const end = Math.max(lastBrace, lastBracket);
+    if (end > 0) {
+      try {
+        return JSON.parse(payload.slice(0, end + 1));
+      } catch {
+        /* fall through to the original error */
+      }
+    }
+    throw err;
+  }
+}
+
+/**
  * Decides whether a python inference result is usable. An empty
  * recommendation list is a failure, not an empty result: the scripts signal
  * "I could not model this user" (e.g. no mappable session sequence) via an
@@ -272,9 +319,7 @@ export const AdminService = {
             return reject(new Error('Failed to run model evaluation: ' + (stderr || error.message)));
           }
           try {
-            const jsonStart = stdout.indexOf('{');
-            if (jsonStart === -1) throw new Error('No JSON output returned from evaluation script');
-            const result = JSON.parse(stdout.substring(jsonStart).trim());
+            const result = parsePythonJson(stdout);
             resolve({
               ...result,
               status: 'COMPLETED',
@@ -543,10 +588,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const jsonStart = stdout.indexOf('{');
-              if (jsonStart === -1) throw new Error('No JSON output found');
-              const parsed = JSON.parse(stdout.substring(jsonStart).trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
@@ -587,8 +629,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const parsed = JSON.parse(stdout.trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
@@ -670,10 +711,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const jsonStart = stdout.indexOf('{');
-              if (jsonStart === -1) throw new Error('No JSON output found');
-              const parsed = JSON.parse(stdout.substring(jsonStart).trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
@@ -779,8 +817,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const parsed = JSON.parse(stdout.trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
@@ -828,10 +865,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const jsonStart = stdout.indexOf('{');
-              if (jsonStart === -1) throw new Error('No JSON output found');
-              const parsed = JSON.parse(stdout.substring(jsonStart).trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
@@ -916,10 +950,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const jsonStart = stdout.indexOf('{');
-              if (jsonStart === -1) throw new Error('No JSON output found');
-              const parsed = JSON.parse(stdout.substring(jsonStart).trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
@@ -1005,10 +1036,7 @@ if (hasNcfArtifacts) {
           (error, stdout, stderr) => {
             if (error) return reject(error);
             try {
-              const jsonStart = stdout.indexOf('{');
-              if (jsonStart === -1) throw new Error('No JSON output found');
-              const parsed = JSON.parse(stdout.substring(jsonStart).trim());
-              resolve(parsed);
+              resolve(parsePythonJson(stdout));
             } catch (e) {
               reject(e);
             }
