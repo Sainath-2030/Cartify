@@ -171,8 +171,24 @@ async function seedData() {
 
     await client.query('BEGIN');
     try {
-      console.log('🧹 Clearing previous interactions to remove legacy noise and stale personas...');
-      await client.query("DELETE FROM interactions");
+      // Clear ONLY this script's own prior output.
+      //
+      // This used to be `DELETE FROM interactions`, an unqualified wipe of the
+      // entire table. That silently destroyed the PURCHASE interaction rows
+      // emitted by seed_market_baskets.mjs, which the warehouse fact tables are
+      // built from, so re-running this script quietly zeroed the Apriori and
+      // OLAP data set. Scoping the delete to rows this script wrote (the
+      // 'persona' metadata marker it stamps on every insert) makes re-running
+      // it idempotent for its own data and leaves every other source intact.
+      const cleared = await client.query(
+        `DELETE FROM interactions
+          WHERE metadata IS NOT NULL
+            AND metadata::jsonb ? 'persona'`
+      );
+      console.log(
+        `🧹 Cleared ${cleared.rowCount} previously generated persona interaction row(s) ` +
+        `(basket/ETL purchase rows left untouched)...`
+      );
 
       // Insert in chunks of 500
       const chunkSize = 500;

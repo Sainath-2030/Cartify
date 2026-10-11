@@ -46,6 +46,22 @@ const { pool, query } = await import('../config/db.js');
 const ADVISORY_LOCK_KEY = 555120777;
 const BACKUP_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.basket_seed_backup.json');
 
+/**
+ * Persona table, mirroring PERSONA_CONFIGS in
+ * seed_recommendation_interactions.js. Kept in sync deliberately: that script
+ * defines each shopper's category identity, and this one must not contradict it.
+ */
+const PERSONA_CONFIGS = [
+  { name: 'Tech & Gadgets', categories: ['Electronics', 'Gaming'] },
+  { name: 'Fashion & Style', categories: ['Fashion', 'Beauty'] },
+  { name: 'Home & Living', categories: ['Home & Kitchen', 'Grocery'] },
+  { name: 'Beauty & Skincare', categories: ['Beauty', 'Fashion'] },
+  { name: 'Sports & Active', categories: ['Sports', 'Electronics'] },
+  { name: 'Gourmet & Daily Needs', categories: ['Grocery', 'Home & Kitchen'] },
+  { name: 'Hardcore Gaming', categories: ['Gaming', 'Electronics'] },
+  { name: 'Readers & Scholars (Books)', categories: ['Books'] },
+];
+
 const args = process.argv.slice(2);
 const FORCE = args.includes('--force');
 const ROLLBACK = args.includes('--rollback');
@@ -315,6 +331,39 @@ async function seedBaskets() {
   const users = usersRes.rows.map(r => r.id);
   if (users.length === 0) throw new Error('No shopper users found to attach orders to.');
 
+  // ── Persona-aware basket ownership ────────────────────────────────────────
+  //
+  // Previously every basket was attached to a uniformly random shopper, so a
+  // "Readers & Scholars" account ended up buying cricket bats and fridges.
+  // Because basket rows carry a PURCHASE interaction each, those 64k purchases
+  // became the dominant signal in the `interactions` table and buried the
+  // persona data entirely - every user converged on the same ~24% Electronics
+  // profile, and the recommender served the wrong category to everyone.
+  //
+  // Baskets now go to shoppers whose persona actually contains the archetype's
+  // category, so basket purchases reinforce identity instead of erasing it.
+  // A shopper is chosen from the matching cohort only, with repeat customers
+  // favoured so RFM still sees loyal and at-risk segments.
+  const usersByCategory = new Map();
+  const allPersonaCategories = new Set();
+  for (const persona of PERSONA_CONFIGS) {
+    for (const category of persona.categories) {
+      allPersonaCategories.add(category);
+      if (!usersByCategory.has(category)) usersByCategory.set(category, []);
+    }
+  }
+  for (const userId of users) {
+    const persona = PERSONA_CONFIGS[(userId - 1) % PERSONA_CONFIGS.length];
+    for (const category of persona.categories) {
+      usersByCategory.get(category).push(userId);
+    }
+  }
+  const usersWithPersona = [...usersByCategory.values()].reduce((acc, list) => acc + list.length, 0);
+  console.log(
+    `[Seed] Persona cohorts mapped for ${usersWithPersona} user-slots across ` +
+    `${allPersonaCategories.size} categories (${PERSONA_CONFIGS.map(p => p.name).join(', ')}).`
+  );
+
   console.log(`[Seed] Building ${TARGET_BASKETS} affinity-based baskets across ${usable.length} archetypes...`);
   console.log(`[Seed] Attaching to ${users.length} shoppers over the last ${BASKET_WINDOW_DAYS} days.`);
 
@@ -339,6 +388,23 @@ async function seedBaskets() {
     // (a partial mix of old random baskets would reintroduce noise).
     await client.query('TRUNCATE order_items RESTART IDENTITY CASCADE');
     await client.query('TRUNCATE orders RESTART IDENTITY CASCADE');
+
+    // Remove the PURCHASE interaction rows emitted by the previous run.
+    //
+    // Truncating orders/order_items does not touch `interactions`, so without
+    // this every re-seed stacked a fresh 10k purchase rows on top of the
+    // previous ~64k, and the recommender was trained on a pile of orphaned
+    // purchases pointing at orders that no longer exist. Scoped to this
+    // script's own 'basket_seed' marker so persona rows written by
+    // seed_recommendation_interactions.js are preserved.
+    const staleInteractions = await client.query(
+      `DELETE FROM interactions
+        WHERE metadata IS NOT NULL
+          AND metadata::jsonb->>'source' = 'basket_seed'`
+    );
+    console.log(
+      `[Seed] Cleared ${staleInteractions.rowCount} stale basket purchase interaction row(s).`
+    );
 
     for (let i = 0; i < TARGET_BASKETS; i++) {
       const archetype = pickArchetype();
@@ -403,11 +469,19 @@ async function seedBaskets() {
       const daysAgo = rand(0, BASKET_WINDOW_DAYS);
       const orderDate = new Date(now - daysAgo * 86400000 - randInt(0, 86399) * 1000);
 
-      // Bias order ownership so repeat customers exist — recency/frequency
-      // signals matter for the RFM clustering panel too.
+      // Attach the basket to a shopper whose persona covers this archetype's
+      // category, so a purchase interaction actually reinforces who the shopper
+      // is. Falls back to the full roster only if a category has no cohort
+      // (e.g. an archetype in a category no persona claims).
+      const cohort = usersByCategory.get(archetype.category) || [];
+      const ownerPool = cohort.length > 0 ? cohort : users;
+      // Bias to repeat customers so RFM still sees loyal / at-risk segments.
+      const loyalOwners = [...new Set(ownerPool)].length > 0
+        ? pick(ownerPool)
+        : ownerPool[0];
       const userId = Math.random() < 0.55
-        ? pick(users)                     // loyal customer
-        : users[randInt(0, users.length - 1)];
+        ? loyalOwners                     // loyal customer
+        : ownerPool[randInt(0, ownerPool.length - 1)];
 
       const city = ['Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Pune', 'Chennai'][i % 6];
       const state = ['Maharashtra', 'Karnataka', 'Delhi', 'Telangana', 'Maharashtra', 'Tamil Nadu'][i % 6];

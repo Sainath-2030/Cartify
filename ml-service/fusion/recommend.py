@@ -189,6 +189,19 @@ def recommend(user_id: int, top_k: int = 10, include_interacted: bool = False, i
         logit += CATEGORY_PRIOR_WEIGHT * aff
         logit += 0.10 * np.log1p(pop)
 
+        # Cold-start guard, matching the NCF / GRU / autoencoder recommenders.
+        #
+        # Fusion aggregates four modalities, and the visual (CNN) branch in
+        # particular scores on appearance rather than taste, so a 0.15 affinity
+        # nudge is not enough to stop unrelated categories surfacing: a
+        # Fashion & Style shopper was being served Electronics and Grocery.
+        # The attention layer still decides ordering within the shopper's own
+        # categories - this only stops leakage across categories we have solid
+        # evidence the shopper has not engaged with.
+        if has_cat_affinity and cat_id not in user_cat_affinity:
+            ranking_scores[idx] = -1.0
+            continue
+
         ranking_scores[idx] = 1.0 / (1.0 + np.exp(-logit))
 
     # Top K sorting based on fused, category-aligned scores

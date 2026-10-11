@@ -273,6 +273,24 @@ def recommend_for_user(user_id: int, top_k: int = 5, as_json: bool = False):
 
     already_seen = set(int(p) for p in seen_df["product_id"].tolist()) if not seen_df.empty else set()
 
+    # Categories this user has actually engaged with.
+    #
+    # The category prior below is a *nudge* (0.15 logits), which is deliberate -
+    # the model should lead. But when a user has a sharply concentrated history
+    # the nudge is not enough on its own: user 1's affinity is Electronics 0.85
+    # / Gaming 0.15, yet the raw scores still placed five Beauty products in the
+    # top five, because NeuMF learns popularity and item-item structure as well
+    # as taste, and with only 54 interactions the user vector barely constrains
+    # that. The result was a "Tech & Gadgets" shopper being shown makeup.
+    #
+    # Restricting the candidate set to engaged categories is the same
+    # cold-start guard the autoencoder recommender already applies, and it is a
+    # no-op whenever the history is already broad. Inside those categories the
+    # model's own scores still decide the order, so nothing is over-filtered -
+    # this only prevents cross-category leakage from a user we have solid
+    # evidence about.
+    preferred_cats = set(cat_weights.keys())
+
     # Rank on the logit scale so the prior cannot invert the model's ordering.
     ranking_scores = np.log(np.clip(scores, 1e-9, 1 - 1e-9) / (1 - np.clip(scores, 1e-9, 1 - 1e-9)))
     for idx in range(len(item_indices)):
@@ -282,6 +300,12 @@ def recommend_for_user(user_id: int, top_k: int = 5, as_json: bool = False):
         ranking_scores[idx] += CATEGORY_PRIOR_WEIGHT * w
         # Already-interacted items are not recommendations.
         if raw_pid in already_seen:
+            ranking_scores[idx] = -np.inf
+            continue
+        # Cold-start guard: never recommend from a category this user has never
+        # touched. Guarded on `preferred_cats` being non-empty so a user with no
+        # history at all still receives a popularity-ranked list.
+        if preferred_cats and (p_cat is None or pd.isna(p_cat) or int(p_cat) not in preferred_cats):
             ranking_scores[idx] = -np.inf
 
     ranked_indices = ranking_scores.argsort()[::-1][:top_k]

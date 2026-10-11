@@ -217,6 +217,20 @@ def main():
             else:
                 logits[0, idx] -= 0.4
 
+            # Session-continuity guard.
+            #
+            # A GRU predicts the *next* item in a session, so it should only
+            # surface categories the shopper is actually browsing right now.
+            # The -0.4 nudge above is not enough on its own: for a user whose
+            # sessions were entirely Books, the recurrent head still returned
+            # Electronics and Sports items, because those embeddings are better
+            # trained and their logits sit higher. Restricting to the session's
+            # own categories matches the cold-start guard already used by the
+            # NCF and autoencoder recommenders, and is skipped when the session
+            # carries no usable category signal.
+            if session_cats and (item_cat is None or item_cat not in session_cats):
+                logits[0, idx] = -float('inf')
+
             # Mild dampening of items seen exactly once.
             pop = pop_map.get(item_id, 0)
             if pop <= 1:
