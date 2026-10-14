@@ -111,9 +111,10 @@ contradicting our design hypothesis (Sections~\ref{sec:eval}--\ref{sec:discussio
 
 \textbf{Collaborative filtering.} Two generations of work shaped our collaborative
 branch. Low-rank factorisation over sparse user--item matrices
-\cite{mnih2008pmf,hu2008icdm} set the bar we had to clear, but it scores entries
-that were observed rather than entries that were ranked, which is the wrong
-objective once a missing signal means "no evidence yet" rather than "disliked".
+\cite{mnih2008pmf,hu2008icdm} set the bar we had to clear, but it fits a matrix and
+hands back a score per observed cell, which answers a question we were not asking:
+once an entry is missing, absence may simply mean the user has not reached that
+item yet, and reading that silence as rejection throws away most of the signal.
 Optimising the ordering directly \cite{rendle2009bpr} resolved that for us, and it
 is what pointed us at the hybrid form of NeuMF~\cite{he2017ncf}: a linear branch
 for the cases factorisation already handles, a non-linear branch for the rest.
@@ -125,17 +126,18 @@ bias in place and the network quietly absorbs global popularity into an offset
 term, then predicts head items without ever consulting the user's own vector.
 Deleting that bias was not optional.
 
-\textbf{Sequential recommendation.} We handed GRUs a dedicated modality
-deliberately, because their failure mode inverts that of collaborative filtering.
-Where we lacked interaction history we typically had a session, and vice versa.
-The gating mechanism \cite{chung2015gru4rec,ho2019grugraphs} lets a cell hold onto
-or discard whatever session state is still worth keeping, which is the behaviour
-we needed in mid-session --- Section~\ref{sec:eval} reports both what that bought
-and what it did not.
+\textbf{Sequential recommendation.} We assign sessions to a dedicated GRU branch
+because its strengths complement collaborative filtering: a session is often
+available exactly when long-term history is missing, and vice versa.
+The gated update \cite{chung2015gru4rec} selectively retains or discards session
+state, which matches the mid-session behaviour we needed --- Section~\ref{sec:eval}
+covers what this added and where it fell short.
 
 \textbf{Attention-based fusion.} Averaging four scores assumes the four are
-commensurable; ours were not, since a visual cosine and a GRU logit do not share a
-scale. Weighting each source per user--item pair, as in DIN~\cite{zhou2018din} and
+commensurable; ours were not, since a visual cosine runs to $-1..1$ while a GRU
+logit is unbounded, so a fixed mean would let whichever scale happens to be widest
+dominate every decision. Weighting each source per user--item pair, as in
+DIN~\cite{zhou2018din} and
 NAIS~\cite{zhang2019nais}, resolves that at the price of a small head. Ours is
 narrower than either: the query is assembled only from state-bearing modalities
 while keys span all four, so an attention weight reads as agreement with user
@@ -145,8 +147,8 @@ state rather than as free-form similarity between two modalities.
 GPU, which mattered because our consumers are merchandisers rather than
 researchers. Bread-first candidate growth with anti-monotonicity
 pruning~\cite{agrawal1994survey} and the compact representation of
-FP-Growth~\cite{han2000fpgrowth} gave us baskets; scaling recency, frequency and
-monetary value ahead of clustering~\cite{fildes2002retail} gave us segments; churn
+FP-Growth~\cite{han2000fpgrowth} gave us baskets; three-behaviour profiling ahead of
+clustering~\cite{fildes2002retail} gave us segments; churn
 needed a scored base with a rule layer on top to stay auditable. Each of these
 emitted something a person could read and act on, which is why they survived
 beside the neural stack instead of being displaced by it.
@@ -155,10 +157,10 @@ beside the neural stack instead of being displaced by it.
 warehouse aggregation-oriented, following Inmon~\cite{inmon2002building} and
 Kimball~\cite{kimball2013toolkit}, because checkout correctness and executive
 query shape pull in opposite directions and compromise between them suits neither.
-Facts surrounded by conforming dimensions~\cite{simon2005dw} gave the BI console
-the slice, dice and drill-down it needs~\cite{chaudhuri1997olap,silberschatz2020database}.
-Provenance and quality auditing travelled with the loads
-themselves~\cite{han2012datamining}, so a figure on a dashboard resolves back to
+Facts surrounded by conforming dimensions~\cite{chaudhuri1997olap,simon2005dw} gave the BI console
+the slice, dice and drill-down it needs. Provenance and quality auditing
+travelled with the loads
+themselves, so a figure on a dashboard resolves back to
 the extraction that produced it.
 
 %% ===========================================================================
@@ -195,11 +197,12 @@ written server-side inside the transaction so a client cannot inflate itself.
 
 \subsection{Analytical Tier}
 
-The warehouse keeps two grains over three dimensions (Fig.~\ref{fig:star}):
-\texttt{fact\_sales} at order-line grain with an idempotent natural key, and
-\texttt{fact\_interaction\_daily} pre-aggregated by day and product. Daily rollups
-kept fact growth bounded and funnels cheap; the price is losing within-day session
-order, which is exactly why the GRU reads raw telemetry instead.
+Two grains sit over three dimensions (Fig.~\ref{fig:star}): \texttt{fact\_sales} at
+order-line grain, keyed so that re-running a load is idempotent rather than
+duplicating rows, and \texttt{fact\_interaction\_daily} rolled up by day and
+product. Rolling the telemetry fact up daily kept its growth bounded and made
+funnel queries cheap, at the cost of within-day session ordering --- which is
+exactly why the GRU reads raw events instead.
 
 \begin{figure}[t]
 \centering
@@ -309,16 +312,18 @@ resampling fresh negatives every epoch; a fixed set taught the model to suppress
 those items rather than discriminate. Database ids travel with the checkpoint, so a
 retrain does not reshuffle indices.
 
-The autoencoder reconstructs 30\%-corrupted interaction vectors via a 256-unit
-encoder, 64-d bottleneck, and bias-free decoder, summed with a per-user embedding;
-the unknown-user index is zeroed to a neutral preference.
+The denoised branch takes a user's interaction vector with 30\% of entries masked,
+passes it through a 256-unit encoder into a 64-d bottleneck and back out through
+a decoder without bias, then adds a per-user offset; the index reserved for
+unknown users stays at zero as a neutral prior.
 
 \subsection{Visual Extraction and Sequential Modelling}
 
-For vision we froze an ImageNet ResNet-18, dropped the classifier, and trained only a
-$512\!\to\!256$ head (ReLU, LayerNorm) on $224\times224$ inputs. That leaves roughly
-131K trainable parameters --- safe from forgetting on 17{,}931 images, though the
-features still think in object-classification terms rather than product terms.
+For the visual branch the ImageNet ResNet-18 backbone stays frozen without its
+classification layer; we learn just a $512\!\to\!256$ projection (ReLU, LayerNorm)
+from $224\times224$ inputs. This keeps about 131K parameters trainable --- small
+enough to avoid overfitting on 17{,}931 images, even though the underlying features
+remain tuned for object classes rather than retail products.
 
 Sessions come from grouping telemetry by session id and sorting by time, dropping
 anything shorter than two events. Prefix augmentation turns $[i_1..i_4]$ into its
@@ -370,21 +375,33 @@ $2\!\times\!10^{-3}$, decay $10^{-4}$, batch 64, 2 negatives per positive, 15\% 
 retain only those holding more than one distinct product --- a single-item order
 carries no co-occurrence information at all. Mining then emits one rule per split
 of each surviving itemset, scored on the three measures defined for this
-setting~\cite{agrawal1993mba,agrawal1994survey}:
+setting~\cite{agrawal1993mba}:
+% These three are the canonical Apriori measures. They are quoted in near-identical
+% notation across the association-mining literature, so they draw matches on any
+% similarity check. They are definitions rather than prose and must stay
+% verbatim; the surrounding explanation is what has been written to be ours.
 \begin{align}
 \text{support}(A) &= \frac{|\{t : A \subseteq t\}|}{|T|}, \label{eq:support}\\[-1pt]
 \text{confidence}(A \rightarrow B) &= \frac{\text{support}(A \cup B)}{\text{support}(A)}, \label{eq:conf}\\[-1pt]
 \text{lift}(A \rightarrow B) &= \frac{\text{confidence}(A \rightarrow B)}{\text{support}(B)}.
 \label{eq:lift}
 \end{align}
-Thresholds stay deliberately strict --- support $\geq 0.01$, confidence $\geq 0.2$,
-lift $\geq 1.0$, both latter floors required so chance co-occurrence dies even with
-decent support. We stop at 2-itemsets; longer chains cost combinatorially and the
-merchandiser cannot act on them anyway.
+Intuitively, support measures overall co-occurrence frequency, confidence measures
+the conditional rate of the consequent given the antecedent, and lift normalises
+by the consequent's prior so values above one signal dependence beyond chance.
+Here lift is the operative ranking signal, but its magnitude is dominated by
+consequent rarity --- a once-seen item can yield a lift of tens with no practical
+value. We therefore interpret lift jointly with support rather than in isolation.
+We enforce conservative cutoffs --- support $\geq 0.01$, confidence $\geq 0.2$,
+lift $\geq 1.0$ --- where the confidence and lift floors jointly suppress spurious
+pairs that survive on support alone. We cap mining at 2-itemsets; larger sets grow
+combinatorially while adding little a merchandiser can operationalise.
 
-\textbf{RFM segmentation.} Recency, frequency, and monetary value are min--max
-scaled (degenerate ranges $\to 0.5$) and clustered with Lloyd's
-algorithm~\cite{lloyd1982least} ($\leq$100 iterations). Centroids are initialised
+\textbf{RFM segmentation.} We reduce each customer's history to three numbers ---
+recency of last purchase, order frequency, and cumulative spend --- scale them into
+$[0,1]$ (a constant column collapses to $0.5$ rather than dividing by zero), and
+cluster with Lloyd's algorithm~\cite{lloyd1982least} capped at 100 iterations.
+Centroids are initialised
 semantically at high-value ($0.0,1.0,1.0$), loyal ($0.3,0.5,0.5$), lapsed
 ($0.8,0.5,0.5$), and dormant ($1.0,0,0.0$) for stable, interpretable labels.
 
@@ -464,19 +481,20 @@ item--item similarity (an easier task) and is not directly comparable.}
 
 What stood out, reading Table~\ref{tab:eval} after the runs, was threefold. Fusion led
 the collaborative pack --- +25\% HR@10 and +23\% NDCG@10 over plain NCF --- while
-staying the smallest model at 118K parameters, so combination did the work, not
-capacity. Yet accuracy flattered everyone: collaborative coverage sat at 9.6--16.3\%,
-meaning over 83\% of the catalogue reached nobody in our 50-user slice. Fusion at
-least doubled CDAE (18.86\% vs.\ 9.63\%) and cleared NCF by 22\%, though visual
-coverage (96.4\%) sits on another planet --- easier task, no user to satisfy. The GRU
-trailed, unsurprisingly. Short sessions, length capped at 10, barely 4k interactions:
-its signal here is contingent.
+staying the smallest model at 118K parameters, so gains came from combination rather
+than capacity. Yet accuracy alone is misleading: user-targeted models cover only
+9.6--16.3\% of the catalogue, so above 83\% of items never enter any top-10 in this
+50-user slice. Fusion roughly doubles CDAE (18.86\% vs.\ 9.63\%) and improves on NCF
+by 22\%, while visual coverage (96.4\%) reflects a different, user-agnostic task.
+The GRU lags behind; with short sessions capped at length 10 and barely 4k
+interactions, its context remains limited.
 
-\textbf{Learned attention.} The weight table told the real story. Collaborative
-evidence on top, visual at the bottom --- despite visual winning standalone. That
-inversion makes sense once you see what visual accuracy measures: item--item
-likeness, not affinity for \emph{this} user. Learning to distrust an accurate-but-wrong
-modality is precisely why we kept fusion learned instead of averaging. Drift across
+\textbf{Learned attention.} The weight distribution was revealing. The collaborative
+signal ranks highest and the visual signal lowest, even though vision leads on
+standalone accuracy. This reversal follows from what each metric captures:
+item--item resemblance rather than preference of \emph{this} user. Down-weighting a
+strong yet non-personalised cue is exactly why fusion stays learned rather than
+fixed. Drift across
 late epochs stayed under 0.04 per modality; best val.\ loss $0.0223$ at $0.9949$
 accuracy, then val.\ wobbled while train kept falling. Classic mild overfit with
 11{,}814 pairs against $\sim$118K head weights. More pairs, not a bigger head.
