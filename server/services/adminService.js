@@ -246,27 +246,36 @@ export const AdminService = {
     }
 
     const fusion = benchmark?.models?.fusion;
+    // Every figure below used to fall back to a hardcoded constant
+    // (HR@10 = 1.0, coverage 94.5, MRR 0.725...) whenever
+    // model_evaluation_metrics.json was missing. A host with no artifacts has
+    // no benchmark file, so it advertised a perfect 100% hit rate for models
+    // that were never trained. `null` now means "not measured", and the UI
+    // renders that as unavailable instead of as a measurement.
+    const num = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 
     return {
-      status: 'AVAILABLE',
+      status: benchmark ? 'AVAILABLE' : 'NOT_EVALUATED',
       activeModel: 'Multi-Modal Attention Fusion (NCF + CNN + GRU + Autoencoder)',
-      evaluatedAt: benchmark?.evaluatedAt || new Date().toISOString(),
+      evaluatedAt: benchmark?.evaluatedAt || null,
       benchmark,
       evaluation: {
-        hitRateAt5: fusion?.hitRateAt5 ?? 0.8850,
-        hitRateAt10: fusion?.hitRateAt10 ?? 1.0000,
-        hitRateAt20: fusion?.hitRateAt20 ?? 1.0000,
-        ndcgAt5: fusion?.ndcgAt5 ?? 0.7420,
-        ndcgAt10: fusion?.ndcgAt10 ?? 0.8140,
-        ndcgAt20: fusion?.ndcgAt20 ?? 0.8668,
-        precisionAt5: fusion?.precisionAt5 ?? 0.1770,
-        precisionAt10: fusion?.precisionAt10 ?? 0.1000,
-        recallAt5: fusion?.recallAt5 ?? 0.8850,
-        recallAt10: fusion?.recallAt10 ?? 1.0000,
-        mrr: fusion?.mrr ?? 0.7250,
-        catalogueCoveragePercent: fusion?.catalogueCoveragePercent ?? 94.5,
-        diversityIndex: fusion?.diversityIndex ?? 0.9420,
-        validationStrategy: 'Leave-One-Out Cross Validation with 99 Sampled Unseen Negatives',
+        hitRateAt5: num(fusion?.hitRateAt5),
+        hitRateAt10: num(fusion?.hitRateAt10),
+        hitRateAt20: num(fusion?.hitRateAt20),
+        ndcgAt5: num(fusion?.ndcgAt5),
+        ndcgAt10: num(fusion?.ndcgAt10),
+        ndcgAt20: num(fusion?.ndcgAt20),
+        precisionAt5: num(fusion?.precisionAt5),
+        precisionAt10: num(fusion?.precisionAt10),
+        recallAt5: num(fusion?.recallAt5),
+        recallAt10: num(fusion?.recallAt10),
+        mrr: num(fusion?.mrr),
+        catalogueCoveragePercent: num(fusion?.catalogueCoveragePercent),
+        diversityIndex: num(fusion?.diversityIndex),
+        validationStrategy: benchmark
+          ? 'Leave-One-Out Cross Validation with 99 Sampled Unseen Negatives'
+          : null,
       },
       models: benchmark?.models || {},
       supportedMetrics: [
@@ -420,9 +429,15 @@ if (hasNcfArtifacts) {
       }
     }
 
-    let autoencoderTrainedAt = new Date().toISOString();
-    let autoencoderUsersCount = 50;
-    let autoencoderItemsCount = 2768;
+    // These used to be hardcoded to `new Date()`, 50 users and 2768 items. With no
+    // checkpoint on disk that made an untrained autoencoder report a
+    // fresh-looking training timestamp and plausible-looking dimensions, while
+    // `userIds` stayed empty - the admin console then showed "50 users" next to
+    // a 0-of-5 models-online banner. Report the truth instead: nothing is
+    // trained, so nothing is measured.
+    let autoencoderTrainedAt = null;
+    let autoencoderUsersCount = 0;
+    let autoencoderItemsCount = 0;
     let autoencoderUserIds = userIds;
     if (hasAutoencoderArtifacts) {
       try {
@@ -536,28 +551,35 @@ if (hasNcfArtifacts) {
         projectionDim: 64,
         attentionDim: 32,
         scoringHead: 'MLP (64 -> 64 -> 32 -> 1) + Sigmoid',
-        bestValLoss: fusionMetadata?.bestValLoss || 0.0239,
-        valAccuracy: fusionMetadata?.finalAccuracy || 0.992,
-        meanAttentionWeights: fusionMetadata?.meanAttentionWeights || {
-          NCF: 0.3648,
-          CNN: 0.4762,
-          GRU: 0.0718,
-          AUTOENCODER: 0.0873,
-        },
+        // Reported from the training run only. Previously these fell back to
+        // invented constants (0.0239 / 0.992 and a fixed attention split), so
+        // an untrained fusion layer still advertised a 99.2% validation
+        // accuracy and a confident modality weighting.
+        bestValLoss: fusionMetadata?.bestValLoss ?? null,
+        valAccuracy: fusionMetadata?.finalAccuracy ?? null,
+        meanAttentionWeights: fusionMetadata?.meanAttentionWeights ?? null,
       },
     };
 
-    const activeModelCount = (ncfInfo.status === 'ACTIVE' ? 1 : 0) + 
-      (cnnInfo.status === 'ACTIVE' ? 1 : 0) + 
+    const activeModelCount = (ncfInfo.status === 'ACTIVE' ? 1 : 0) +
+      (cnnInfo.status === 'ACTIVE' ? 1 : 0) +
       (gruInfo.status === 'ACTIVE' ? 1 : 0) +
       (autoencoderInfo.status === 'ACTIVE' ? 1 : 0) +
       (fusionInfo.status === 'ACTIVE' ? 1 : 0);
 
+    const totalModels = 5;
+
     return {
       status: 'READY',
-      message: `${activeModelCount} AI recommendation models active (All 5 Stages Online: NCF, CNN, GRU, Autoencoder, Attention Fusion).`,
+      // Must agree with activeModelCount. This string used to append
+      // "All 5 Stages Online" unconditionally, so a deployment with zero
+      // artifacts on disk reported "0 AI recommendation models active (All 5
+      // Stages Online...)" - self-contradictory and actively misleading.
+      message: activeModelCount === totalModels
+        ? `All ${totalModels} AI recommendation models active (NCF, CNN, GRU, Autoencoder, Attention Fusion).`
+        : `${activeModelCount} of ${totalModels} AI recommendation models active. Trained artifacts were not found on this host, so inference falls back to catalogue ranking.`,
       activeModelCount,
-      totalModels: 5,
+      totalModels,
       ncfDetails: ncfInfo,
       cnnDetails: cnnInfo,
       gruDetails: gruInfo,

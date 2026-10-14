@@ -318,6 +318,52 @@ export default function AdminModels() {
   const activeCount = modelStatus?.activeModelCount ?? (isNcfActive ? 1 : 0) + (isCnnActive ? 1 : 0) + (isGruActive ? 1 : 0) + (isAutoencoderActive ? 1 : 0) + (isFusionActive ? 1 : 0);
   const totalModelCount = modelStatus?.totalModels || 5;
 
+  // Real benchmark figure, or null when none has been run. The server used to
+  // substitute a hardcoded 1.0 here, which rendered as a perfect 100% HR@10 on
+  // deployments where no model had ever been trained.
+  const hrAt10 = modelMetrics?.evaluation?.hitRateAt10 ?? null;
+
+  // Status pill for a simulator panel.
+  //
+  // These were hardcoded "LIVE MODEL" labels, so a host with no artifacts still
+  // advertised a live GRU / Autoencoder / CNN directly above results that were
+  // in fact catalogue fallbacks. A pill reads:
+  //   - training artefact present  -> "LIVE MODEL"
+  //   - artefact present, last run degraded -> "FALLBACK"
+  //   - no artefact                -> "NO ARTIFACT"
+  const StatusPill = ({ trained, degraded, liveLabel, tone }) => {
+    const palette = tone === 'blue'
+      ? { box: 'bg-blue-500/15 border-blue-500/30 text-blue-300', dot: 'bg-blue-400' }
+      : tone === 'emerald'
+      ? { box: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300', dot: 'bg-emerald-400' }
+      : tone === 'amber'
+      ? { box: 'bg-amber-500/20 border-amber-500/30 text-amber-300', dot: 'bg-amber-400' }
+      : { box: 'bg-purple-500/15 border-purple-500/30 text-purple-300', dot: 'bg-purple-400' };
+
+    let label = liveLabel;
+    if (!trained) label = 'NO ARTIFACT';
+    else if (degraded) label = 'FALLBACK';
+
+    const isDown = !trained || degraded;
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+          isDown ? 'border-amber-500/40 bg-amber-500/15 text-amber-300' : palette.box
+        }`}
+        title={
+          !trained
+            ? 'No trained checkpoint found on this host - results below are catalogue fallbacks.'
+            : degraded
+            ? 'Model ran but returned a degraded response for the last request.'
+            : 'Trained model available.'
+        }
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${isDown ? 'bg-amber-400' : palette.dot}`} />
+        {label}
+      </span>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-8 pb-12">
       {/* 1. Header Banner */}
@@ -477,13 +523,30 @@ export default function AdminModels() {
         <div className="card flex flex-col justify-between p-5">
           <div className="flex items-center justify-between text-muted">
             <span className="text-xs font-semibold uppercase tracking-wider">Evaluation & Retention</span>
-            <TrendingUp className="h-4 w-4 text-emerald-400" />
+            <TrendingUp
+              className={`h-4 w-4 ${hrAt10 == null ? 'text-muted' : 'text-emerald-400'}`}
+            />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-emerald-400">100.0%</span>
-            <span className="text-xs font-medium text-muted">HR@10 / Cosine 256d</span>
+            {/* Previously a hardcoded "100.0%", shown even on a host with zero
+                trained models. Now it reads the real benchmark and degrades to
+                an explicit "not measured" when none has been run. */}
+            {hrAt10 == null ? (
+              <span className="text-xl font-bold text-muted">Not evaluated</span>
+            ) : (
+              <>
+                <span className="text-xl font-bold text-emerald-400">
+                  {(hrAt10 * 100).toFixed(1)}%
+                </span>
+                <span className="text-xs font-medium text-muted">HR@10</span>
+              </>
+            )}
           </div>
-          <p className="mt-1 text-xs text-muted">Leave-one-out NCF hit rate & normalized visual metric</p>
+          <p className="mt-1 text-xs text-muted">
+            {hrAt10 == null
+              ? 'Run the offline benchmark to populate these metrics.'
+              : 'Leave-one-out fusion hit rate at 10, over 99 sampled unseen negatives'}
+          </p>
         </div>
 
         <div className="card flex flex-col justify-between p-5">
@@ -532,9 +595,12 @@ export default function AdminModels() {
               <div className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-emerald-400" />
                 <h2 className="text-base font-bold text-ink">CNN Visual Similarity Simulator (ResNet18 256-dim Embeddings)</h2>
-                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-                  LIVE MODEL
-                </span>
+                <StatusPill
+                  trained={isCnnActive}
+                  degraded={cnnResult?.degraded === true}
+                  liveLabel="LIVE MODEL"
+                  tone="emerald"
+                />
               </div>
               <p className="mt-0.5 text-xs text-muted">
                 Extracts cosine-similar visual products from 256-dimensional ResNet-18 embeddings for cold-start and visually correlated product recommendations.
@@ -1027,9 +1093,12 @@ export default function AdminModels() {
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-blue-400" />
                 <h2 className="text-base font-bold text-ink">GRU Session Sequence Inference</h2>
-                <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold text-blue-300">
-                  LIVE MODEL
-                </span>
+                <StatusPill
+                  trained={isGruActive}
+                  degraded={gruResult?.degraded === true}
+                  liveLabel="LIVE MODEL"
+                  tone="blue"
+                />
               </div>
               <p className="mt-0.5 text-xs text-muted">
                 Predicts the next most likely product interaction based on a user's recent chronological session sequence.
@@ -1172,9 +1241,12 @@ export default function AdminModels() {
               <div className="flex items-center gap-2">
                 <Cpu className="h-5 w-5 text-purple-400" />
                 <h2 className="text-base font-bold text-ink">Autoencoder Latent Space Reconstruction</h2>
-                <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-300">
-                  LIVE MODEL (64-dim Bottleneck)
-                </span>
+                <StatusPill
+                  trained={isAutoencoderActive}
+                  degraded={aeResult?.degraded === true}
+                  liveLabel="LIVE MODEL (64-dim Bottleneck)"
+                  tone="purple"
+                />
               </div>
               <p className="mt-0.5 text-xs text-muted">
                 Denoising Autoencoder compresses sparse item interaction history into a 64-dim latent manifold and reconstructs missing preference affinities.
@@ -1365,9 +1437,12 @@ export default function AdminModels() {
                 <h2 className="text-base font-bold text-ink">
                   Attention Fusion Hybrid Simulator (NCF + CNN + GRU + Autoencoder)
                 </h2>
-                <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                  STAGE 5 / 5 ONLINE
-                </span>
+                <StatusPill
+                  trained={isFusionActive}
+                  degraded={fusionResult?.degraded === true}
+                  liveLabel="STAGE 5 / 5 ONLINE"
+                  tone="amber"
+                />
               </div>
               <p className="mt-0.5 text-xs text-muted">
                 Unites all 4 recommendation models through context-aware Softmax Attention. Dynamically calculates modality weights based on user history, visual affinity, in-session trajectory, and latent manifold representations.
